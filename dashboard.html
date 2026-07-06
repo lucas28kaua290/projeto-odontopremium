@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IORD | Painel de Gestão</title>
+
+<!-- Fonte: Inter (tipografia técnica, neutra, alta legibilidade em dados) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- =========================================================
+     HEADER
+     Apenas identidade + usuário. Nenhum filtro aqui — mantém
+     uma única barra fixa no topo, limpa e estável.
+========================================================== -->
+<header class="app-header">
+  <div class="app-header__brand">
+    <div class="brand-mark" aria-hidden="true">
+        <img src="logo-iord.png" alt="IORD" class="logo-img"/>
+    </div>
+    <div class="brand-text">
+      <span class="brand-text__name">IORD</span>
+      <span class="brand-text__subtitle">Painel de Gestão &mdash; Radiologias Odontológicas</span>
+    </div>
+  </div>
+
+  <div class="app-header__user">
+    <button type="button" class="header-icon-btn" aria-label="Notificações">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+    <div class="header-divider" aria-hidden="true"></div>
+    <div class="user-info">
+      <span class="user-info__name">Dr. Iago</span>
+      <span class="user-info__role">Administrador Geral</span>
+    </div>
+    <div class="user-avatar" aria-hidden="true">DI</div>
+  </div>
+</header>
+
+<!-- =========================================================
+     APP SHELL (Sidebar + Conteúdo)
+========================================================== -->
+<div class="app-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <nav class="sidebar__nav" aria-label="Navegação principal">
+      <ul class="nav-list">
+        <li class="nav-item">
+          <a href="#" class="nav-link is-active" data-page="dashboard">
+            <span class="nav-link__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 13h6V4H4v9zm0 7h6v-5H4v5zm10 0h6V11h-6v9zm0-16v5h6V4h-6z" fill="currentColor"/></svg></span>
+            <span class="nav-link__label">Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link" data-page="agendamentos">
+            <span class="nav-link__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M7 2v3M17 2v3M3 9h18M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="nav-link__label">Agendamentos</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link" data-page="pacientes">
+            <span class="nav-link__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="nav-link__label">Pacientes</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link" data-page="exames">
+            <span class="nav-link__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 2h6v4H9V2zM5 6h14v16H5V6z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 11h6M9 15h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+            <span class="nav-link__label">Exames</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link" data-page="financeiro">
+            <span class="nav-link__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="nav-link__label">Financeiro</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link" data-page="comissoes">
+            <span class="nav-link__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 15a6 6 0 100-12 6 6 0 000 12z" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 14L7 22l5-2.5L17 22l-1.5-8" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
+            <span class="nav-link__label">Comissões</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link" data-page="referenciadores">
+            <span class="nav-link__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 8a3 3 0 10-2.83-4M6 8a3 3 0 112.83-4M18 21v-2a4 4 0 00-3-3.87M6 21v-2a4 4 0 013-3.87M15 21a3 3 0 10-6 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="nav-link__label">Referenciadores</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link" data-page="radiologias">
+            <span class="nav-link__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
+            <span class="nav-link__label">Radiologias</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link" data-page="relatorios">
+            <span class="nav-link__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 2v6h6M9 13h6M9 17h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+            <span class="nav-link__label">Relatórios</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link" data-page="configuracoes">
+            <span class="nav-link__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="nav-link__label">Configurações</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="sidebar__footer">
+      <span class="sidebar__version">v1.2.0 &middot; build interno</span>
+    </div>
+  </aside>
+
+  <!-- =========================================================
+       CONTEÚDO PRINCIPAL
+  ========================================================== -->
+  <main class="main-content">
+
+    <!-- ---------------------------------------------------
+         FILTROS GLOBAIS
+         Única barra de filtros do painel, logo abaixo do
+         header. Controla radiologia + período para todas as
+         seções (KPIs, gráficos, hierarquia e comissões).
+    ---------------------------------------------------- -->
+    <section class="filters-bar" aria-label="Filtros globais">
+      <div class="filters-bar__group">
+        <span class="filters-bar__label">Radiologia</span>
+        <div class="pill-group" id="radiologyFilters" role="tablist" aria-label="Selecionar radiologia">
+          <!-- Pills geradas dinamicamente via JS -->
+        </div>
+      </div>
+
+      <div class="filters-bar__group filters-bar__group--period">
+        <span class="filters-bar__label">Período</span>
+        <div class="period-select-wrapper">
+          <select id="periodFilter" class="period-select" aria-label="Selecionar período">
+            <option value="mes_atual" selected>Mês atual</option>
+            <option value="ultimos_30">Últimos 30 dias</option>
+            <option value="trimestre">Trimestre</option>
+            <option value="ano">Ano</option>
+            <option value="custom">Personalizado</option>
+          </select>
+          <svg class="period-select__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+
+        <div class="custom-range" id="customRangeInputs" hidden>
+          <input type="date" id="customDateStart" class="custom-range__input" aria-label="Data inicial">
+          <span class="custom-range__sep">até</span>
+          <input type="date" id="customDateEnd" class="custom-range__input" aria-label="Data final">
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------
+         KPIs PRINCIPAIS
+    ---------------------------------------------------- -->
+    <section class="kpi-grid" aria-label="Indicadores principais">
+
+      <article class="kpi-card" id="kpiRevenue">
+        <div class="kpi-card__header">
+          <span class="kpi-card__label">Faturamento Total</span>
+          <span class="kpi-card__icon kpi-card__icon--primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </div>
+        <div class="kpi-card__value" data-field="value">R$ 0</div>
+        <div class="kpi-card__footer">
+          <span class="kpi-card__change" data-field="change">--</span>
+          <span class="kpi-card__context">vs. período anterior</span>
+        </div>
+      </article>
+
+      <article class="kpi-card" id="kpiExams">
+        <div class="kpi-card__header">
+          <span class="kpi-card__label">Exames Realizados</span>
+          <span class="kpi-card__icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 2h6v4H9V2zM5 6h14v16H5V6z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 11h6M9 15h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+        </div>
+        <div class="kpi-card__value" data-field="value">0</div>
+        <div class="kpi-card__footer">
+          <span class="kpi-card__change" data-field="change">--</span>
+          <span class="kpi-card__context">vs. período anterior</span>
+        </div>
+      </article>
+
+      <article class="kpi-card" id="kpiAvgPerClinic">
+        <div class="kpi-card__header">
+          <span class="kpi-card__label">Faturamento Médio / Clínica</span>
+          <span class="kpi-card__icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
+        </div>
+        <div class="kpi-card__value" data-field="value">R$ 0</div>
+        <div class="kpi-card__footer">
+          <span class="kpi-card__context" data-field="context">-- clínicas referenciadoras ativas</span>
+        </div>
+      </article>
+
+      <article class="kpi-card" id="kpiCashForecast">
+        <div class="kpi-card__header">
+          <span class="kpi-card__label">Previsibilidade de Caixa</span>
+          <span class="kpi-card__icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/></svg></span>
+        </div>
+        <div class="kpi-card__value" data-field="value">R$ 0</div>
+        <div class="kpi-card__footer">
+          <span class="kpi-card__context" data-field="context">-- exames agendados</span>
+        </div>
+      </article>
+
+      <article class="kpi-card" id="kpiCommissions">
+        <div class="kpi-card__header">
+          <span class="kpi-card__label">Comissões Totais</span>
+          <span class="kpi-card__icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 15a6 6 0 100-12 6 6 0 000 12z" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 14L7 22l5-2.5L17 22l-1.5-8" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
+        </div>
+        <div class="kpi-card__value" data-field="value">R$ 0</div>
+        <div class="kpi-card__footer">
+          <span class="kpi-card__change" data-field="change">--</span>
+          <span class="kpi-card__context" data-field="context">-- pendente</span>
+        </div>
+      </article>
+
+    </section>
+
+    <!-- ---------------------------------------------------
+         SEÇÃO DE GRÁFICOS
+    ---------------------------------------------------- -->
+    <section class="charts-section" aria-label="Análise gráfica">
+      <div class="charts-section__toolbar">
+        <h2 class="charts-section__title">Análise de Desempenho</h2>
+        <div class="view-toggle" role="tablist" aria-label="Modo de visualização">
+          <button type="button" class="view-toggle__btn is-active" data-view="faturamento" role="tab" aria-selected="true">Visualizar por Faturamento</button>
+          <button type="button" class="view-toggle__btn" data-view="quantidade" role="tab" aria-selected="false">Visualizar por Quantidade de Exames</button>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <article class="chart-card chart-card--wide">
+          <div class="chart-card__header">
+            <div>
+              <h3 class="chart-card__title" id="lineChartTitle">Evolução de Faturamento</h3>
+              <p class="chart-card__subtitle" id="lineChartSubtitle">Todas as radiologias &mdash; mês atual</p>
+            </div>
+          </div>
+          <div class="chart-card__body"><canvas id="evolutionChart" role="img" aria-label="Gráfico de linha da evolução de faturamento no tempo"></canvas></div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-card__header">
+            <div>
+              <h3 class="chart-card__title" id="barChartTitle">Faturamento por Radiologia</h3>
+              <p class="chart-card__subtitle" id="barChartSubtitle">Comparativo do período selecionado</p>
+            </div>
+          </div>
+          <div class="chart-card__body"><canvas id="entityChart" role="img" aria-label="Gráfico de barras comparando faturamento por entidade"></canvas></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------
+         TABELA HIERÁRQUICA (Radiologia → Clínica → Médico)
+    ---------------------------------------------------- -->
+    <section class="hierarchy-section" aria-label="Tabela hierárquica de desempenho">
+      <div class="section-toolbar">
+        <div>
+          <h2 class="section-toolbar__title">Desempenho Hierárquico</h2>
+          <p class="section-toolbar__subtitle">Radiologia &rarr; Clínica Referenciadora &rarr; Médico Referenciador</p>
+        </div>
+
+        <div class="section-toolbar__actions">
+          <div class="select-wrapper select-wrapper--sort">
+            <select id="hierarchySort" class="period-select" aria-label="Ordenar tabela hierárquica">
+              <option value="faturamento_desc" selected>Ordenar: Faturamento (maior)</option>
+              <option value="faturamento_asc">Ordenar: Faturamento (menor)</option>
+              <option value="pendente_desc">Ordenar: Pendente (maior)</option>
+              <option value="exames_desc">Ordenar: Exames (maior)</option>
+              <option value="nome_asc">Ordenar: Nome (A&ndash;Z)</option>
+            </select>
+            <svg class="period-select__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+
+          <button type="button" class="btn btn--ghost" id="hierarchyExpandAll">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Expandir Tudo
+          </button>
+          <button type="button" class="btn btn--ghost" id="hierarchyCollapseAll">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Recolher Tudo
+          </button>
+        </div>
+      </div>
+
+      <div class="tree-table-card">
+        <div class="tree-table__head" role="row">
+          <span class="tree-table__col tree-table__col--name">Estrutura</span>
+          <span class="tree-table__col tree-table__col--num">Exames</span>
+          <span class="tree-table__col tree-table__col--num">Faturamento</span>
+          <span class="tree-table__col tree-table__col--num">Comissão Devida</span>
+          <span class="tree-table__col tree-table__col--num">Pendente</span>
+          <span class="tree-table__col tree-table__col--action">Ação</span>
+        </div>
+
+        <div class="tree-table__body" id="treeTableBody">
+          <!-- Linhas renderizadas dinamicamente via JS (HierarchyTable) -->
+        </div>
+
+        <div class="tree-table__footer">
+          <button type="button" class="btn btn--text" id="hierarchyToggleLimit">
+            <span id="hierarchyToggleLimitLabel">Ver todas as radiologias</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------
+         SEÇÃO DE COMISSÕES
+    ---------------------------------------------------- -->
+    <section class="commissions-section" aria-label="Análise de comissões">
+      <div class="section-toolbar">
+        <div>
+          <h2 class="section-toolbar__title">Comissões</h2>
+          <p class="section-toolbar__subtitle" id="commissionsSubtitle">Todas as radiologias &mdash; mês atual</p>
+        </div>
+        <div class="section-toolbar__actions">
+          <button type="button" class="btn btn--primary" id="btnFullCommissionReport">
+            Ver Relatório Completo de Comissões
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="commission-summary-grid">
+        <article class="commission-summary-card">
+          <span class="commission-summary-card__label">Comissões Totais</span>
+          <span class="commission-summary-card__value" id="commSummaryTotal">R$ 0</span>
+          <span class="commission-summary-card__hint" id="commSummaryTotalHint">-- % do faturamento</span>
+        </article>
+        <article class="commission-summary-card">
+          <span class="commission-summary-card__label">Comissões Pagas</span>
+          <span class="commission-summary-card__value" id="commSummaryPaid">R$ 0</span>
+          <span class="commission-summary-card__hint" id="commSummaryPaidHint">-- % do total</span>
+        </article>
+        <article class="commission-summary-card commission-summary-card--alert">
+          <span class="commission-summary-card__label">Comissões Pendentes</span>
+          <span class="commission-summary-card__value" id="commSummaryPending">R$ 0</span>
+          <span class="commission-summary-card__hint" id="commSummaryPendingHint">-- médicos aguardando</span>
+        </article>
+        <article class="commission-summary-card">
+          <span class="commission-summary-card__label">Médicos Referenciadores</span>
+          <span class="commission-summary-card__value" id="commSummaryDoctors">0</span>
+          <span class="commission-summary-card__hint" id="commSummaryDoctorsHint">ativos no período</span>
+        </article>
+      </div>
+
+      <div class="charts-grid charts-grid--commissions">
+        <article class="chart-card">
+          <div class="chart-card__header">
+            <div>
+              <h3 class="chart-card__title">Top 10 Médicos por Comissão</h3>
+              <p class="chart-card__subtitle" id="commTopDoctorsSubtitle">Maiores comissões do período</p>
+            </div>
+          </div>
+          <div class="chart-card__body chart-card__body--tall"><canvas id="commTopDoctorsChart" role="img" aria-label="Gráfico de barras dos médicos com maior comissão"></canvas></div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-card__header">
+            <div>
+              <h3 class="chart-card__title">Distribuição de Comissões</h3>
+              <p class="chart-card__subtitle" id="commDistributionSubtitle">Por radiologia</p>
+            </div>
+          </div>
+          <div class="chart-card__body chart-card__body--tall"><canvas id="commDistributionChart" role="img" aria-label="Gráfico de pizza da distribuição de comissões"></canvas></div>
+        </article>
+
+        <article class="chart-card chart-card--wide">
+          <div class="chart-card__header">
+            <div>
+              <h3 class="chart-card__title">Comissões por Radiologia / Clínica</h3>
+              <p class="chart-card__subtitle" id="commByEntitySubtitle">Pago vs. pendente, empilhado por entidade</p>
+            </div>
+          </div>
+          <div class="chart-card__body"><canvas id="commByEntityChart" role="img" aria-label="Gráfico de barras empilhadas de comissões pagas e pendentes por entidade"></canvas></div>
+        </article>
+      </div>
+
+      <div class="table-card">
+        <div class="table-card__header">
+          <h3 class="table-card__title">Top Comissões</h3>
+          <span class="table-card__hint">Ordenado por valor de comissão devida</span>
+        </div>
+        <div class="table-card__scroll">
+          <table class="data-table" id="commTopTable">
+            <thead>
+              <tr>
+                <th>Médico Referenciador</th>
+                <th class="data-table__num">Exames</th>
+                <th class="data-table__num">Comissão Devida</th>
+                <th class="data-table__num">Pendente</th>
+                <th class="data-table__action">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="commTopTableBody">
+              <!-- Linhas renderizadas dinamicamente via JS (Commissions) -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- =========================================================
+     SCRIPTS
+========================================================== -->
+<script src="js/app.js"></script>
+</body>
+</html>
