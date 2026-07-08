@@ -248,12 +248,18 @@
           <h2 class="charts-section__title" id="occupancyChartTitle">Ocupação das Radiologias</h2>
           <p class="section-toolbar__subtitle" id="occupancyChartSubtitle">Comparativo entre as 4 unidades</p>
         </div>
+        <div class="occupancy-legend" id="occupancyLegend"></div>
       </div>
-      <div class="charts-grid charts-grid--single">
-        <article class="chart-card chart-card--wide">
-          <div class="chart-card__body"><canvas id="occupancyChart" role="img" aria-label="Gráfico de ocupação das radiologias"></canvas></div>
-        </article>
+
+      <div class="occupancy-cards" id="occupancyCards">
+        <!-- preenchido pelo JS -->
       </div>
+
+      <article class="chart-card chart-card--wide">
+        <div class="chart-card__body chart-card__body--tall">
+          <canvas id="occupancyChart" role="img" aria-label="Gráfico de ocupação das radiologias"></canvas>
+        </div>
+      </article>
     </section>
 
     <!-- SEÇÃO DA AGENDA (Agenda / Kanban / Dia) -->
@@ -324,13 +330,13 @@
             <button type="button" class="btn btn--ghost btn--icon-only" id="dayPrev" aria-label="Dia anterior">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
-            <span class="calendar-nav__label" id="dayLabel">Terça-feira, 7 de Julho</span>
+            <span class="day-nav__label" id="dayLabel">Terça-feira, 7 de Julho</span>
+            <span class="day-nav__today-chip" id="dayTodayChip" hidden>Hoje</span>
             <button type="button" class="btn btn--ghost btn--icon-only" id="dayNext" aria-label="Próximo dia">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <button type="button" class="btn btn--ghost btn--sm" id="dayToday">Hoje</button>
           </div>
-          <!-- Mini sumário de status do dia -->
           <div class="day-nav__status-pills" id="dayStatusPills"></div>
         </div>
 
@@ -370,7 +376,10 @@
     <div class="appointment-modal__body">
 
       <section class="modal-section">
-        <h4 class="modal-section__title">Paciente</h4>
+        <h4 class="modal-section__title">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 12a5 5 0 100-10 5 5 0 000 10zM3 21a9 9 0 0118 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Paciente
+        </h4>
         <div class="modal-section__grid">
           <div class="modal-field">
             <span class="modal-field__label">Nome completo</span>
@@ -388,7 +397,10 @@
       </section>
 
       <section class="modal-section">
-        <h4 class="modal-section__title">Exame</h4>
+        <h4 class="modal-section__title">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M9 2h6v4H9V2zM5 6h14v16H5V6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 11h6M9 15h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Exame
+          </h4>
         <div class="modal-section__grid">
           <div class="modal-field">
             <span class="modal-field__label">Tipo de exame</span>
@@ -406,7 +418,10 @@
       </section>
 
       <section class="modal-section">
-        <h4 class="modal-section__title">Origem</h4>
+        <h4 class="modal-section__title">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          Origem
+        </h4>
         <div class="modal-section__grid">
           <div class="modal-field">
             <span class="modal-field__label">Radiologia</span>
@@ -424,7 +439,10 @@
       </section>
 
       <section class="modal-section">
-        <h4 class="modal-section__title">Observações</h4>
+        <h4 class="modal-section__title">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          Observações
+        </h4>
         <p class="modal-observations" id="modalObservations">Nenhuma observação registrada.</p>
       </section>
 

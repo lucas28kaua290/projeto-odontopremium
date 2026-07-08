@@ -469,8 +469,106 @@ const Kpis = (() => {
 ================================================================= */
 const OccupancyChart = (() => {
   let chart = null;
-  const SERIES_COLORS = ['#018093', '#01C6BF', '#046B85', '#7FE0DA'];
 
+  const PALETTE = {
+    rad_centro: { base: '#018093', light: '#01C6BF', soft: 'rgba(1,128,147,0.12)' },
+    rad_norte:  { base: '#046B85', light: '#01A9A0', soft: 'rgba(4,107,133,0.12)' },
+    rad_sul:    { base: '#01C6BF', light: '#7FE0DA', soft: 'rgba(1,198,191,0.12)' },
+    rad_leste:  { base: '#7FE0DA', light: '#B2EDE9', soft: 'rgba(127,224,218,0.15)' },
+  };
+
+  // Gera dados simulados de tendência semanal para o sparkline (7 pontos)
+  function sparklineData(radId) {
+    const hoje = new Date();
+    const pts = [];
+    for (let i = 6; i >= 0; i--) {
+      const dia = new Date(hoje);
+      dia.setDate(dia.getDate() - i);
+      const iso = MockData.toISODate(dia);
+      const ags = MockData.getAgendamentos({ radiologiaId: radId })
+        .filter(a => a.data === iso && a.status !== 'cancelado' && a.status !== 'faltou');
+      pts.push(ags.length);
+    }
+    // normaliza para 0–100 para o SVG
+    const max = Math.max(...pts, 1);
+    return pts.map(v => Math.round((v / max) * 100));
+  }
+
+  // Desenha um sparkline SVG inline
+  function buildSparklineSVG(points, color) {
+    const W = 72, H = 28;
+    const min = Math.min(...points) - 5;
+    const max = Math.max(...points) + 5;
+    const range = max - min || 1;
+    const xs = points.map((_, i) => (i / (points.length - 1)) * W);
+    const ys = points.map(v => H - ((v - min) / range) * H);
+    const d = xs.map((x, i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' ');
+    const fill = `${xs.map((x, i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' ')} L${W},${H} L0,${H} Z`;
+
+    return `
+      <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="spk_grad_${color.replace('#','')}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${color}" stop-opacity="0.25"/>
+            <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d="${fill}" fill="url(#spk_grad_${color.replace('#','')})" />
+        <path d="${d}" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="${xs[6].toFixed(1)}" cy="${ys[6].toFixed(1)}" r="2.5" fill="${color}"/>
+      </svg>`;
+  }
+
+  // Constrói os cards de métricas acima do gráfico
+  function renderCards(data) {
+    const container = document.getElementById('occupancyCards');
+    if (!container) return;
+    container.innerHTML = '';
+
+    data.forEach((item, i) => {
+      const pal    = PALETTE[item.id] || { base: '#018093', light: '#01C6BF', soft: 'rgba(1,128,147,0.1)' };
+      const pts = sparklineData(item.id);
+      const svg    = buildSparklineSVG(pts, pal.base);
+      const nomeShort = item.nome.replace('Radiologia ', '');
+
+      const card = document.createElement('div');
+      card.className = 'occ-card';
+      card.style.setProperty('--occ-color', pal.base);
+      card.style.setProperty('--occ-soft', pal.soft);
+      card.innerHTML = `
+        <div class="occ-card__top">
+          <div class="occ-card__dot" style="background:${pal.base}"></div>
+          <span class="occ-card__name">${nomeShort}</span>
+        </div>
+        <div class="occ-card__body">
+          <span class="occ-card__value">${item.ocupacao}%</span>
+          <div class="occ-card__spark">${svg}</div>
+        </div>
+        <div class="occ-card__bar-track">
+          <div class="occ-card__bar-fill" style="width:${item.ocupacao}%; background:${pal.base}"></div>
+        </div>
+        <span class="occ-card__label">ocupação atual</span>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  // Constrói a legenda de cores ao lado do título
+  function renderLegend(data) {
+    const el = document.getElementById('occupancyLegend');
+    if (!el) return;
+    el.innerHTML = data.map((item) => {
+      const pal = PALETTE[item.id] || { base: '#018093' };
+      const nomeShort = item.nome.replace('Radiologia ', '');
+      return `
+        <span class="occ-legend-item">
+          <span class="occ-legend-dot" style="background:${pal.base}"></span>
+          ${nomeShort}
+        </span>`;
+    }).join('');
+  }
+
+  // Tooltip externo rico
   function getOrCreateTooltip(chartInstance) {
     let el = chartInstance.canvas.parentNode.querySelector('div.chartjs-tooltip');
     if (!el) {
@@ -482,105 +580,207 @@ const OccupancyChart = (() => {
     return el;
   }
 
-  function externalTooltipHandler(buildContent) {
+  function buildTooltipContent(tooltip, data) {
+    const idx   = tooltip.dataPoints[0].dataIndex;
+    const item  = data[idx];
+    const pal   = PALETTE[item.id] || { base: '#018093' };
+    const pts = sparklineData(item.id);
+    const svg   = buildSparklineSVG(pts, '#ffffff');
+    const agendados = Math.round(item.ocupacao * 0.5);
+    const disponiveis = 50 - agendados;
+
+    return `
+      <span class="cjs-tooltip__eyebrow">Radiologia</span>
+      <div class="cjs-tooltip__headline">
+        <span class="cjs-tooltip__dot" style="background:${pal.light}"></span>
+        <span class="cjs-tooltip__headline-label">${item.nome}</span>
+        <span class="cjs-tooltip__headline-value">${item.ocupacao}%</span>
+      </div>
+      <div class="cjs-tooltip__spark-row">${svg}</div>
+      <div class="cjs-tooltip__divider"></div>
+      <div class="cjs-tooltip__metrics">
+        <div class="cjs-tooltip__metric">
+          <span class="cjs-tooltip__metric-label">Horários preenchidos</span>
+          <span class="cjs-tooltip__metric-value">${agendados}/50</span>
+        </div>
+        <div class="cjs-tooltip__metric">
+          <span class="cjs-tooltip__metric-label">Horários disponíveis</span>
+          <span class="cjs-tooltip__metric-value">${disponiveis}</span>
+        </div>
+      </div>
+      <div class="cjs-tooltip__mini-bar-track">
+        <div class="cjs-tooltip__mini-bar-fill" style="width:${item.ocupacao}%; background:${pal.light}"></div>
+      </div>
+    `;
+  }
+
+  function externalTooltip(data) {
     return (context) => {
       const { chart: chartInstance, tooltip } = context;
       const el = getOrCreateTooltip(chartInstance);
       if (tooltip.opacity === 0) { el.style.opacity = 0; return; }
-      const content = buildContent(tooltip);
-      const inner = el.querySelector('.cjs-tooltip__inner');
-      inner.innerHTML = `
-        ${content.eyebrow ? `<span class="cjs-tooltip__eyebrow">${content.eyebrow}</span>` : ''}
-        <div class="cjs-tooltip__headline">
-          <span class="cjs-tooltip__dot" style="background:${content.headline.color}"></span>
-          <span class="cjs-tooltip__headline-label">${content.headline.label}</span>
-          <span class="cjs-tooltip__headline-value">${content.headline.value}</span>
-        </div>
-        ${content.metrics ? `
-          <div class="cjs-tooltip__divider"></div>
-          <div class="cjs-tooltip__metrics">
-            ${content.metrics.map((m) => `<div class="cjs-tooltip__metric"><span class="cjs-tooltip__metric-label">${m.label}</span><span class="cjs-tooltip__metric-value">${m.value}</span></div>`).join('')}
-          </div>` : ''}
-      `;
+      el.querySelector('.cjs-tooltip__inner').innerHTML = buildTooltipContent(tooltip, data); 
       const { offsetLeft, offsetTop } = chartInstance.canvas;
-      el.style.opacity = 1;
-      el.style.left = `${offsetLeft + tooltip.caretX}px`;
-      el.style.top = `${offsetTop + tooltip.caretY}px`;
-      el.style.transform = 'translate(-50%, calc(-100% - 12px))';
+      el.style.opacity  = 1;
+      el.style.left     = `${offsetLeft + tooltip.caretX}px`;
+      el.style.top      = `${offsetTop  + tooltip.caretY}px`;
+      el.style.transform = 'translate(-50%, calc(-100% - 14px))';
     };
   }
 
   function renderAllRadiologies() {
-    const ctx = document.getElementById('occupancyChart');
+    const ctx  = document.getElementById('occupancyChart');
     const data = MockData.getOcupacaoGeral();
-    document.getElementById('occupancyChartTitle').textContent = 'Ocupação das Radiologias';
-    document.getElementById('occupancyChartSubtitle').textContent = 'Comparativo entre as 4 unidades';
+    document.getElementById('occupancyChartTitle').textContent    = 'Ocupação das Radiologias';
+    document.getElementById('occupancyChartSubtitle').textContent = 'Comparativo entre as 4 unidades · últimos 7 dias de tendência';
+
+    renderLegend(data);
+    renderCards(data);
+
     if (chart) chart.destroy();
+
+    const bgColors  = data.map((d) => PALETTE[d.id]?.base  || '#018093');
+    const hvrColors = data.map((d) => PALETTE[d.id]?.light || '#01C6BF');
+
     chart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: data.map((d) => d.nome),
-        datasets: [{ label: 'Ocupação (%)', data: data.map((d) => d.ocupacao), backgroundColor: SERIES_COLORS, borderRadius: 6, maxBarThickness: 56 }],
+        labels: data.map((d) => d.nome.replace('Radiologia ', '')),
+        datasets: [{
+          label: 'Ocupação (%)',
+          data: data.map((d) => d.ocupacao),
+          backgroundColor: bgColors,
+          hoverBackgroundColor: hvrColors,
+          borderRadius: { topLeft: 8, topRight: 8 },
+          borderSkipped: 'bottom',
+          maxBarThickness: 72,
+        }],
       },
       options: {
-        responsive: true, maintainAspectRatio: false,
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 600, easing: 'easeOutQuart' },
         plugins: {
           legend: { display: false },
-          tooltip: { enabled: false, position: 'nearest', external: externalTooltipHandler((t) => {
-            const idx = t.dataPoints[0].dataIndex;
-            const item = data[idx];
-            const prev = Math.max(0, item.ocupacao - (4 + Math.round(Math.random() * 6)));
-            return {
-              eyebrow: 'Radiologia',
-              headline: { label: item.nome, value: `${item.ocupacao}%`, color: SERIES_COLORS[idx % SERIES_COLORS.length] },
-              metrics: [
-                { label: 'Horários preenchidos', value: `${Math.round(item.ocupacao * 0.5)}/50` },
-                { label: 'vs. semana anterior', value: `${item.ocupacao >= prev ? '+' : ''}${item.ocupacao - prev} p.p.` },
-              ],
-            };
-          }) },
+          tooltip: {
+            enabled: false,
+            position: 'nearest',
+            external: externalTooltip(data),
+          },
         },
         scales: {
-          x: { grid: { display: false }, ticks: { font: { size: 11 } } },
-          y: { min: 0, max: 100, grid: { color: '#E3E7E8' }, ticks: { font: { size: 11 }, callback: (v) => `${v}%` } },
+          x: {
+            grid: { display: false },
+            border: { display: false },
+            ticks: { font: { size: 12, family: 'Inter', weight: '500' }, color: '#5C6E72' },
+          },
+          y: {
+            min: 0, max: 100,
+            grid: { color: '#E7ECED', lineWidth: 1 },
+            border: { display: false, dash: [4, 4] },
+            ticks: {
+              font: { size: 11, family: 'Inter' },
+              color: '#8B9C9F',
+              stepSize: 20,
+              callback: (v) => `${v}%`,
+            },
+          },
         },
       },
     });
   }
 
   function renderInternalOccupancy(state) {
-    const ctx = document.getElementById('occupancyChart');
+    const ctx  = document.getElementById('occupancyChart');
     const nome = MockData.nomeRadiologiaPorId[state.radiologiaSelecionada];
     const data = MockData.getOcupacaoInterna(state.radiologiaSelecionada);
-    document.getElementById('occupancyChartTitle').textContent = `Ocupação Interna — ${nome}`;
-    document.getElementById('occupancyChartSubtitle').textContent = 'Distribuição por dia da semana';
+    const pal  = PALETTE[state.radiologiaSelecionada] || { base: '#018093', light: '#01C6BF' };
+
+    document.getElementById('occupancyChartTitle').textContent    = `Ocupação Interna — ${nome}`;
+    document.getElementById('occupancyChartSubtitle').textContent = 'Distribuição de agendamentos por dia da semana';
+
+    // Esconde cards e legenda no modo interno
+    const cards  = document.getElementById('occupancyCards');
+    const legend = document.getElementById('occupancyLegend');
+    if (cards)  cards.innerHTML  = '';
+    if (legend) legend.innerHTML = '';
+
     if (chart) chart.destroy();
+
     chart = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: data.map((d) => d.nome),
-        datasets: [{ label: 'Ocupação (%)', data: data.map((d) => d.ocupacao), backgroundColor: '#01C6BF', borderRadius: 6, maxBarThickness: 56 }],
+        datasets: [{
+          label: 'Ocupação (%)',
+          data: data.map((d) => d.ocupacao),
+          backgroundColor: data.map((_, i) => i === new Date().getDay() - 1 ? pal.light : pal.base),
+          hoverBackgroundColor: pal.light,
+          borderRadius: { topLeft: 8, topRight: 8 },
+          borderSkipped: 'bottom',
+          maxBarThickness: 72,
+        }],
       },
       options: {
-        responsive: true, maintainAspectRatio: false,
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 500, easing: 'easeOutQuart' },
         plugins: {
           legend: { display: false },
-          tooltip: { enabled: false, position: 'nearest', external: externalTooltipHandler((t) => {
-            const idx = t.dataPoints[0].dataIndex;
-            const item = data[idx];
-            return {
-              eyebrow: 'Dia da semana',
-              headline: { label: item.nome, value: `${item.ocupacao}%`, color: '#01C6BF' },
-              metrics: [
-                { label: 'Agendamentos', value: Kpis.formatNumber(item.quantidade) },
-                { label: 'Disponíveis', value: Math.max(0, 24 - item.quantidade) },
-              ],
-            };
-          }) },
+          tooltip: {
+            enabled: false,
+            position: 'nearest',
+            external: (() => {
+              const tooltipFn = (context) => {
+                const { chart: chartInstance, tooltip } = context;
+                const el = getOrCreateTooltip(chartInstance);
+                if (tooltip.opacity === 0) { el.style.opacity = 0; return; }
+                const idx  = tooltip.dataPoints[0].dataIndex;
+                const item = data[idx];
+                el.querySelector('.cjs-tooltip__inner').innerHTML = `
+                  <span class="cjs-tooltip__eyebrow">Dia da semana</span>
+                  <div class="cjs-tooltip__headline">
+                    <span class="cjs-tooltip__dot" style="background:${pal.light}"></span>
+                    <span class="cjs-tooltip__headline-label">${item.nome}</span>
+                    <span class="cjs-tooltip__headline-value">${item.ocupacao}%</span>
+                  </div>
+                  <div class="cjs-tooltip__divider"></div>
+                  <div class="cjs-tooltip__metrics">
+                    <div class="cjs-tooltip__metric">
+                      <span class="cjs-tooltip__metric-label">Agendamentos</span>
+                      <span class="cjs-tooltip__metric-value">${Kpis.formatNumber(item.quantidade)}</span>
+                    </div>
+                    <div class="cjs-tooltip__metric">
+                      <span class="cjs-tooltip__metric-label">Slots disponíveis</span>
+                      <span class="cjs-tooltip__metric-value">${Math.max(0, 24 - item.quantidade)}</span>
+                    </div>
+                  </div>
+                  <div class="cjs-tooltip__mini-bar-track">
+                    <div class="cjs-tooltip__mini-bar-fill" style="width:${item.ocupacao}%; background:${pal.light}"></div>
+                  </div>
+                `;
+                const { offsetLeft, offsetTop } = chartInstance.canvas;
+                el.style.opacity   = 1;
+                el.style.left      = `${offsetLeft + tooltip.caretX}px`;
+                el.style.top       = `${offsetTop  + tooltip.caretY}px`;
+                el.style.transform = 'translate(-50%, calc(-100% - 14px))';
+              };
+              return tooltipFn;
+            })(),
+          },
         },
         scales: {
-          x: { grid: { display: false }, ticks: { font: { size: 11 } } },
-          y: { min: 0, max: 100, grid: { color: '#E3E7E8' }, ticks: { font: { size: 11 }, callback: (v) => `${v}%` } },
+          x: {
+            grid: { display: false },
+            border: { display: false },
+            ticks: { font: { size: 12, family: 'Inter', weight: '500' }, color: '#5C6E72' },
+          },
+          y: {
+            min: 0, max: 100,
+            grid: { color: '#E7ECED' },
+            border: { display: false },
+            ticks: { font: { size: 11, family: 'Inter' }, color: '#8B9C9F', stepSize: 20, callback: (v) => `${v}%` },
+          },
         },
       },
     });
@@ -596,7 +796,7 @@ const OccupancyChart = (() => {
     AppState.subscribe(render);
   }
 
-  return { init, externalTooltipHandler };
+  return { init, externalTooltipHandler: () => {} };
 })();
 
 
@@ -899,12 +1099,25 @@ const KanbanView = (() => {
   let boardEl, searchInput;
   let draggedId = null;
   let autoScrollRAF = null;
+  let ghostEl = null;
 
   function agendamentosDoKanban(state) {
     const kanbanSearch = (searchInput?.value || '').trim().toLowerCase();
     const base = AgendaData.getFilteredNoPeriod(state);
     if (!kanbanSearch) return base;
     return base.filter((a) => `${a.paciente} ${a.tipoExame} ${a.medico}`.toLowerCase().includes(kanbanSearch));
+  }
+
+  /* Retorna o próximo horário disponível na coluna de destino,
+     mantendo a ordem cronológica relativa ao card arrastado.     */
+  function resolveNewTime(agendamento, targetStatus, allAgendamentos) {
+    const targetCards = allAgendamentos
+      .filter((a) => a.id !== agendamento.id && MockData.statusConfig[a.status].kanbanColumn === targetStatus)
+      .sort((a, b) => (a.data + a.horarioInicio).localeCompare(b.data + b.horarioInicio));
+
+    // Mantém data/hora originais — a ordem visual já é resolvida pelo sort
+    // Apenas garante que o status correto seja aplicado
+    return { data: agendamento.data, horarioInicio: agendamento.horarioInicio };
   }
 
   function buildCard(agendamento) {
@@ -914,7 +1127,8 @@ const KanbanView = (() => {
     card.dataset.id = agendamento.id;
     card.dataset.status = agendamento.status;
 
-    const dataLabel = new Date(`${agendamento.data}T00:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+    const dataLabel = new Date(`${agendamento.data}T00:00:00`)
+      .toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 
     card.innerHTML = `
       <div class="kanban-card__top">
@@ -933,14 +1147,12 @@ const KanbanView = (() => {
       </div>
     `;
 
-    // Clique abre modal (só se não estiver arrastando)
-    card.addEventListener('click', (e) => {
+    card.addEventListener('click', () => {
       if (!draggedId) AppointmentModal.open(agendamento);
     });
 
     card.addEventListener('dragstart', (e) => {
       draggedId = agendamento.id;
-      // Pequeno delay para aplicar a classe depois do browser capturar o ghost
       requestAnimationFrame(() => card.classList.add('is-dragging'));
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', agendamento.id);
@@ -948,14 +1160,25 @@ const KanbanView = (() => {
 
     card.addEventListener('dragend', () => {
       card.classList.remove('is-dragging');
-      // Reseta após o drop processar
       requestAnimationFrame(() => { draggedId = null; });
       stopAutoScroll();
+      removeGhost();
       boardEl.querySelectorAll('.kanban-column__body').forEach((b) => b.classList.remove('is-drag-over'));
       boardEl.querySelectorAll('.kanban-column').forEach((c) => c.classList.remove('is-drop-target'));
     });
 
     return card;
+  }
+
+  /* Ghost visual que aparece na coluna de destino durante o drag */
+  function createGhost() {
+    ghostEl = document.createElement('div');
+    ghostEl.className = 'kanban-card--drop-ghost';
+    return ghostEl;
+  }
+  function removeGhost() {
+    if (ghostEl && ghostEl.parentNode) ghostEl.parentNode.removeChild(ghostEl);
+    ghostEl = null;
   }
 
   function buildColumn(columnDef, agendamentosDaColuna) {
@@ -965,7 +1188,9 @@ const KanbanView = (() => {
 
     col.innerHTML = `
       <div class="kanban-column__head">
-        <span class="kanban-column__title"><span class="kanban-column__dot"></span>${columnDef.label}</span>
+        <span class="kanban-column__title">
+          <span class="kanban-column__dot"></span>${columnDef.label}
+        </span>
         <span class="kanban-column__count">${agendamentosDaColuna.length}</span>
       </div>
       <div class="kanban-column__body" data-status="${columnDef.id}"></div>
@@ -1008,18 +1233,45 @@ const KanbanView = (() => {
     bodyEl.addEventListener('dragover', (e) => {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
-      // Limpa highlight das outras colunas
+
       boardEl.querySelectorAll('.kanban-column__body').forEach((b) => b.classList.remove('is-drag-over'));
       boardEl.querySelectorAll('.kanban-column').forEach((c) => c.classList.remove('is-drop-target'));
       bodyEl.classList.add('is-drag-over');
       colEl.classList.add('is-drop-target');
+
+      /* Insere ghost se ainda não estiver nessa coluna */
+      if (!bodyEl.querySelector('.kanban-card--drop-ghost')) {
+        removeGhost();
+        const g = createGhost();
+
+        /* Posiciona o ghost na ordem correta pelo horário */
+        const id = draggedId;
+        if (id) {
+          const dragged = findAppointmentById(id);
+          if (dragged) {
+            const cards = [...bodyEl.querySelectorAll('.kanban-card:not(.is-dragging)')];
+            let inserted = false;
+            for (const c of cards) {
+              const a = findAppointmentById(c.dataset.id);
+              if (a && (dragged.data + dragged.horarioInicio) <= (a.data + a.horarioInicio)) {
+                bodyEl.insertBefore(g, c);
+                inserted = true;
+                break;
+              }
+            }
+            if (!inserted) bodyEl.appendChild(g);
+            return;
+          }
+        }
+        bodyEl.appendChild(g);
+      }
     });
 
     bodyEl.addEventListener('dragleave', (e) => {
-      // Só remove se realmente saiu da coluna (não de um card filho)
       if (!colEl.contains(e.relatedTarget)) {
         bodyEl.classList.remove('is-drag-over');
         colEl.classList.remove('is-drop-target');
+        removeGhost();
       }
     });
 
@@ -1027,6 +1279,7 @@ const KanbanView = (() => {
       e.preventDefault();
       bodyEl.classList.remove('is-drag-over');
       colEl.classList.remove('is-drop-target');
+      removeGhost();
       const id = e.dataTransfer.getData('text/plain') || draggedId;
       if (!id) return;
       moveAppointment(id, statusId);
@@ -1039,17 +1292,28 @@ const KanbanView = (() => {
 
   function moveAppointment(id, newStatus) {
     const agendamento = findAppointmentById(id);
-    if (!agendamento || agendamento.status === newStatus) return;
-    agendamento.status = newStatus;
+    if (!agendamento || MockData.statusConfig[agendamento.status].kanbanColumn === newStatus) return;
+
+    /* Atualiza o status para o primeiro status válido da coluna de destino */
+    const novoStatus = Object.entries(MockData.statusConfig)
+      .find(([, cfg]) => cfg.kanbanColumn === newStatus)?.[0];
+    if (!novoStatus) return;
+
+    agendamento.status = novoStatus;
+
+    /* Re-render com animação de entrada nos cards novos */
     render(AppState.getState());
+
+    document.dispatchEvent(new CustomEvent('appointment:statusChanged', { detail: { agendamento } }));
   }
 
-  /** CORREÇÃO: removido o guard `if (state.agendaView !== 'kanban') return;` */
   function render(state) {
     const agendamentos = agendamentosDoKanban(state);
     boardEl.innerHTML = '';
     MockData.kanbanColumns.forEach((columnDef) => {
-      const daColuna = agendamentos.filter((a) => MockData.statusConfig[a.status].kanbanColumn === columnDef.id);
+      const daColuna = agendamentos.filter(
+        (a) => MockData.statusConfig[a.status].kanbanColumn === columnDef.id
+      );
       boardEl.appendChild(buildColumn(columnDef, daColuna));
     });
   }
@@ -1110,21 +1374,26 @@ const DayView = (() => {
 
     summaryEl.innerHTML = `
       <div class="day-summary__card">
+        <svg class="day-summary__card-icon" viewBox="0 0 24 24" fill="none"><path d="M8 7V3M16 7V3M3 11h18M5 5h14a2 2 0 012 2v13a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span class="day-summary__label">Total Agendado</span>
         <span class="day-summary__value">${Kpis.formatNumber(total)}</span>
         <span class="day-summary__sub">pacientes no dia</span>
       </div>
       <div class="day-summary__card">
+        <svg class="day-summary__card-icon" viewBox="0 0 24 24" fill="none"><path d="M12 8v4l3 3M12 22a10 10 0 100-20 10 10 0 000 20z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span class="day-summary__label">Ocupação do Dia</span>
         <span class="day-summary__value">${ocupacaoPct}%</span>
+        <div class="day-summary__bar"><div class="day-summary__bar-fill" style="width: ${ocupacaoPct}%"></div></div>
         <span class="day-summary__sub">dos slots disponíveis</span>
       </div>
       <div class="day-summary__card">
+        <svg class="day-summary__card-icon" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4M22 12a10 10 0 11-20 0 10 10 0 0120 0z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span class="day-summary__label">Realizados</span>
         <span class="day-summary__value">${realizados}</span>
         <span class="day-summary__sub">de ${total} agendados</span>
       </div>
       <div class="day-summary__card">
+        <svg class="day-summary__card-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span class="day-summary__label">Faturamento Estimado</span>
         <span class="day-summary__value">${Kpis.formatCurrency(faturamento)}</span>
         <span class="day-summary__sub">excluindo cancelados</span>
@@ -1148,7 +1417,15 @@ const DayView = (() => {
 
     const radiologiaMeta = state.radiologiaSelecionada === 'all' ? ` · ${agendamento.radiologiaNome}` : '';
 
+    const initials = agendamento.paciente
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(n => n[0])
+      .join('');
+
     row.innerHTML = `
+      <div class="timeline-appt__avatar">${initials}</div>
       <span class="timeline-appt__time">${agendamento.horarioInicio}–${agendamento.horarioFim}</span>
       <div class="timeline-appt__main">
         <span class="timeline-appt__patient">${agendamento.paciente}</span>
@@ -1176,6 +1453,8 @@ const DayView = (() => {
     const body = document.createElement('div');
     body.className = 'day-timeline__body';
 
+    const isHoje = MockData.toISODate(state.dayDate) === MockData.toISODate(new Date());
+
     if (!agendamentos.length) {
       body.innerHTML = `
         <div class="timeline-empty-state">
@@ -1189,7 +1468,6 @@ const DayView = (() => {
     }
 
     const hojeHora = new Date().getHours();
-    const isHoje = MockData.toISODate(state.dayDate) === MockData.toISODate(new Date());
 
     HORAS.forEach((hora) => {
       const label = `${MockData.pad(hora)}:00`;
@@ -1230,6 +1508,10 @@ const DayView = (() => {
   function render(state) {
     const label = state.dayDate.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
     labelEl.textContent = label.charAt(0).toUpperCase() + label.slice(1);
+
+    const todayChip = document.getElementById('dayTodayChip');
+    const isToday = MockData.toISODate(state.dayDate) === MockData.toISODate(new Date());
+    if (todayChip) todayChip.hidden = !isToday;
 
     const agendamentos = agendamentosDoDia(state);
     renderSummary(agendamentos);
