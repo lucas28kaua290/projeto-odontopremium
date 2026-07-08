@@ -61,7 +61,7 @@
           </a>
         </li>
         <li class="nav-item">
-          <a href="#" class="nav-link" data-page="agendamentos">
+          <a href="agendamentos.html" class="nav-link" data-page="agendamentos">
             <span class="nav-link__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M7 2v3M17 2v3M3 9h18M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
             <span class="nav-link__label">Agendamentos</span>
           </a>
@@ -273,7 +273,7 @@
           <h2 class="section-toolbar__title">Desempenho Hierárquico</h2>
           <p class="section-toolbar__subtitle">Radiologia &rarr; Clínica Referenciadora &rarr; Médico Referenciador</p>
         </div>
-
+ 
         <div class="section-toolbar__actions">
           <div class="select-wrapper select-wrapper--sort">
             <select id="hierarchySort" class="period-select" aria-label="Ordenar tabela hierárquica">
@@ -285,7 +285,7 @@
             </select>
             <svg class="period-select__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
-
+ 
           <button type="button" class="btn btn--ghost" id="hierarchyExpandAll">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
             Expandir Tudo
@@ -295,6 +295,12 @@
             Recolher Tudo
           </button>
         </div>
+      </div>
+ 
+      <div class="tree-table-legend" aria-hidden="true">
+        <span class="tree-table-legend__item"><span class="tree-table-legend__dot tree-table-legend__dot--1"></span>Radiologia</span>
+        <span class="tree-table-legend__item"><span class="tree-table-legend__dot tree-table-legend__dot--2"></span>Clínica Referenciadora</span>
+        <span class="tree-table-legend__item"><span class="tree-table-legend__dot tree-table-legend__dot--3"></span>Médico Referenciador</span>
       </div>
 
       <div class="tree-table-card">
@@ -306,11 +312,11 @@
           <span class="tree-table__col tree-table__col--num">Pendente</span>
           <span class="tree-table__col tree-table__col--action">Ação</span>
         </div>
-
+ 
         <div class="tree-table__body" id="treeTableBody">
           <!-- Linhas renderizadas dinamicamente via JS (HierarchyTable) -->
         </div>
-
+ 
         <div class="tree-table__footer">
           <button type="button" class="btn btn--text" id="hierarchyToggleLimit">
             <span id="hierarchyToggleLimitLabel">Ver todas as radiologias</span>

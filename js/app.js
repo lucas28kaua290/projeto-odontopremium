@@ -155,7 +155,7 @@ const MockData = (() => {
       nome: c.nome,
       faturamento: c.medicos.reduce((s, m) => s + m.faturamento, 0),
       exames: c.medicos.reduce((s, m) => s + m.exames, 0),
-      medicos: c.medicos.map((m) => m.nome),
+      medicos: c.medicos,
     }));
   }
 
@@ -838,9 +838,40 @@ const Charts = (() => {
         });
       breakdown = { title: 'Clínicas referenciadoras', rows };
     } else if (info && info.tipo === 'clinica' && info.medicos.length) {
+      const total = info.medicos.reduce(
+        (s, m) =>
+          s +
+          (state.visualizacao === 'faturamento'
+            ? m.faturamento
+            : m.exames),
+        0
+      );
+
       breakdown = {
         title: 'Médicos referenciadores',
-        rows: info.medicos.map((m) => ({ label: m })),
+        rows: info.medicos
+          .sort((a, b) =>
+            state.visualizacao === 'faturamento'
+              ? b.faturamento - a.faturamento
+              : b.exames - a.exames
+          )
+          .map((m, i) => {
+
+            const valor =
+              state.visualizacao === 'faturamento'
+                ? m.faturamento
+                : m.exames;
+
+            return {
+              label: m.nome,
+              value:
+                state.visualizacao === 'faturamento'
+                  ? formatCurrencyFull(valor)
+                  : `${formatNumberFull(valor)} exames`,
+              percent: total ? (valor / total) * 100 : 0,
+              color: SERIES_COLORS[(i + 1) % SERIES_COLORS.length],
+            };
+          }),
       };
     }
 
@@ -906,13 +937,21 @@ const Charts = (() => {
 
   function bindViewToggle() {
     const buttons = document.querySelectorAll('.view-toggle__btn');
+    const toggle = document.querySelector('.view-toggle');
+
     buttons.forEach((btn) => {
       btn.addEventListener('click', () => {
         const view = btn.dataset.view;
+
         buttons.forEach((b) => {
           b.classList.toggle('is-active', b === btn);
           b.setAttribute('aria-selected', String(b === btn));
         });
+
+        // Move o slider para o botão clicado
+        const index = [...buttons].indexOf(btn);
+        toggle.classList.toggle('is-right', index === 1);
+
         AppState.update({ visualizacao: view });
       });
     });
@@ -973,7 +1012,7 @@ const HierarchyTable = (() => {
     return arr;
   }
 
-  function criarLinha({ nome, level, exames, faturamento, comissao, pendente, nodeId, hasChildren, isTotal }) {
+  function criarLinha({ nome, level, exames, faturamento, comissao, pendente, nodeId, hasChildren, isTotal, childCount, childLabel }) {
     const row = document.createElement('div');
     row.className = `tree-row tree-row--level-${level}` + (isTotal ? ' tree-row--total' : '');
     if (nodeId) row.dataset.nodeId = nodeId;
@@ -982,6 +1021,7 @@ const HierarchyTable = (() => {
     if (hasChildren && !isExpanded) row.classList.add('is-collapsed');
 
     const badge = level === 1 ? 'Radiologia' : level === 2 ? 'Clínica' : '';
+    const contagem = (hasChildren && childCount) ? `<span class="tree-row__count">${childCount} ${childLabel}</span>` : '';
 
     row.innerHTML = `
       <span class="tree-row__name-cell">
@@ -992,6 +1032,7 @@ const HierarchyTable = (() => {
           : `<span class="tree-row__toggle-spacer"></span>`}
         <span class="tree-row__name" title="${nome}">${nome}</span>
         ${badge ? `<span class="tree-row__badge">${badge}</span>` : ''}
+        ${contagem}
       </span>
       <span class="tree-row__num" data-label="Exames">${formatNumber(exames)}</span>
       <span class="tree-row__num" data-label="Faturamento">${formatCurrency(faturamento)}</span>
@@ -1037,6 +1078,8 @@ const HierarchyTable = (() => {
         exames: clinica.totais.exames, faturamento: clinica.totais.faturamento,
         comissao: clinica.totais.comissao, pendente: clinica.totais.pendente,
         nodeId: clinica.id, hasChildren: clinica.medicos.length > 0,
+        childCount: clinica.medicos.length,
+        childLabel: clinica.medicos.length === 1 ? 'médico' : 'médicos',
       });
       group.appendChild(row);
       group.appendChild(renderMedicos(clinica, criterio));
@@ -1095,6 +1138,8 @@ const HierarchyTable = (() => {
         exames: rad.totais.exames, faturamento: rad.totais.faturamento,
         comissao: rad.totais.comissao, pendente: rad.totais.pendente,
         nodeId: rad.id, hasChildren: rad.clinicas.length > 0,
+        childCount: rad.clinicas.length,
+        childLabel: rad.clinicas.length === 1 ? 'clínica' : 'clínicas',
       });
       bodyEl.appendChild(row);
       bodyEl.appendChild(renderClinicas(rad, criterio));
