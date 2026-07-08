@@ -1530,11 +1530,13 @@ const Sidebar = (() => {
   function bindEvents() {
     navLinks.forEach((link) => {
       link.addEventListener('click', (e) => {
-        e.preventDefault();
+        const href = link.getAttribute('href');
+        const isRealLink = href && href !== '#';
+
+        if (!isRealLink) e.preventDefault(); // só bloqueia links sem destino real
+
         if (link.classList.contains('is-active')) return;
         setActiveLink(link);
-        // Ponto de extensão futuro: navegação real por página
-        // Ex: Router.navigate(link.dataset.page);
       });
     });
   }

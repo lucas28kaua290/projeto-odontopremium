@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pacientes — IORD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/pacientes.css" />
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <div class="app-header__brand">
+    <div class="brand-mark">IO</div>
+    <div class="brand-text">
+      <span class="brand-text__name">IORD</span>
+      <span class="brand-text__subtitle">Gestão Radiológica</span>
+    </div>
+  </div>
+  <div class="app-header__user">
+    <div class="user-info">
+      <span class="user-info__name">Admin</span>
+      <span class="user-info__role">Gestor</span>
+    </div>
+    <div class="user-avatar">AD</div>
+  </div>
+</header>
+
+<!-- SHELL -->
+<div class="app-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <nav>
+      <ul class="nav-list">
+        <li>
+          <a href="#" class="nav-link">
+            <span class="nav-link__icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            </span>
+            <span class="nav-link__label">Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="pacientes.html" class="nav-link is-active">
+            <span class="nav-link__icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </span>
+            <span class="nav-link__label">Pacientes</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" class="nav-link">
+            <span class="nav-link__icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </span>
+            <span class="nav-link__label">Agendamentos</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" class="nav-link">
+            <span class="nav-link__icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </span>
+            <span class="nav-link__label">Relatórios</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" class="nav-link">
+            <span class="nav-link__icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+            </span>
+            <span class="nav-link__label">Configurações</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+    <div class="sidebar__footer">
+      <span class="sidebar__version">v1.1.0</span>
+    </div>
+  </aside>
+
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main class="main-content">
+
+    <!-- ===== TELA: LISTA ===== -->
+    <div id="tela-lista">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="page-header__left">
+          <div class="page-header__breadcrumb">
+            <a href="#">Início</a>
+            <span class="sep">›</span>
+            <span>Pacientes</span>
+          </div>
+          <h1 class="page-header__title">Pacientes</h1>
+          <p class="page-header__subtitle">Consulte, cadastre e gerencie o histórico dos pacientes</p>
+        </div>
+        <button class="btn-primary" id="btn-novo-paciente">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Novo Paciente
+        </button>
+      </div>
+
+      <!-- Cards de resumo rápido -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <span class="stat-card__label">Total de pacientes</span>
+          <span class="stat-card__valor" id="stat-total">—</span>
+          <span class="stat-card__delta stat-card__delta--up">+12 este mês</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__label">Novos (30 dias)</span>
+          <span class="stat-card__valor" id="stat-novos">—</span>
+          <span class="stat-card__delta stat-card__delta--up">+8% vs. mês anterior</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__label">Com agendamento futuro</span>
+          <span class="stat-card__valor" id="stat-agendados">—</span>
+          <span class="stat-card__delta stat-card__delta--neutral">Próx. 7 dias</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__label">Exames no mês</span>
+          <span class="stat-card__valor" id="stat-exames">—</span>
+          <span class="stat-card__delta stat-card__delta--up">+5% vs. mês anterior</span>
+        </div>
+      </div>
+
+      <!-- Busca -->
+      <div class="busca-section">
+        <div class="busca-card">
+          <div class="busca-campo-wrapper">
+            <span class="busca-icone">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </span>
+            <input type="text" id="input-busca" class="busca-input" placeholder="Buscar por nome, CPF, telefone ou código interno..." autocomplete="off" />
+            <button class="btn-limpar-busca" id="btn-limpar-busca" title="Limpar busca">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="busca-divider"></div>
+          <span class="busca-tipo-label">Buscar por</span>
+          <div class="busca-select-wrapper">
+            <select id="select-tipo-busca" class="busca-select">
+              <option value="todos">Todos os campos</option>
+              <option value="nome">Nome do Paciente</option>
+              <option value="cpf">CPF</option>
+              <option value="telefone">Telefone / WhatsApp</option>
+              <option value="codigo">Código Interno</option>
+            </select>
+            <span class="busca-select__chevron">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtros rápidos -->
+      <div class="filtros-section">
+        <div class="filtros-pills">
+          <button class="pill is-active" data-filtro-status="todos">Todos</button>
+          <button class="pill" data-filtro-status="ativo">Ativos</button>
+          <button class="pill" data-filtro-status="novo">Novos</button>
+          <button class="pill" data-filtro-status="agendado">Com Agendamento</button>
+          <button class="pill" data-filtro-status="inativo">Inativos</button>
+        </div>
+        <div class="filtros-section__right">
+          <span class="contador-resultados" id="contador-resultados">—</span>
+          <button class="btn-secondary" id="btn-exportar-lista">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exportar lista
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabela -->
+      <div class="tabela-card">
+        <div class="tabela-scroll">
+          <table class="pacientes-table" id="tabela-pacientes">
+            <thead>
+              <tr>
+                <th>Paciente</th>
+                <th>CPF</th>
+                <th>Telefone</th>
+                <th>Último Exame</th>
+                <th style="text-align:center">Exames</th>
+                <th>Radiologia Frequente</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-body"></tbody>
+          </table>
+        </div>
+        <div id="empty-state" hidden>
+          <div class="empty-state-content">
+            <div class="empty-state-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+            <p class="empty-state-text">Nenhum paciente encontrado</p>
+            <p class="empty-state-sub">Ajuste os termos da busca ou o filtro selecionado, ou cadastre um novo paciente</p>
+            <button class="btn-primary" id="btn-empty-novo">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Novo Paciente
+            </button>
+          </div>
+        </div>
+
+        <!-- Paginação -->
+        <div class="tabela-paginacao" id="tabela-paginacao">
+          <span class="paginacao-info" id="paginacao-info">—</span>
+          <div class="paginacao-controles">
+            <button class="page-btn" id="btn-pagina-anterior" disabled>‹ Anterior</button>
+            <div class="paginacao-numeros" id="paginacao-numeros"></div>
+            <button class="page-btn" id="btn-pagina-proxima">Próxima ›</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <!-- /tela-lista -->
+
+    <!-- ===== TELA: PERFIL ===== -->
+    <div id="tela-perfil" hidden>
+      <div class="tela-perfil-wrapper">
+
+        <!-- Topbar -->
+        <div class="perfil-topbar">
+          <div class="perfil-topbar__left">
+            <button class="btn-voltar" id="btn-voltar">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              Voltar
+            </button>
+            <span style="color:var(--color-border-strong)">›</span>
+            <span style="font-size:var(--fs-sm);color:var(--color-text-muted)">Perfil do Paciente</span>
+          </div>
+          <div class="perfil-topbar__actions">
+            <button class="btn-secondary" id="btn-exportar-pdf">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exportar PDF
+            </button>
+            <button class="btn-secondary" id="btn-novo-agendamento-perfil">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>
+              Novo Agendamento
+            </button>
+            <button class="btn-primary" id="btn-editar-perfil">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Editar
+            </button>
+          </div>
+        </div>
+
+        <!-- Hero -->
+        <div class="perfil-hero">
+          <div class="perfil-hero__banner"></div>
+          <div class="perfil-hero__body">
+            <div class="perfil-avatar-wrap">
+              <div class="perfil-avatar" id="perfil-avatar">??</div>
+            </div>
+            <div class="perfil-info">
+              <h2 class="perfil-info__nome" id="perfil-nome">—</h2>
+              <div class="perfil-info__meta">
+                <span class="perfil-info__id" id="perfil-id">—</span>
+                <span id="perfil-badge" class="badge">—</span>
+                <span class="perfil-info__cadastro" id="perfil-cadastro"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="perfil-kpis">
+          <div class="perfil-kpi">
+            <span class="perfil-kpi__label">Total de Exames</span>
+            <span class="perfil-kpi__valor" id="kpi-total-exames">—</span>
+          </div>
+          <div class="perfil-kpi">
+            <span class="perfil-kpi__label">Total de Visitas</span>
+            <span class="perfil-kpi__valor" id="kpi-total-visitas">—</span>
+          </div>
+          <div class="perfil-kpi">
+            <span class="perfil-kpi__label">Total Gasto</span>
+            <span class="perfil-kpi__valor" id="kpi-total-gasto">—</span>
+          </div>
+          <div class="perfil-kpi">
+            <span class="perfil-kpi__label">Último Exame</span>
+            <span class="perfil-kpi__valor" id="kpi-ultimo-exame">—</span>
+          </div>
+          <div class="perfil-kpi">
+            <span class="perfil-kpi__label">Agend. Confirmados</span>
+            <span class="perfil-kpi__valor" id="kpi-agendamentos">—</span>
+          </div>
+        </div>
+
+        <!-- Grid conteúdo -->
+        <div class="perfil-content-grid">
+
+          <!-- Coluna esquerda: info + obs -->
+          <div class="perfil-col-esquerda">
+
+            <!-- Dados pessoais -->
+            <div class="perfil-section-card">
+              <div class="perfil-section-header">
+                <h3 class="perfil-section-title">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  Dados Pessoais
+                </h3>
+              </div>
+              <div class="perfil-section-body">
+                <div class="info-list">
+                  <div class="info-campo"><span class="info-campo__label">CPF</span><span class="info-campo__valor" id="info-cpf">—</span></div>
+                  <div class="info-campo"><span class="info-campo__label">Data de Nascimento</span><span class="info-campo__valor" id="info-nascimento">—</span></div>
+                  <div class="info-campo"><span class="info-campo__label">Gênero</span><span class="info-campo__valor" id="info-genero">—</span></div>
+                  <div class="info-campo"><span class="info-campo__label">Telefone</span><span class="info-campo__valor" id="info-telefone">—</span></div>
+                  <div class="info-campo"><span class="info-campo__label">WhatsApp</span><span class="info-campo__valor" id="info-whatsapp">—</span></div>
+                  <div class="info-campo"><span class="info-campo__label">E-mail</span><span class="info-campo__valor" id="info-email">—</span></div>
+                  <div class="info-campo"><span class="info-campo__label">Endereço</span><span class="info-campo__valor" id="info-endereco">—</span></div>
+                  <div class="info-campo"><span class="info-campo__label">Radiologia mais frequente</span><span class="info-campo__valor" id="info-clinica-freq">—</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Observações -->
+            <div class="perfil-section-card">
+              <div class="perfil-section-header">
+                <h3 class="perfil-section-title">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                  Observações
+                </h3>
+              </div>
+              <div class="perfil-section-body">
+                <p class="info-campo__obs" id="info-obs">—</p>
+
+                <form id="form-nova-nota" class="nota-form">
+                  <textarea id="campo-nova-nota" class="form-textarea" rows="2" placeholder="Adicionar nova observação sobre este paciente..."></textarea>
+                  <button type="submit" class="btn-secondary btn-nota-salvar">Salvar Nota</button>
+                </form>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Coluna direita: históricos -->
+          <div class="perfil-col-direita">
+
+            <!-- Histórico de Exames -->
+            <div class="perfil-section-card">
+              <div class="perfil-section-header">
+                <h3 class="perfil-section-title">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="15" x2="12" y2="15"/></svg>
+                  Histórico de Exames
+                </h3>
+                <span class="perfil-section-count" id="count-exames">—</span>
+              </div>
+              <div class="perfil-section-body">
+                <div class="hist-list" id="lista-exames"></div>
+              </div>
+            </div>
+
+            <!-- Histórico de Agendamentos -->
+            <div class="perfil-section-card">
+              <div class="perfil-section-header">
+                <h3 class="perfil-section-title">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  Histórico de Agendamentos
+                </h3>
+                <span class="perfil-section-count" id="count-agendamentos">—</span>
+              </div>
+              <div class="perfil-section-body">
+                <div class="hist-list" id="lista-agendamentos"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- /tela-perfil -->
+
+  </main>
+</div>
+
+<!-- MODAL NOVO/EDITAR PACIENTE -->
+<div class="modal-overlay" id="modal-paciente" hidden>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+    <div class="modal-header">
+      <h2 class="modal-titulo" id="modal-titulo">Novo Paciente</h2>
+      <button class="btn-fechar-modal" id="btn-fechar-modal" aria-label="Fechar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <form id="form-paciente" novalidate>
+        <div class="form-grid">
+
+          <span class="form-section-title">Dados Pessoais</span>
+
+          <div class="form-campo">
+            <label class="form-label" for="campo-nome">Nome Completo <span class="obrigatorio">*</span></label>
+            <input type="text" id="campo-nome" class="form-input" placeholder="Ex.: Maria da Silva" required />
+            <span class="form-erro" id="erro-nome" hidden>Informe o nome completo do paciente.</span>
+          </div>
+
+          <div class="form-row">
+            <div class="form-campo">
+              <label class="form-label" for="campo-cpf">CPF <span class="obrigatorio">*</span></label>
+              <input type="text" id="campo-cpf" class="form-input" placeholder="000.000.000-00" maxlength="14" required />
+              <span class="form-erro" id="erro-cpf" hidden>Informe um CPF válido.</span>
+            </div>
+            <div class="form-campo">
+              <label class="form-label" for="campo-nascimento">Data de Nascimento</label>
+              <input type="date" id="campo-nascimento" class="form-input" />
+            </div>
+          </div>
+
+          <div class="form-campo">
+            <label class="form-label" for="campo-genero">Gênero</label>
+            <select id="campo-genero" class="form-select">
+              <option value="">Selecione...</option>
+              <option value="Feminino">Feminino</option>
+              <option value="Masculino">Masculino</option>
+              <option value="Não informado">Prefiro não informar</option>
+            </select>
+          </div>
+
+          <div class="form-campo" id="wrap-campo-codigo" hidden>
+            <label class="form-label" for="campo-codigo">Código Interno</label>
+            <input type="text" id="campo-codigo" class="form-input" disabled placeholder="Gerado automaticamente" />
+          </div>
+
+          <hr class="form-divider" />
+          <span class="form-section-title">Contato</span>
+
+          <div class="form-row">
+            <div class="form-campo">
+              <label class="form-label" for="campo-telefone">Telefone <span class="obrigatorio">*</span></label>
+              <input type="text" id="campo-telefone" class="form-input" placeholder="(00) 00000-0000" maxlength="15" required />
+              <span class="form-erro" id="erro-telefone" hidden>Informe um telefone de contato.</span>
+            </div>
+            <div class="form-campo">
+              <label class="form-label" for="campo-whatsapp">WhatsApp</label>
+              <input type="text" id="campo-whatsapp" class="form-input" placeholder="(00) 00000-0000" maxlength="15" />
+            </div>
+          </div>
+
+          <div class="form-campo">
+            <label class="form-label" for="campo-email">E-mail</label>
+            <input type="email" id="campo-email" class="form-input" placeholder="email@exemplo.com" />
+          </div>
+
+          <div class="form-campo">
+            <label class="form-label" for="campo-endereco">Endereço</label>
+            <input type="text" id="campo-endereco" class="form-input" placeholder="Rua, número, bairro — Cidade/UF" />
+          </div>
+
+          <hr class="form-divider" />
+          <span class="form-section-title">Convênio</span>
+
+          <div class="form-row">
+            <div class="form-campo">
+              <label class="form-label" for="campo-convenio">Convênio</label>
+              <select id="campo-convenio" class="form-select">
+                <option value="">Particular</option>
+                <option value="Unimed">Unimed</option>
+                <option value="Bradesco Saúde">Bradesco Saúde</option>
+                <option value="Amil">Amil</option>
+                <option value="SUS">SUS</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+            <div class="form-campo">
+              <label class="form-label" for="campo-carteirinha">Nº da Carteirinha</label>
+              <input type="text" id="campo-carteirinha" class="form-input" placeholder="Opcional" />
+            </div>
+          </div>
+
+          <hr class="form-divider" />
+          <span class="form-section-title">Observações</span>
+
+          <div class="form-campo">
+            <label class="form-label" for="campo-observacoes">Notas internas</label>
+            <textarea id="campo-observacoes" class="form-textarea" placeholder="Informações relevantes sobre o paciente..."></textarea>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+    <div class="modal-footer" id="modal-footer-padrao">
+      <button class="btn-secondary" id="btn-cancelar-modal">Cancelar</button>
+      <button class="btn-primary" id="btn-salvar-modal" type="submit" form="form-paciente">Salvar Paciente</button>
+    </div>
+
+    <div class="modal-footer modal-footer--split" id="modal-footer-edicao" hidden>
+      <button class="btn-perigo-ghost" id="btn-excluir-paciente">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        Excluir paciente
+      </button>
+      <div class="modal-footer__right">
+        <button class="btn-secondary" id="btn-cancelar-modal-edicao">Cancelar</button>
+        <button class="btn-primary" id="btn-salvar-modal-edicao" type="submit" form="form-paciente">Salvar Alterações</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DE CONFIRMAÇÃO (exclusão) -->
+<div class="modal-overlay" id="modal-confirmacao" hidden>
+  <div class="modal-box modal-box--confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-titulo">
+    <div class="modal-confirm-icone">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </div>
+    <h2 class="modal-confirm-titulo" id="confirm-titulo">Excluir este paciente?</h2>
+    <p class="modal-confirm-texto" id="confirm-texto">Essa ação remove o cadastro e todo o histórico associado. Isso não pode ser desfeito.</p>
+    <div class="modal-confirm-acoes">
+      <button class="btn-secondary" id="btn-cancelar-confirmacao">Cancelar</button>
+      <button class="btn-perigo" id="btn-confirmar-exclusao">Sim, excluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div id="toast-container"></div>
+
+<script src="js/pacientes.js"></script>
+</body>
+</html>
