@@ -1,814 +1,875 @@
 /* =============================================================
-   IORD — Pacientes | pacientes.js
-   Estrutura pronta para backend futuro.
-   - Dados mock separados em MOCK_DATA
-   - Todas as funções de API isoladas em PacientesAPI
-   - UI separada da lógica
+   IORD — Painel de Gestão | Radiologias Odontológicas
+   Tela de Pacientes — JavaScript
 ============================================================= */
 
 'use strict';
 
 /* =============================================================
-   MOCK DATA — substituir por chamadas reais à API
+   DADOS MOCK
 ============================================================= */
-const MOCK_DATA = {
-  pacientes: [
-    {
-      id: 'P001',
-      nome: 'Ana Clara Ferreira',
-      cpf: '123.456.789-00',
-      telefone: '(84) 99812-3456',
-      whatsapp: '(84) 99812-3456',
-      email: 'ana.clara@email.com',
-      dataNascimento: '1985-03-12',
-      genero: 'Feminino',
-      endereco: 'Rua das Flores, 142, Apto 301 — Natal/RN',
-      status: 'ativo',
-      dataCadastro: '2022-01-15',
-      ultimoExame: { data: '2024-11-20', tipo: 'Panorâmica' },
-      totalExames: 8,
-      radiologiaMaisFrequente: 'Clínica Natal Centro',
-      totalGasto: 1240.00,
-      observacoes: 'Paciente com histórico de bruxismo. Preferência por horários matutinos.',
-      exames: [
-        { id: 'E001', data: '2024-11-20', tipo: 'Panorâmica', clinica: 'Clínica Natal Centro', valor: 120.00, status: 'Concluído', arquivo: 'panoramica_ana_2024.pdf' },
-        { id: 'E002', data: '2024-08-05', tipo: 'Periapical', clinica: 'Clínica Natal Centro', valor: 80.00, status: 'Concluído', arquivo: 'periapical_ana_2024.pdf' },
-        { id: 'E003', data: '2024-03-18', tipo: 'Tomografia CBCT', clinica: 'Clínica Norte', valor: 350.00, status: 'Concluído', arquivo: 'cbct_ana_2024.pdf' },
-        { id: 'E004', data: '2023-11-02', tipo: 'Panorâmica', clinica: 'Clínica Natal Centro', valor: 120.00, status: 'Concluído', arquivo: 'panoramica_ana_2023.pdf' },
-        { id: 'E005', data: '2023-06-14', tipo: 'Bite-wing', clinica: 'Clínica Norte', valor: 90.00, status: 'Concluído', arquivo: null },
-      ],
-      agendamentos: [
-        { id: 'AG001', data: '2025-01-10', hora: '09:00', tipo: 'Panorâmica', clinica: 'Clínica Natal Centro', status: 'Confirmado' },
-        { id: 'AG002', data: '2024-11-20', hora: '10:30', tipo: 'Panorâmica', clinica: 'Clínica Natal Centro', status: 'Realizado' },
-        { id: 'AG003', data: '2024-07-22', hora: '08:00', tipo: 'Periapical', clinica: 'Clínica Natal Centro', status: 'Cancelado' },
-      ],
-    },
-    {
-      id: 'P002',
-      nome: 'Bruno Soares Lima',
-      cpf: '987.654.321-11',
-      telefone: '(84) 98765-4321',
-      whatsapp: '(84) 98765-4321',
-      email: 'bruno.lima@email.com',
-      dataNascimento: '1978-07-25',
-      genero: 'Masculino',
-      endereco: 'Av. Roberto Freire, 2000, Sala 5 — Natal/RN',
-      status: 'ativo',
-      dataCadastro: '2023-06-01',
-      ultimoExame: { data: '2025-01-03', tipo: 'Tomografia CBCT' },
-      totalExames: 3,
-      radiologiaMaisFrequente: 'Clínica Norte',
-      totalGasto: 680.00,
-      observacoes: '',
-      exames: [
-        { id: 'E006', data: '2025-01-03', tipo: 'Tomografia CBCT', clinica: 'Clínica Norte', valor: 350.00, status: 'Concluído', arquivo: 'cbct_bruno_2025.pdf' },
-        { id: 'E007', data: '2024-05-15', tipo: 'Panorâmica', clinica: 'Clínica Norte', valor: 120.00, status: 'Concluído', arquivo: null },
-        { id: 'E008', data: '2023-09-20', tipo: 'Periapical', clinica: 'Clínica Norte', valor: 80.00, status: 'Concluído', arquivo: null },
-      ],
-      agendamentos: [
-        { id: 'AG004', data: '2025-01-03', hora: '14:00', tipo: 'Tomografia CBCT', clinica: 'Clínica Norte', status: 'Realizado' },
-      ],
-    },
-    {
-      id: 'P003',
-      nome: 'Carla Mendes Oliveira',
-      cpf: '456.789.123-22',
-      telefone: '(84) 99123-4567',
-      whatsapp: null,
-      email: 'carla.oliveira@email.com',
-      dataNascimento: '1992-12-01',
-      genero: 'Feminino',
-      endereco: 'Rua Potengi, 55 — Mossoró/RN',
-      status: 'novo',
-      dataCadastro: '2025-01-02',
-      ultimoExame: { data: '2025-01-02', tipo: 'Panorâmica' },
-      totalExames: 1,
-      radiologiaMaisFrequente: 'Clínica Mossoró',
-      totalGasto: 120.00,
-      observacoes: 'Primeira visita. Encaminhada pelo Dr. Fernandes.',
-      exames: [
-        { id: 'E009', data: '2025-01-02', tipo: 'Panorâmica', clinica: 'Clínica Mossoró', valor: 120.00, status: 'Concluído', arquivo: 'panoramica_carla_2025.pdf' },
-      ],
-      agendamentos: [
-        { id: 'AG005', data: '2025-01-02', hora: '11:00', tipo: 'Panorâmica', clinica: 'Clínica Mossoró', status: 'Realizado' },
-      ],
-    },
-    {
-      id: 'P004',
-      nome: 'Daniel Rocha Figueiredo',
-      cpf: '321.654.987-33',
-      telefone: '(84) 99234-5678',
-      whatsapp: '(84) 99234-5678',
-      email: '',
-      dataNascimento: '1965-04-30',
-      genero: 'Masculino',
-      endereco: 'Av. Hermes da Fonseca, 301 — Natal/RN',
-      status: 'ativo',
-      dataCadastro: '2021-08-10',
-      ultimoExame: { data: '2024-10-05', tipo: 'Bite-wing' },
-      totalExames: 12,
-      radiologiaMaisFrequente: 'Clínica Natal Centro',
-      totalGasto: 2150.00,
-      observacoes: 'Paciente fidelizado. Traz toda a família.',
-      exames: [
-        { id: 'E010', data: '2024-10-05', tipo: 'Bite-wing', clinica: 'Clínica Natal Centro', valor: 90.00, status: 'Concluído', arquivo: null },
-        { id: 'E011', data: '2024-04-18', tipo: 'Panorâmica', clinica: 'Clínica Natal Centro', valor: 120.00, status: 'Concluído', arquivo: 'panoramica_daniel_2024.pdf' },
-      ],
-      agendamentos: [
-        { id: 'AG006', data: '2025-02-15', hora: '09:30', tipo: 'Tomografia CBCT', clinica: 'Clínica Natal Centro', status: 'Confirmado' },
-        { id: 'AG007', data: '2024-10-05', hora: '08:30', tipo: 'Bite-wing', clinica: 'Clínica Natal Centro', status: 'Realizado' },
-      ],
-    },
-    {
-      id: 'P005',
-      nome: 'Elisa Monteiro Santos',
-      cpf: '654.321.098-44',
-      telefone: '(84) 98345-6789',
-      whatsapp: '(84) 98345-6789',
-      email: 'elisa.santos@email.com',
-      dataNascimento: '2000-09-14',
-      genero: 'Feminino',
-      endereco: 'Rua das Pedras, 78 — Caicó/RN',
-      status: 'inativo',
-      dataCadastro: '2022-05-20',
-      ultimoExame: { data: '2023-02-10', tipo: 'Panorâmica' },
-      totalExames: 2,
-      radiologiaMaisFrequente: 'Clínica Caicó',
-      totalGasto: 240.00,
-      observacoes: '',
-      exames: [
-        { id: 'E012', data: '2023-02-10', tipo: 'Panorâmica', clinica: 'Clínica Caicó', valor: 120.00, status: 'Concluído', arquivo: null },
-        { id: 'E013', data: '2022-06-30', tipo: 'Panorâmica', clinica: 'Clínica Caicó', valor: 120.00, status: 'Concluído', arquivo: null },
-      ],
-      agendamentos: [],
-    },
-    {
-      id: 'P006',
-      nome: 'Felipe Augusto Costa',
-      cpf: '789.012.345-55',
-      telefone: '(84) 99456-7890',
-      whatsapp: '(84) 99456-7890',
-      email: 'felipe.costa@email.com',
-      dataNascimento: '1990-06-22',
-      genero: 'Masculino',
-      endereco: 'Conj. Ponta Negra, Bl. C, 203 — Natal/RN',
-      status: 'agendado',
-      dataCadastro: '2024-11-01',
-      ultimoExame: { data: '2024-11-05', tipo: 'Tomografia CBCT' },
-      totalExames: 2,
-      radiologiaMaisFrequente: 'Clínica Norte',
-      totalGasto: 470.00,
-      observacoes: 'Agendamento recorrente mensal.',
-      exames: [
-        { id: 'E014', data: '2024-11-05', tipo: 'Tomografia CBCT', clinica: 'Clínica Norte', valor: 350.00, status: 'Concluído', arquivo: 'cbct_felipe_2024.pdf' },
-        { id: 'E015', data: '2024-11-01', tipo: 'Periapical', clinica: 'Clínica Norte', valor: 80.00, status: 'Concluído', arquivo: null },
-      ],
-      agendamentos: [
-        { id: 'AG008', data: '2025-01-20', hora: '16:00', tipo: 'Periapical', clinica: 'Clínica Norte', status: 'Confirmado' },
-        { id: 'AG009', data: '2024-11-05', hora: '15:00', tipo: 'Tomografia CBCT', clinica: 'Clínica Norte', status: 'Realizado' },
-      ],
-    },
-  ],
-};
-
-/* =============================================================
-   API LAYER — trocar implementações por fetch() real no futuro
-============================================================= */
-const PacientesAPI = {
-  _baseUrl: '/api/v1', // trocar pela URL real
-
-  /**
-   * Lista todos os pacientes, com opção de filtro.
-   * @param {Object} params - { q, tipo, status, page, limit }
-   * @returns {Promise<{data: Array, total: number, page: number}>}
-   */
-  async listar(params = {}) {
-    // --- MOCK ---
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        let lista = [...MOCK_DATA.pacientes];
-
-        if (params.status && params.status !== 'todos') {
-          lista = lista.filter(p => p.status === params.status);
-        }
-
-        if (params.q && params.q.trim()) {
-          const q = params.q.trim().toLowerCase();
-          const tipo = params.tipo || 'todos';
-          lista = lista.filter(p => {
-            if (tipo === 'nome' || tipo === 'todos') {
-              if (p.nome.toLowerCase().includes(q)) return true;
-            }
-            if (tipo === 'cpf' || tipo === 'todos') {
-              if (p.cpf.replace(/\D/g, '').includes(q.replace(/\D/g, ''))) return true;
-            }
-            if (tipo === 'telefone' || tipo === 'todos') {
-              if (p.telefone.replace(/\D/g, '').includes(q.replace(/\D/g, ''))) return true;
-              if (p.whatsapp && p.whatsapp.replace(/\D/g, '').includes(q.replace(/\D/g, ''))) return true;
-            }
-            if (tipo === 'codigo' || tipo === 'todos') {
-              if (p.id.toLowerCase().includes(q)) return true;
-            }
-            return false;
-          });
-        }
-
-        resolve({ data: lista, total: lista.length, page: 1 });
-      }, 180);
-    });
-    // --- FIM MOCK ---
-
-    // --- REAL (descomentar quando houver backend) ---
-    // const qs = new URLSearchParams(params).toString();
-    // const res = await fetch(`${this._baseUrl}/pacientes?${qs}`, { headers: this._headers() });
-    // if (!res.ok) throw new Error('Erro ao listar pacientes');
-    // return res.json();
+const PACIENTES = [
+  {
+    id: 'P-0001',
+    nome: 'Juliana Sales de Andrade',
+    cpf: '312.456.789-00',
+    telefone: '(84) 99812-3456',
+    email: 'juliana.andrade@email.com',
+    nascimento: '1990-03-15',
+    endereco: 'Rua das Flores, 142 — Tirol, Natal/RN',
+    status: 'ativo',
+    cadastro: '2022-01-10',
+    observacoes: 'Paciente com histórico de ansiedade durante exames. Prefere agendamentos matutinos.',
+    exames: [
+      { data: '2024-11-20', tipo: 'Tomografia Cone Beam', unidade: 'Unidade Natal Centro', valor: 420.00, status: 'realizado' },
+      { data: '2024-07-05', tipo: 'Panorâmica Digital', unidade: 'Unidade Natal Centro', valor: 120.00, status: 'realizado' },
+      { data: '2023-12-18', tipo: 'Periapical', unidade: 'Unidade Mossoró', valor: 60.00, status: 'realizado' },
+      { data: '2023-05-22', tipo: 'Panorâmica Digital', unidade: 'Unidade Natal Centro', valor: 120.00, status: 'realizado' },
+    ],
+    agendamentos: [
+      { data: '2025-02-14', hora: '09:00', unidade: 'Unidade Natal Centro', tipo: 'Tomografia Cone Beam', status: 'confirmado' },
+      { data: '2024-11-20', hora: '10:30', unidade: 'Unidade Natal Centro', tipo: 'Tomografia Cone Beam', status: 'realizado' },
+    ],
+    notas: [
+      { texto: 'Paciente relatou alergia a látex. Verificar luvas e materiais antes do atendimento.', data: '2024-01-15' },
+    ],
   },
-
-  /**
-   * Busca um paciente pelo ID.
-   * @param {string} id
-   * @returns {Promise<Object>}
-   */
-  async buscarPorId(id) {
-    // --- MOCK ---
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const p = MOCK_DATA.pacientes.find(x => x.id === id);
-        if (p) resolve(p);
-        else reject(new Error('Paciente não encontrado'));
-      }, 120);
-    });
-    // --- REAL ---
-    // const res = await fetch(`${this._baseUrl}/pacientes/${id}`, { headers: this._headers() });
-    // if (!res.ok) throw new Error('Paciente não encontrado');
-    // return res.json();
+  {
+    id: 'P-0002',
+    nome: 'Carlos Eduardo Figueiredo',
+    cpf: '089.234.567-11',
+    telefone: '(84) 98723-0011',
+    email: 'carlosf@gmail.com',
+    nascimento: '1985-07-22',
+    endereco: 'Av. Prudente de Morais, 800 — Lagoa Nova, Natal/RN',
+    status: 'ativo',
+    cadastro: '2021-06-03',
+    observacoes: '',
+    exames: [
+      { data: '2024-10-10', tipo: 'Panorâmica Digital', unidade: 'Unidade Natal Norte', valor: 120.00, status: 'realizado' },
+      { data: '2024-03-14', tipo: 'Periapical', unidade: 'Unidade Natal Norte', valor: 60.00, status: 'realizado' },
+      { data: '2023-08-01', tipo: 'Cefalométrica', unidade: 'Unidade Natal Norte', valor: 90.00, status: 'realizado' },
+    ],
+    agendamentos: [
+      { data: '2025-03-05', hora: '14:00', unidade: 'Unidade Natal Norte', tipo: 'Panorâmica Digital', status: 'pendente' },
+    ],
+    notas: [],
   },
-
-  /**
-   * Cria um novo paciente.
-   * @param {Object} dados
-   * @returns {Promise<Object>}
-   */
-  async criar(dados) {
-    // --- MOCK ---
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const novo = {
-          ...dados,
-          id: 'P' + String(MOCK_DATA.pacientes.length + 1).padStart(3, '0'),
-          status: 'novo',
-          dataCadastro: new Date().toISOString().split('T')[0],
-          ultimoExame: null,
-          totalExames: 0,
-          radiologiaMaisFrequente: '—',
-          totalGasto: 0,
-          exames: [],
-          agendamentos: [],
-        };
-        MOCK_DATA.pacientes.unshift(novo);
-        resolve(novo);
-      }, 300);
-    });
-    // --- REAL ---
-    // const res = await fetch(`${this._baseUrl}/pacientes`, {
-    //   method: 'POST',
-    //   headers: this._headers(),
-    //   body: JSON.stringify(dados),
-    // });
-    // if (!res.ok) throw new Error('Erro ao criar paciente');
-    // return res.json();
+  {
+    id: 'P-0003',
+    nome: 'Fernanda Lopes Moura',
+    cpf: '456.789.012-33',
+    telefone: '(84) 99600-7788',
+    email: 'fernanda.moura@hotmail.com',
+    nascimento: '2001-11-30',
+    endereco: 'Rua Seridó, 55 — Petrópolis, Natal/RN',
+    status: 'novo',
+    cadastro: '2025-01-02',
+    observacoes: 'Primeira consulta. Encaminhada pelo Dr. Renato Alves.',
+    exames: [
+      { data: '2025-01-10', tipo: 'Tomografia Cone Beam', unidade: 'Unidade Natal Centro', valor: 420.00, status: 'realizado' },
+    ],
+    agendamentos: [
+      { data: '2025-01-10', hora: '08:30', unidade: 'Unidade Natal Centro', tipo: 'Tomografia Cone Beam', status: 'realizado' },
+    ],
+    notas: [],
   },
-
-  /**
-   * Atualiza um paciente existente.
-   * @param {string} id
-   * @param {Object} dados
-   * @returns {Promise<Object>}
-   */
-  async atualizar(id, dados) {
-    // --- MOCK ---
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const idx = MOCK_DATA.pacientes.findIndex(x => x.id === id);
-        if (idx === -1) return reject(new Error('Paciente não encontrado'));
-        MOCK_DATA.pacientes[idx] = { ...MOCK_DATA.pacientes[idx], ...dados };
-        resolve(MOCK_DATA.pacientes[idx]);
-      }, 250);
-    });
-    // --- REAL ---
-    // const res = await fetch(`${this._baseUrl}/pacientes/${id}`, {
-    //   method: 'PATCH',
-    //   headers: this._headers(),
-    //   body: JSON.stringify(dados),
-    // });
-    // if (!res.ok) throw new Error('Erro ao atualizar paciente');
-    // return res.json();
+  {
+    id: 'P-0004',
+    nome: 'Roberto Nunes Cavalcante',
+    cpf: '222.333.444-55',
+    telefone: '(84) 98811-2233',
+    email: 'roberto.nunes@empresa.com',
+    nascimento: '1972-04-08',
+    endereco: 'Rua Açu, 300 — Mossoró/RN',
+    status: 'inativo',
+    cadastro: '2020-09-15',
+    observacoes: 'Paciente não retornou desde 2022.',
+    exames: [
+      { data: '2022-06-14', tipo: 'Panorâmica Digital', unidade: 'Unidade Mossoró', valor: 120.00, status: 'realizado' },
+      { data: '2021-11-20', tipo: 'Periapical', unidade: 'Unidade Mossoró', valor: 60.00, status: 'realizado' },
+    ],
+    agendamentos: [
+      { data: '2022-06-14', hora: '15:00', unidade: 'Unidade Mossoró', tipo: 'Panorâmica Digital', status: 'realizado' },
+    ],
+    notas: [
+      { texto: 'Tentativa de contato em outubro/2023 sem retorno.', data: '2023-10-05' },
+    ],
   },
-
-  _headers() {
-    return {
-      'Content-Type': 'application/json',
-      // 'Authorization': `Bearer ${localStorage.getItem('token')}`,
-    };
+  {
+    id: 'P-0005',
+    nome: 'Beatriz Teixeira Sampaio',
+    cpf: '599.001.234-77',
+    telefone: '(84) 99900-5544',
+    email: 'beatriz.sampaio@bol.com.br',
+    nascimento: '1995-09-03',
+    endereco: 'Rua João XXIII, 10 — Centro, Caicó/RN',
+    status: 'ativo',
+    cadastro: '2023-03-22',
+    observacoes: '',
+    exames: [
+      { data: '2024-12-01', tipo: 'Cefalométrica', unidade: 'Unidade Natal Centro', valor: 90.00, status: 'realizado' },
+      { data: '2024-05-19', tipo: 'Panorâmica Digital', unidade: 'Unidade Natal Centro', valor: 120.00, status: 'realizado' },
+      { data: '2023-09-10', tipo: 'Tomografia Cone Beam', unidade: 'Unidade Natal Centro', valor: 420.00, status: 'realizado' },
+    ],
+    agendamentos: [
+      { data: '2025-02-20', hora: '11:00', unidade: 'Unidade Natal Centro', tipo: 'Panorâmica Digital', status: 'confirmado' },
+    ],
+    notas: [],
   },
-};
+  {
+    id: 'P-0006',
+    nome: 'Thiago Almeida Brandão',
+    cpf: '711.822.933-44',
+    telefone: '(84) 98755-3322',
+    email: 'thiago.brandao@outlook.com',
+    nascimento: '1988-12-17',
+    endereco: 'Av. Alexandrino de Alencar, 1200 — Tirol, Natal/RN',
+    status: 'ativo',
+    cadastro: '2022-07-18',
+    observacoes: 'Paciente hipertenso. Comunicar equipe antes do atendimento.',
+    exames: [
+      { data: '2024-09-05', tipo: 'Tomografia Cone Beam', unidade: 'Unidade Natal Norte', valor: 420.00, status: 'realizado' },
+      { data: '2024-01-22', tipo: 'Panorâmica Digital', unidade: 'Unidade Natal Norte', valor: 120.00, status: 'realizado' },
+      { data: '2023-04-11', tipo: 'Periapical', unidade: 'Unidade Natal Norte', valor: 60.00, status: 'realizado' },
+      { data: '2022-09-30', tipo: 'Cefalométrica', unidade: 'Unidade Natal Norte', valor: 90.00, status: 'realizado' },
+    ],
+    agendamentos: [],
+    notas: [
+      { texto: 'Pressão alta registrada na última visita. Orientado a trazer receita médica.', data: '2024-09-05' },
+    ],
+  },
+  {
+    id: 'P-0007',
+    nome: 'Patrícia Sousa Lima',
+    cpf: '100.200.300-40',
+    telefone: '(84) 99120-6677',
+    email: 'patricia.lima@gmail.com',
+    nascimento: '2003-06-25',
+    endereco: 'Rua Bela Vista, 77 — Nova Parnamirim, Parnamirim/RN',
+    status: 'novo',
+    cadastro: '2025-01-28',
+    observacoes: '',
+    exames: [
+      { data: '2025-01-30', tipo: 'Panorâmica Digital', unidade: 'Unidade Natal Sul', valor: 120.00, status: 'realizado' },
+    ],
+    agendamentos: [
+      { data: '2025-01-30', hora: '09:30', unidade: 'Unidade Natal Sul', tipo: 'Panorâmica Digital', status: 'realizado' },
+    ],
+    notas: [],
+  },
+  {
+    id: 'P-0008',
+    nome: 'Marcos Vinícius Rocha',
+    cpf: '850.960.070-88',
+    telefone: '(84) 98644-9900',
+    email: 'mvinirocha@terra.com.br',
+    nascimento: '1979-02-14',
+    endereco: 'Rua Dr. Barata, 5 — Centro, Mossoró/RN',
+    status: 'ativo',
+    cadastro: '2020-11-05',
+    observacoes: 'Prefere atendimento no período da tarde.',
+    exames: [
+      { data: '2024-08-22', tipo: 'Tomografia Cone Beam', unidade: 'Unidade Mossoró', valor: 420.00, status: 'realizado' },
+      { data: '2023-11-14', tipo: 'Panorâmica Digital', unidade: 'Unidade Mossoró', valor: 120.00, status: 'realizado' },
+      { data: '2022-05-03', tipo: 'Cefalométrica', unidade: 'Unidade Mossoró', valor: 90.00, status: 'realizado' },
+      { data: '2021-03-19', tipo: 'Periapical', unidade: 'Unidade Mossoró', valor: 60.00, status: 'realizado' },
+      { data: '2020-12-08', tipo: 'Panorâmica Digital', unidade: 'Unidade Mossoró', valor: 120.00, status: 'realizado' },
+    ],
+    agendamentos: [
+      { data: '2025-03-10', hora: '16:00', unidade: 'Unidade Mossoró', tipo: 'Tomografia Cone Beam', status: 'confirmado' },
+    ],
+    notas: [],
+  },
+];
 
 /* =============================================================
    ESTADO DA APLICAÇÃO
 ============================================================= */
-const State = {
-  pacientes: [],
-  filtroStatus: 'todos',
-  busca: { q: '', tipo: 'todos' },
-  carregando: false,
+const state = {
+  pacientes: [...PACIENTES],
+  filtrados: [...PACIENTES],
+  paginaAtual: 1,
+  porPagina: 8,
+  buscaTexto: '',
+  buscaScope: 'todos',
+  filtroRapido: 'todos',
   pacienteAtivo: null,
-  modoEdicao: false,
+  editandoId: null,
+  historicoAba: 'exames',
 };
 
 /* =============================================================
    UTILITÁRIOS
 ============================================================= */
-const Utils = {
-  formatarData(iso) {
-    if (!iso) return '—';
-    const [y, m, d] = iso.split('-');
-    return `${d}/${m}/${y}`;
-  },
+function iniciais(nome) {
+  return nome.trim().split(' ').filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('');
+}
 
-  formatarMoeda(val) {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
-  },
+function formatarData(dataStr) {
+  if (!dataStr) return '—';
+  const [a, m, d] = dataStr.split('-');
+  return `${d}/${m}/${a}`;
+}
 
-  calcularIdade(dataNasc) {
-    if (!dataNasc) return '—';
-    const hoje = new Date();
-    const nasc = new Date(dataNasc);
-    let idade = hoje.getFullYear() - nasc.getFullYear();
-    const m = hoje.getMonth() - nasc.getMonth();
-    if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
-    return idade + ' anos';
-  },
+function calcularIdade(nascimento) {
+  if (!nascimento) return null;
+  const hoje = new Date();
+  const nasc = new Date(nascimento);
+  let idade = hoje.getFullYear() - nasc.getFullYear();
+  const m = hoje.getMonth() - nasc.getMonth();
+  if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
+  return idade;
+}
 
-  iniciais(nome) {
-    if (!nome) return '?';
-    return nome.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
-  },
+function tempoRelativo(dataStr) {
+  if (!dataStr) return '—';
+  const agora = new Date();
+  const data = new Date(dataStr);
+  const diffMs = agora - data;
+  const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDias < 1) return 'hoje';
+  if (diffDias === 1) return 'ontem';
+  if (diffDias < 30) return `há ${diffDias} dias`;
+  const meses = Math.floor(diffDias / 30);
+  if (meses < 12) return `há ${meses} ${meses === 1 ? 'mês' : 'meses'}`;
+  const anos = Math.floor(meses / 12);
+  return `há ${anos} ${anos === 1 ? 'ano' : 'anos'}`;
+}
 
-  statusLabel(status) {
-    const map = {
-      ativo: { label: 'Ativo', cls: 'badge--positive' },
-      novo: { label: 'Novo', cls: 'badge--info' },
-      inativo: { label: 'Inativo', cls: 'badge--neutral' },
-      agendado: { label: 'Agendado', cls: 'badge--warning' },
-    };
-    return map[status] || { label: status, cls: 'badge--neutral' };
-  },
+function formatarValor(valor) {
+  return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
 
-  agendamentoStatusLabel(status) {
-    const map = {
-      Confirmado: 'badge--warning',
-      Realizado: 'badge--positive',
-      Cancelado: 'badge--negative',
-      Pendente: 'badge--neutral',
-    };
-    return map[status] || 'badge--neutral';
-  },
+function unidadeMaisFrequente(exames) {
+  if (!exames.length) return '—';
+  const contagem = {};
+  exames.forEach(e => { contagem[e.unidade] = (contagem[e.unidade] || 0) + 1; });
+  return Object.entries(contagem).sort((a, b) => b[1] - a[1])[0][0];
+}
 
-  debounce(fn, delay) {
-    let timer;
-    return (...args) => {
-      clearTimeout(timer);
-      timer = setTimeout(() => fn(...args), delay);
-    };
-  },
+function ultimoExame(exames) {
+  if (!exames.length) return null;
+  return exames.slice().sort((a, b) => new Date(b.data) - new Date(a.data))[0];
+}
 
-  escaparHtml(str) {
-    if (!str) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  },
-};
+function formatarCPF(valor) {
+  return valor.replace(/\D/g, '').replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+}
+
+function formatarTelefone(valor) {
+  const n = valor.replace(/\D/g, '');
+  if (n.length <= 10) return n.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+  return n.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+}
+
+function gerarId() {
+  const max = state.pacientes.reduce((acc, p) => {
+    const n = parseInt(p.id.replace('P-', ''));
+    return n > acc ? n : acc;
+  }, 0);
+  return `P-${String(max + 1).padStart(4, '0')}`;
+}
+
+function statusLabel(status) {
+  const map = { ativo: 'Ativo', novo: 'Novo', inativo: 'Inativo', confirmado: 'Confirmado', pendente: 'Pendente', realizado: 'Realizado', cancelado: 'Cancelado' };
+  return map[status] || status;
+}
+
+function statusTagClass(status) {
+  const map = { ativo: 'status-tag--active', novo: 'status-tag--new', inativo: 'status-tag--inactive', confirmado: 'status-tag--active', pendente: 'status-tag--new', realizado: 'status-tag--inactive', cancelado: 'status-tag--inactive' };
+  return map[status] || '';
+}
 
 /* =============================================================
-   RENDERIZAÇÃO DA TABELA
+   REFERÊNCIAS DOM
 ============================================================= */
-const Tabela = {
-  el: null,
-  tbody: null,
-  emptyState: null,
+const $ = id => document.getElementById(id);
+const viewLista = $('view-lista');
+const viewPerfil = $('view-perfil');
+const tabelaBody = $('tabela-pacientes-body');
+const emptyState = $('empty-state');
+const contadorResultados = $('contador-resultados');
+const paginacaoEl = $('paginacao');
+const paginacaoExibindo = $('paginacao-exibindo');
+const paginacaoTotal = $('paginacao-total');
+const inputBusca = $('input-busca');
+const btnClearSearch = $('btn-clear-search');
+const scopePills = $('scope-pills');
+const quickFilterPills = $('quick-filter-pills');
+const modalPaciente = $('modal-paciente');
+const formPaciente = $('form-paciente');
+const modalTitulo = $('modal-titulo');
+const btnNovoPaciente = $('btn-novo-paciente');
+const btnFecharModal = $('btn-fechar-modal');
+const btnCancelarModal = $('btn-cancelar-modal');
+const toast = $('toast');
+const toastText = $('toast-text');
 
-  init() {
-    this.el = document.getElementById('tabela-pacientes');
-    this.tbody = document.getElementById('tabela-body');
-    this.emptyState = document.getElementById('empty-state');
-  },
+/* =============================================================
+   FILTROS & BUSCA
+============================================================= */
+function aplicarFiltros() {
+  const texto = state.buscaTexto.toLowerCase().trim();
+  const scope = state.buscaScope;
+  const filtro = state.filtroRapido;
+  const hoje = new Date();
+  const trintaDias = new Date(hoje - 30 * 24 * 60 * 60 * 1000);
 
-  renderizar(lista) {
-    if (!this.tbody) return;
-
-    if (lista.length === 0) {
-      this.tbody.innerHTML = '';
-      this.emptyState.hidden = false;
-      return;
+  state.filtrados = state.pacientes.filter(p => {
+    // Filtro rápido
+    if (filtro === 'ativos' && p.status !== 'ativo') return false;
+    if (filtro === 'novos' && p.status !== 'novo') return false;
+    if (filtro === 'agendamentos') {
+      const temRecente = p.agendamentos.some(a => new Date(a.data) >= trintaDias);
+      if (!temRecente) return false;
     }
 
-    this.emptyState.hidden = true;
-    this.tbody.innerHTML = lista.map(p => this._linha(p)).join('');
+    // Busca por texto
+    if (!texto) return true;
+    if (scope === 'todos') {
+      return p.nome.toLowerCase().includes(texto)
+        || p.cpf.includes(texto)
+        || p.telefone.replace(/\D/g, '').includes(texto.replace(/\D/g, ''))
+        || p.id.toLowerCase().includes(texto);
+    }
+    if (scope === 'nome') return p.nome.toLowerCase().includes(texto);
+    if (scope === 'cpf') return p.cpf.replace(/\D/g, '').includes(texto.replace(/\D/g, ''));
+    if (scope === 'telefone') return p.telefone.replace(/\D/g, '').includes(texto.replace(/\D/g, ''));
+    if (scope === 'codigo') return p.id.toLowerCase().includes(texto);
+    return true;
+  });
 
-    // eventos das linhas
-    this.tbody.querySelectorAll('[data-action="ver-perfil"]').forEach(btn => {
-      btn.addEventListener('click', () => Perfil.abrir(btn.dataset.id));
-    });
-    this.tbody.querySelectorAll('[data-action="editar"]').forEach(btn => {
-      btn.addEventListener('click', () => Modal.abrirEdicao(btn.dataset.id));
-    });
-  },
+  state.paginaAtual = 1;
+  contadorResultados.textContent = state.filtrados.length;
+  renderTabela();
+}
 
-  _linha(p) {
-    const { label, cls } = Utils.statusLabel(p.status);
-    const ultimoExame = p.ultimoExame
-      ? `${Utils.formatarData(p.ultimoExame.data)}<span class="td-sub">${Utils.escaparHtml(p.ultimoExame.tipo)}</span>`
-      : '<span class="td-empty">—</span>';
+/* =============================================================
+   RENDERIZAR TABELA
+============================================================= */
+function renderTabela() {
+  const inicio = (state.paginaAtual - 1) * state.porPagina;
+  const fim = inicio + state.porPagina;
+  const pagina = state.filtrados.slice(inicio, fim);
 
-    return `
-      <tr class="tabela-row" data-id="${p.id}">
-        <td>
-          <div class="td-nome">
-            <div class="avatar-sm">${Utils.iniciais(p.nome)}</div>
-            <div>
-              <span class="td-nome__principal">${Utils.escaparHtml(p.nome)}</span>
-              <span class="td-sub">${p.id}</span>
-            </div>
+  tabelaBody.innerHTML = '';
+
+  if (!pagina.length) {
+    emptyState.hidden = false;
+    $('tabela-footer').hidden = true;
+    return;
+  }
+
+  emptyState.hidden = true;
+  $('tabela-footer').hidden = false;
+
+  pagina.forEach(p => {
+    const ultimo = ultimoExame(p.exames);
+    const unidade = unidadeMaisFrequente(p.exames);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>
+        <div class="data-table__name-cell">
+          <div class="data-table__avatar">${iniciais(p.nome)}</div>
+          <div>
+            <span class="data-table__name-primary">${p.nome}</span>
+            <span class="data-table__name-secondary">${p.id}</span>
           </div>
-        </td>
-        <td class="td-mono">${Utils.escaparHtml(p.cpf)}</td>
-        <td>${Utils.escaparHtml(p.telefone)}</td>
-        <td>${ultimoExame}</td>
-        <td class="td-center td-mono">${p.totalExames}</td>
-        <td><span class="td-clinica">${Utils.escaparHtml(p.radiologiaMaisFrequente)}</span></td>
-        <td><span class="badge ${cls}">${label}</span></td>
-        <td>
-          <div class="td-acoes">
-            <button class="btn-acao btn-acao--primary" data-action="ver-perfil" data-id="${p.id}" title="Ver perfil">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              Ver perfil
-            </button>
-            <button class="btn-acao btn-acao--ghost" data-action="editar" data-id="${p.id}" title="Editar">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            </button>
-          </div>
-        </td>
-      </tr>`;
-  },
-};
-
-/* =============================================================
-   TELA DE PERFIL
-============================================================= */
-const Perfil = {
-  el: null,
-  listaEl: null,
-
-  init() {
-    this.el = document.getElementById('tela-perfil');
-    this.listaEl = document.getElementById('tela-lista');
-    document.getElementById('btn-voltar').addEventListener('click', () => this.fechar());
-    document.getElementById('btn-editar-perfil').addEventListener('click', () => Modal.abrirEdicao(State.pacienteAtivo?.id));
-    document.getElementById('btn-exportar-pdf').addEventListener('click', () => this.exportarPDF());
-  },
-
-  async abrir(id) {
-    try {
-      const paciente = await PacientesAPI.buscarPorId(id);
-      State.pacienteAtivo = paciente;
-      this._renderizar(paciente);
-      this.listaEl.hidden = true;
-      this.el.hidden = false;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (e) {
-      UI.toast('Erro ao carregar perfil do paciente.', 'error');
-    } finally {
-    }
-  },
-
-  fechar() {
-    this.el.hidden = true;
-    this.listaEl.hidden = false;
-    State.pacienteAtivo = null;
-  },
-
-  _renderizar(p) {
-    const { label, cls } = Utils.statusLabel(p.status);
-
-    // cabeçalho do perfil
-    document.getElementById('perfil-avatar').textContent = Utils.iniciais(p.nome);
-    document.getElementById('perfil-nome').textContent = p.nome;
-    document.getElementById('perfil-id').textContent = p.id;
-    document.getElementById('perfil-badge').textContent = label;
-    document.getElementById('perfil-badge').className = `badge ${cls}`;
-    document.getElementById('perfil-cadastro').textContent = 'Cadastrado em ' + Utils.formatarData(p.dataCadastro);
-
-    // KPIs rápidos
-    document.getElementById('kpi-total-exames').textContent = p.totalExames;
-    document.getElementById('kpi-total-gasto').textContent = Utils.formatarMoeda(p.totalGasto);
-    document.getElementById('kpi-ultimo-exame').textContent = p.ultimoExame ? Utils.formatarData(p.ultimoExame.data) : '—';
-    document.getElementById('kpi-agendamentos').textContent = p.agendamentos.filter(a => a.status === 'Confirmado').length;
-
-    // informações básicas
-    document.getElementById('info-cpf').textContent = p.cpf || '—';
-    document.getElementById('info-nascimento').textContent = Utils.formatarData(p.dataNascimento) + (p.dataNascimento ? ` (${Utils.calcularIdade(p.dataNascimento)})` : '');
-    document.getElementById('info-genero').textContent = p.genero || '—';
-    document.getElementById('info-telefone').textContent = p.telefone || '—';
-    document.getElementById('info-whatsapp').textContent = p.whatsapp || '—';
-    document.getElementById('info-email').textContent = p.email || '—';
-    document.getElementById('info-endereco').textContent = p.endereco || '—';
-    document.getElementById('info-clinica-freq').textContent = p.radiologiaMaisFrequente || '—';
-    document.getElementById('info-obs').textContent = p.observacoes || 'Nenhuma observação registrada.';
-
-    // histórico de exames
-    this._renderExames(p.exames);
-
-    // histórico de agendamentos
-    this._renderAgendamentos(p.agendamentos);
-  },
-
-  _renderExames(exames) {
-    const el = document.getElementById('lista-exames');
-    if (!exames || exames.length === 0) {
-      el.innerHTML = '<p class="empty-list">Nenhum exame registrado.</p>';
-      return;
-    }
-    el.innerHTML = exames.map(e => `
-      <div class="hist-item">
-        <div class="hist-item__icon hist-item__icon--exame">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="15" x2="12" y2="15"/></svg>
         </div>
-        <div class="hist-item__body">
-          <span class="hist-item__titulo">${Utils.escaparHtml(e.tipo)}</span>
-          <span class="hist-item__sub">${Utils.escaparHtml(e.clinica)} · ${Utils.formatarData(e.data)}</span>
+      </td>
+      <td>${p.cpf}</td>
+      <td>${p.telefone}</td>
+      <td>
+        ${ultimo ? `<span>${formatarData(ultimo.data)}</span><span class="data-table__exam-type">${ultimo.tipo}</span>` : '<span>—</span>'}
+      </td>
+      <td class="data-table__num">${p.exames.length}</td>
+      <td>${unidade}</td>
+      <td class="data-table__action">
+        <div class="data-table__actions-cell">
+          <button class="row-action-btn" data-action="ver" data-id="${p.id}" title="Ver perfil" aria-label="Ver perfil de ${p.nome}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M1 12S5 4 12 4s11 8 11 8-4 8-11 8S1 12 1 12Z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
+          </button>
+          <button class="row-action-btn" data-action="editar" data-id="${p.id}" title="Editar" aria-label="Editar ${p.nome}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M11 4H6C4.9 4 4 4.9 4 6V18C4 19.1 4.9 20 6 20H18C19.1 20 20 19.1 20 18V13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18.5 2.5C19.33 1.67 20.67 1.67 21.5 2.5C22.33 3.33 22.33 4.67 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          </button>
         </div>
-        <div class="hist-item__right">
-          <span class="hist-item__valor">${Utils.formatarMoeda(e.valor)}</span>
-          <span class="badge badge--sm ${e.status === 'Concluído' ? 'badge--positive' : 'badge--neutral'}">${e.status}</span>
-          ${e.arquivo ? `<button class="btn-link" title="Baixar arquivo" onclick="UI.toast('Download: ${Utils.escaparHtml(e.arquivo)}', 'info')">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          </button>` : ''}
-        </div>
-      </div>`).join('');
-  },
-
-  _renderAgendamentos(agendamentos) {
-    const el = document.getElementById('lista-agendamentos');
-    if (!agendamentos || agendamentos.length === 0) {
-      el.innerHTML = '<p class="empty-list">Nenhum agendamento encontrado.</p>';
-      return;
-    }
-    el.innerHTML = agendamentos.map(a => `
-      <div class="hist-item">
-        <div class="hist-item__icon hist-item__icon--agend">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        </div>
-        <div class="hist-item__body">
-          <span class="hist-item__titulo">${Utils.escaparHtml(a.tipo)}</span>
-          <span class="hist-item__sub">${Utils.escaparHtml(a.clinica)} · ${Utils.formatarData(a.data)} às ${a.hora}</span>
-        </div>
-        <div class="hist-item__right">
-          <span class="badge badge--sm ${Utils.agendamentoStatusLabel(a.status)}">${a.status}</span>
-        </div>
-      </div>`).join('');
-  },
-
-  exportarPDF() {
-    // Integrar com biblioteca PDF (ex: jsPDF) no futuro
-    UI.toast('Exportação de PDF em desenvolvimento.', 'info');
-  },
-};
-
-/* =============================================================
-   MODAL (Novo / Editar Paciente)
-============================================================= */
-const Modal = {
-  el: null,
-  form: null,
-  titulo: null,
-  modoEdicaoId: null,
-
-  init() {
-    this.el = document.getElementById('modal-paciente');
-    this.form = document.getElementById('form-paciente');
-    this.titulo = document.getElementById('modal-titulo');
-
-    document.getElementById('btn-novo-paciente').addEventListener('click', () => this.abrirNovo());
-    document.getElementById('btn-fechar-modal').addEventListener('click', () => this.fechar());
-    document.getElementById('btn-cancelar-modal').addEventListener('click', () => this.fechar());
-    this.el.addEventListener('click', (e) => { if (e.target === this.el) this.fechar(); });
-    this.form.addEventListener('submit', (e) => this._onSubmit(e));
-
-    // máscara CPF
-    document.getElementById('campo-cpf').addEventListener('input', (e) => {
-      let v = e.target.value.replace(/\D/g, '').slice(0, 11);
-      v = v.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-      e.target.value = v;
-    });
-
-    // máscara telefone
-    ['campo-telefone', 'campo-whatsapp'].forEach(id => {
-      document.getElementById(id)?.addEventListener('input', (e) => {
-        let v = e.target.value.replace(/\D/g, '').slice(0, 11);
-        v = v.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2');
-        e.target.value = v;
-      });
-    });
-  },
-
-  abrirNovo() {
-    this.modoEdicaoId = null;
-    this.titulo.textContent = 'Novo Paciente';
-    this.form.reset();
-    this._mostrar();
-  },
-
-  async abrirEdicao(id) {
-    try {
-      const p = await PacientesAPI.buscarPorId(id);
-      this.modoEdicaoId = id;
-      this.titulo.textContent = 'Editar Paciente';
-      this._preencherForm(p);
-      this._mostrar();
-    } catch {
-      UI.toast('Erro ao carregar dados do paciente.', 'error');
-    } finally {
-    }
-  },
-
-  _preencherForm(p) {
-    document.getElementById('campo-nome').value = p.nome || '';
-    document.getElementById('campo-cpf').value = p.cpf || '';
-    document.getElementById('campo-nascimento').value = p.dataNascimento || '';
-    document.getElementById('campo-genero').value = p.genero || '';
-    document.getElementById('campo-telefone').value = p.telefone || '';
-    document.getElementById('campo-whatsapp').value = p.whatsapp || '';
-    document.getElementById('campo-email').value = p.email || '';
-    document.getElementById('campo-endereco').value = p.endereco || '';
-    document.getElementById('campo-observacoes').value = p.observacoes || '';
-  },
-
-  _mostrar() {
-    this.el.hidden = false;
-    document.body.style.overflow = 'hidden';
-    setTimeout(() => this.el.classList.add('modal--visible'), 10);
-    document.getElementById('campo-nome').focus();
-  },
-
-  fechar() {
-    this.el.classList.remove('modal--visible');
-    setTimeout(() => {
-      this.el.hidden = true;
-      document.body.style.overflow = '';
-    }, 220);
-  },
-
-  async _onSubmit(e) {
-    e.preventDefault();
-    const dados = {
-      nome: document.getElementById('campo-nome').value.trim(),
-      cpf: document.getElementById('campo-cpf').value.trim(),
-      dataNascimento: document.getElementById('campo-nascimento').value,
-      genero: document.getElementById('campo-genero').value,
-      telefone: document.getElementById('campo-telefone').value.trim(),
-      whatsapp: document.getElementById('campo-whatsapp').value.trim(),
-      email: document.getElementById('campo-email').value.trim(),
-      endereco: document.getElementById('campo-endereco').value.trim(),
-      observacoes: document.getElementById('campo-observacoes').value.trim(),
-    };
-
-    const btnSalvar = document.getElementById('btn-salvar-modal');
-    btnSalvar.disabled = true;
-    btnSalvar.textContent = 'Salvando…';
-
-    try {
-      if (this.modoEdicaoId) {
-        const atualizado = await PacientesAPI.atualizar(this.modoEdicaoId, dados);
-        UI.toast(`Paciente "${atualizado.nome}" atualizado com sucesso!`, 'success');
-        if (State.pacienteAtivo?.id === this.modoEdicaoId) {
-          State.pacienteAtivo = atualizado;
-          Perfil._renderizar(atualizado);
-        }
-      } else {
-        const novo = await PacientesAPI.criar(dados);
-        UI.toast(`Paciente "${novo.nome}" cadastrado com sucesso!`, 'success');
-      }
-      this.fechar();
-      await App.carregarPacientes();
-    } catch (err) {
-      UI.toast('Erro ao salvar. Tente novamente.', 'error');
-    } finally {
-      btnSalvar.disabled = false;
-      btnSalvar.textContent = 'Salvar Paciente';
-    }
-  },
-};
-
-/* =============================================================
-   UI — utilitários de interface
-============================================================= */
-const UI = {
-
-  toast(msg, tipo = 'info') {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = `toast toast--${tipo}`;
-    toast.innerHTML = `
-      <span class="toast__icon">${this._toastIcon(tipo)}</span>
-      <span>${Utils.escaparHtml(msg)}</span>
+      </td>
     `;
-    container.appendChild(toast);
-    requestAnimationFrame(() => toast.classList.add('toast--visible'));
-    setTimeout(() => {
-      toast.classList.remove('toast--visible');
-      setTimeout(() => toast.remove(), 300);
-    }, 3500);
-  },
+    // Clicar na linha abre o perfil (exceto na célula de ações)
+    tr.addEventListener('click', e => {
+      if (e.target.closest('[data-action]')) return;
+      abrirPerfil(p.id);
+    });
+    tabelaBody.appendChild(tr);
+  });
 
-  _toastIcon(tipo) {
-    const icons = {
-      success: '✓',
-      error: '✕',
-      info: 'ℹ',
-      warning: '⚠',
-    };
-    return icons[tipo] || 'ℹ';
-  },
-
-  atualizarContadorResultados(total) {
-    const el = document.getElementById('contador-resultados');
-    if (el) el.textContent = `${total} paciente${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`;
-  },
-};
+  renderPaginacao();
+  atualizarRodapePaginacao(inicio, fim);
+}
 
 /* =============================================================
-   APLICAÇÃO PRINCIPAL
+   PAGINAÇÃO
 ============================================================= */
-const App = {
-  async init() {
-    Tabela.init();
-    Perfil.init();
-    Modal.init();
-    this._bindBusca();
-    this._bindFiltros();
-    await this.carregarPacientes();
-  },
+function renderPaginacao() {
+  const total = state.filtrados.length;
+  const totalPaginas = Math.ceil(total / state.porPagina);
+  paginacaoEl.innerHTML = '';
 
-  _bindBusca() {
-    const inputBusca = document.getElementById('input-busca');
-    const selectTipo = document.getElementById('select-tipo-busca');
+  if (totalPaginas <= 1) return;
 
-    const buscar = Utils.debounce(async () => {
-      State.busca.q = inputBusca.value;
-      State.busca.tipo = selectTipo.value;
-      await this.carregarPacientes();
-    }, 320);
-
-    inputBusca.addEventListener('input', buscar);
-    selectTipo.addEventListener('change', buscar);
-
-    document.getElementById('btn-limpar-busca').addEventListener('click', () => {
-      inputBusca.value = '';
-      State.busca.q = '';
-      this.carregarPacientes();
-    });
-  },
-
-  _bindFiltros() {
-    document.querySelectorAll('[data-filtro-status]').forEach(btn => {
+  const criarBtn = (label, pagina, desabilitado = false, ativo = false) => {
+    const btn = document.createElement('button');
+    btn.className = 'pagination__btn' + (ativo ? ' is-active' : '');
+    btn.textContent = label;
+    btn.disabled = desabilitado;
+    if (!desabilitado && !ativo) {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('[data-filtro-status]').forEach(b => b.classList.remove('is-active'));
-        btn.classList.add('is-active');
-        State.filtroStatus = btn.dataset.filtroStatus;
-        this.carregarPacientes();
+        state.paginaAtual = pagina;
+        renderTabela();
+        viewLista.querySelector('.table-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
-    });
-  },
-
-  async carregarPacientes() {
-    try {
-      const { data, total } = await PacientesAPI.listar({
-        q: State.busca.q,
-        tipo: State.busca.tipo,
-        status: State.filtroStatus,
-      });
-      State.pacientes = data;
-      Tabela.renderizar(data);
-      UI.atualizarContadorResultados(total);
-    } catch {
-      UI.toast('Erro ao carregar pacientes.', 'error');
-    } finally {
     }
-  },
-};
+    return btn;
+  };
 
-document.addEventListener('DOMContentLoaded', () => App.init());
+  paginacaoEl.appendChild(criarBtn('‹', state.paginaAtual - 1, state.paginaAtual === 1));
+
+  for (let i = 1; i <= totalPaginas; i++) {
+    if (totalPaginas > 7 && i > 2 && i < totalPaginas - 1 && Math.abs(i - state.paginaAtual) > 1) {
+      if (i === 3 || i === totalPaginas - 2) {
+        const sep = document.createElement('span');
+        sep.textContent = '…';
+        sep.style.cssText = 'padding:0 4px;color:var(--color-text-subtle);font-size:var(--fs-xs)';
+        paginacaoEl.appendChild(sep);
+      }
+      continue;
+    }
+    paginacaoEl.appendChild(criarBtn(i, i, false, i === state.paginaAtual));
+  }
+
+  paginacaoEl.appendChild(criarBtn('›', state.paginaAtual + 1, state.paginaAtual === totalPaginas));
+}
+
+function atualizarRodapePaginacao(inicio, fim) {
+  paginacaoExibindo.textContent = Math.min(fim, state.filtrados.length) - inicio;
+  paginacaoTotal.textContent = state.filtrados.length;
+}
+
+/* =============================================================
+   PERFIL DO PACIENTE
+============================================================= */
+function abrirPerfil(id) {
+  const p = state.pacientes.find(x => x.id === id);
+  if (!p) return;
+  state.pacienteAtivo = p;
+  state.historicoAba = 'exames';
+
+  viewLista.hidden = true;
+  viewLista.style.display = 'none';
+  viewPerfil.hidden = false;
+  viewPerfil.style.display = 'flex';
+
+  // Avatar e nome
+  $('perfil-avatar').textContent = iniciais(p.nome);
+  $('perfil-nome').textContent = p.nome;
+
+  // Status
+  const statusEl = $('perfil-status');
+  statusEl.textContent = statusLabel(p.status);
+  statusEl.className = `status-tag ${statusTagClass(p.status)}`;
+
+  // Meta (CPF · Idade · Código)
+  const idade = calcularIdade(p.nascimento);
+  $('perfil-meta').innerHTML = `
+    <span>${p.cpf}</span>
+    <span>${idade !== null ? idade + ' anos' : '—'}</span>
+    <span>Cód. ${p.id}</span>
+  `;
+
+  // KPIs
+  const totalGasto = p.exames.reduce((s, e) => s + e.valor, 0);
+  const unidadeFreq = unidadeMaisFrequente(p.exames);
+  const contUnidade = p.exames.filter(e => e.unidade === unidadeFreq).length;
+
+  $('kpi-visitas').textContent = p.exames.length;
+  $('kpi-total-gasto').textContent = formatarValor(totalGasto);
+  $('kpi-paciente-desde').textContent = formatarData(p.cadastro);
+  $('kpi-tempo-relativo').textContent = tempoRelativo(p.cadastro);
+  $('kpi-radiologia-frequente').textContent = unidadeFreq;
+  $('kpi-radiologia-visitas').textContent = `${contUnidade} visita${contUnidade !== 1 ? 's' : ''}`;
+
+  // Contato Rápido
+  const contatoEl = $('perfil-contato-rapido');
+  contatoEl.innerHTML = `
+    <a href="tel:${p.telefone}" class="contact-quick-item">
+      <span class="contact-quick-item__icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 16.92V19.92C22 20.48 21.56 20.93 21 20.97C20.17 21.03 19.33 21 18.5 20.88C14.57 20.24 10.89 18.46 7.89 15.82C5.15 13.42 2.99 10.47 1.62 7.14C1.21 6.17 0.92 5.16 0.76 4.12C0.69 3.57 1.11 3.08 1.67 3.04H4.67C5.14 3.04 5.55 3.37 5.64 3.83C5.76 4.45 5.96 5.06 6.22 5.64C6.37 5.97 6.28 6.36 6.01 6.59L4.83 7.57C6.15 10.01 8.11 12.08 10.49 13.56L11.67 12.58C11.9 12.31 12.29 12.22 12.62 12.37C13.2 12.63 13.81 12.83 14.43 12.95C14.89 13.04 15.22 13.45 15.22 13.92V16.92" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      <div>
+        <span class="contact-quick-item__label">Ligar</span>
+        <span class="contact-quick-item__value">${p.telefone}</span>
+      </div>
+    </a>
+    <a href="https://wa.me/55${p.telefone.replace(/\D/g, '')}" target="_blank" class="contact-quick-item">
+      <span class="contact-quick-item__icon contact-quick-item__icon--whatsapp">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a8 8 0 01-4.243-1.214l-.258-.155-2.844.843.849-2.812-.168-.277A8 8 0 1112 20z"/></svg>
+      </span>
+      <div>
+        <span class="contact-quick-item__label">WhatsApp</span>
+        <span class="contact-quick-item__value">${p.telefone}</span>
+      </div>
+    </a>
+    ${p.email ? `
+    <a href="mailto:${p.email}" class="contact-quick-item">
+      <span class="contact-quick-item__icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M22 7L13.03 12.7a1.94 1.94 0 01-2.06 0L2 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      <div>
+        <span class="contact-quick-item__label">E-mail</span>
+        <span class="contact-quick-item__value">${p.email}</span>
+      </div>
+    </a>` : ''}
+  `;
+
+  // Informações básicas
+  const infoBasica = $('perfil-info-basica');
+  const campos = [
+    ['Telefone', p.telefone],
+    ['E-mail', p.email || '—'],
+    ['Nascimento', formatarData(p.nascimento)],
+    ['Endereço', p.endereco || '—'],
+    ['Cadastro', formatarData(p.cadastro)],
+    ['Status', statusLabel(p.status)],
+  ];
+  infoBasica.innerHTML = campos.map(([label, valor]) => `
+    <div>
+      <dt>${label}</dt>
+      <dd>${valor}</dd>
+    </div>
+  `).join('');
+
+  // Notas
+  renderNotas(p);
+
+  // Histórico: exames ativos por padrão
+  ativarAbaHistorico('exames');
+
+  // Scroll topo
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderNotas(p) {
+  const lista = $('perfil-notas');
+  if (!p.notas.length) {
+    lista.innerHTML = '';
+    return;
+  }
+  lista.innerHTML = p.notas.map(n => `
+    <li class="note-item">
+      <span class="note-item__text">${n.texto}</span>
+      <span class="note-item__meta">${formatarData(n.data)}</span>
+    </li>
+  `).join('');
+}
+
+function renderTimeline(exames) {
+  const lista = $('timeline-exames');
+  if (!exames.length) {
+    lista.innerHTML = '<li style="padding:var(--space-5);color:var(--color-text-subtle);font-size:var(--fs-sm);">Nenhum exame registrado.</li>';
+    return;
+  }
+  const ordenados = [...exames].sort((a, b) => new Date(b.data) - new Date(a.data));
+  lista.innerHTML = ordenados.map(e => `
+    <li class="timeline-item">
+      <div class="timeline-item__rail">
+        <div class="timeline-item__dot"></div>
+        <div class="timeline-item__line"></div>
+      </div>
+      <div class="timeline-item__content">
+        <div class="timeline-item__top">
+          <span class="timeline-item__exam">${e.tipo}</span>
+          <span class="timeline-item__date">${formatarData(e.data)}</span>
+        </div>
+        <span class="timeline-item__unit">${e.unidade}</span>
+        <span class="timeline-item__value">${formatarValor(e.valor)}</span>
+      </div>
+    </li>
+  `).join('');
+}
+
+function renderTabelaAgendamentos(agendamentos) {
+  const tbody = $('tabela-agendamentos-body');
+  if (!agendamentos.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:var(--space-5);color:var(--color-text-subtle);font-size:var(--fs-sm);">Nenhum agendamento registrado.</td></tr>';
+    return;
+  }
+  const ordenados = [...agendamentos].sort((a, b) => new Date(b.data) - new Date(a.data));
+  tbody.innerHTML = ordenados.map(a => `
+    <tr>
+      <td>${formatarData(a.data)}</td>
+      <td>${a.hora}</td>
+      <td>${a.unidade}</td>
+      <td>${a.tipo}</td>
+      <td><span class="status-tag ${statusTagClass(a.status)}">${statusLabel(a.status)}</span></td>
+    </tr>
+  `).join('');
+}
+
+function ativarAbaHistorico(aba) {
+  state.historicoAba = aba;
+  const p = state.pacienteAtivo;
+
+  document.querySelectorAll('[data-historico]').forEach(btn => {
+    btn.classList.toggle('is-active', btn.dataset.historico === aba);
+  });
+
+  $('painel-exames').hidden = aba !== 'exames';
+  $('painel-agendamentos').hidden = aba !== 'agendamentos';
+
+  if (aba === 'exames') renderTimeline(p.exames);
+  else renderTabelaAgendamentos(p.agendamentos);
+}
+
+/* =============================================================
+   MODAL (NOVO / EDITAR)
+============================================================= */
+function abrirModal(id = null) {
+  state.editandoId = id;
+  modalTitulo.textContent = id ? 'Editar Paciente' : 'Novo Paciente';
+  formPaciente.reset();
+
+  if (id) {
+    const p = state.pacientes.find(x => x.id === id);
+    if (p) {
+      $('f-nome').value = p.nome;
+      $('f-cpf').value = p.cpf;
+      $('f-telefone').value = p.telefone;
+      $('f-nascimento').value = p.nascimento || '';
+      $('f-email').value = p.email || '';
+      $('f-endereco').value = p.endereco || '';
+      $('f-observacoes').value = p.observacoes || '';
+    }
+  }
+
+  modalPaciente.hidden = false;
+  modalPaciente.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => $('f-nome').focus(), 100);
+}
+
+function fecharModal() {
+  modalPaciente.style.display = 'none';
+  modalPaciente.hidden = true;
+  document.body.style.overflow = '';
+  state.editandoId = null;
+  formPaciente.reset();
+}
+
+function salvarPaciente(e) {
+  e.preventDefault();
+
+  const nome = $('f-nome').value.trim();
+  const cpf = $('f-cpf').value.trim();
+  const telefone = $('f-telefone').value.trim();
+  const nascimento = $('f-nascimento').value;
+  const email = $('f-email').value.trim();
+  const endereco = $('f-endereco').value.trim();
+  const observacoes = $('f-observacoes').value.trim();
+
+  if (state.editandoId) {
+    const idx = state.pacientes.findIndex(x => x.id === state.editandoId);
+    if (idx !== -1) {
+      state.pacientes[idx] = { ...state.pacientes[idx], nome, cpf, telefone, nascimento, email, endereco, observacoes };
+      if (state.pacienteAtivo?.id === state.editandoId) {
+        state.pacienteAtivo = state.pacientes[idx];
+        abrirPerfil(state.editandoId);
+      }
+    }
+    mostrarToast('Paciente atualizado com sucesso.');
+  } else {
+    const hoje = new Date().toISOString().split('T')[0];
+    const novoPaciente = {
+      id: gerarId(),
+      nome, cpf, telefone, nascimento, email, endereco, observacoes,
+      status: 'novo',
+      cadastro: hoje,
+      exames: [],
+      agendamentos: [],
+      notas: [],
+    };
+    state.pacientes.unshift(novoPaciente);
+    mostrarToast('Paciente cadastrado com sucesso.');
+  }
+
+  fecharModal();
+  aplicarFiltros();
+}
+
+/* =============================================================
+   TOAST
+============================================================= */
+let toastTimer = null;
+function mostrarToast(msg, duracao = 3000) {
+  toastText.textContent = msg;
+  // Remove display:none e qualquer estado anterior
+  toast.removeAttribute('hidden');
+  toast.style.display = 'flex';
+  toast.style.opacity = '1';
+  toast.style.pointerEvents = 'none';
+  toast.style.animation = 'none';
+
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.style.transition = 'opacity 400ms ease';
+    toast.style.opacity = '0';
+    setTimeout(() => {
+      toast.style.display = 'none';
+      toast.setAttribute('hidden', '');
+      toast.style.transition = '';
+      toast.style.animation = '';
+    }, 420);
+  }, duracao);
+}
+
+/* =============================================================
+   MÁSCARA DE CAMPOS
+============================================================= */
+$('f-cpf').addEventListener('input', function () {
+  let v = this.value.replace(/\D/g, '').slice(0, 11);
+  if (v.length > 9) v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+  else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d+)/, '$1.$2.$3');
+  else if (v.length > 3) v = v.replace(/(\d{3})(\d+)/, '$1.$2');
+  this.value = v;
+});
+
+$('f-telefone').addEventListener('input', function () {
+  let v = this.value.replace(/\D/g, '').slice(0, 11);
+  if (v.length > 10) v = v.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+  else if (v.length > 6) v = v.replace(/(\d{2})(\d{4})(\d+)/, '($1) $2-$3');
+  else if (v.length > 2) v = v.replace(/(\d{2})(\d+)/, '($1) $2');
+  this.value = v;
+});
+
+/* =============================================================
+   EVENT LISTENERS
+============================================================= */
+
+// Busca
+inputBusca.addEventListener('input', () => {
+  state.buscaTexto = inputBusca.value;
+  btnClearSearch.classList.toggle('is-visible', !!inputBusca.value);
+  aplicarFiltros();
+});
+
+btnClearSearch.addEventListener('click', () => {
+  inputBusca.value = '';
+  state.buscaTexto = '';
+  btnClearSearch.classList.remove('is-visible');
+  aplicarFiltros();
+  inputBusca.focus();
+});
+
+// Scope pills
+scopePills.addEventListener('click', e => {
+  const pill = e.target.closest('[data-scope]');
+  if (!pill) return;
+  scopePills.querySelectorAll('.pill').forEach(p => p.classList.remove('is-active'));
+  pill.classList.add('is-active');
+  state.buscaScope = pill.dataset.scope;
+  aplicarFiltros();
+});
+
+// Filtros rápidos
+quickFilterPills.addEventListener('click', e => {
+  const pill = e.target.closest('[data-filter]');
+  if (!pill) return;
+  quickFilterPills.querySelectorAll('.pill').forEach(p => p.classList.remove('is-active'));
+  pill.classList.add('is-active');
+  state.filtroRapido = pill.dataset.filter;
+  aplicarFiltros();
+});
+
+// Ações na tabela (ver / editar)
+tabelaBody.addEventListener('click', e => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  e.stopPropagation();
+  const { action, id } = btn.dataset;
+  if (action === 'ver') abrirPerfil(id);
+  if (action === 'editar') abrirModal(id);
+});
+
+// Novo paciente
+btnNovoPaciente.addEventListener('click', () => abrirModal());
+
+// Fechar modal
+btnFecharModal.addEventListener('click', fecharModal);
+btnCancelarModal.addEventListener('click', fecharModal);
+modalPaciente.addEventListener('click', e => {
+  if (e.target === modalPaciente) fecharModal();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !modalPaciente.hidden) fecharModal();
+});
+
+// Salvar
+formPaciente.addEventListener('submit', salvarPaciente);
+
+// Voltar para lista
+$('btn-voltar-lista').addEventListener('click', () => {
+  viewPerfil.hidden = true;
+  viewPerfil.style.display = 'none';
+  viewLista.hidden = false;
+  viewLista.style.display = 'flex';
+  state.pacienteAtivo = null;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// Editar paciente (no perfil)
+$('btn-editar-paciente').addEventListener('click', () => {
+  if (state.pacienteAtivo) abrirModal(state.pacienteAtivo.id);
+});
+
+// Toggle histórico (Exames / Agendamentos)
+$('historico-toggle').addEventListener('click', e => {
+  const btn = e.target.closest('[data-historico]');
+  if (!btn) return;
+  ativarAbaHistorico(btn.dataset.historico);
+});
+
+// Adicionar nota
+$('btn-add-nota').addEventListener('click', () => {
+  if (!state.pacienteAtivo) return;
+  const texto = prompt('Nova observação:');
+  if (!texto?.trim()) return;
+  const hoje = new Date().toISOString().split('T')[0];
+  state.pacienteAtivo.notas.unshift({ texto: texto.trim(), data: hoje });
+  const idx = state.pacientes.findIndex(x => x.id === state.pacienteAtivo.id);
+  if (idx !== -1) state.pacientes[idx].notas = state.pacienteAtivo.notas;
+  renderNotas(state.pacienteAtivo);
+  mostrarToast('Nota adicionada.');
+});
+
+// Exportar PDF (placeholder)
+$('btn-exportar-pdf').addEventListener('click', () => {
+  mostrarToast('Exportação de PDF em desenvolvimento.');
+});
+
+/* =============================================================
+   INICIALIZAÇÃO
+============================================================= */
+function init() {
+  // Garante estados iniciais corretos independente do HTML
+  modalPaciente.style.display = 'none';
+  modalPaciente.hidden = true;
+  toast.style.display = 'none';
+  toast.setAttribute('hidden', '');
+  viewPerfil.hidden = true;
+  viewPerfil.style.display = 'none';
+  viewLista.hidden = false;
+  viewLista.style.display = 'flex';
+  aplicarFiltros();
+}
+
+init();
