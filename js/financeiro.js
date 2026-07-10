@@ -523,111 +523,587 @@
       Chart.defaults.animation.easing   = 'easeOutQuart';
     },
 
-    /** Tooltip customizado usando HTML externo (padrão IORD) */
+    /** Tooltip customizado usando HTML externo — versão enriquecida do Financeiro */
     externalTooltip(context) {
-      const { chart, tooltip } = context;
-      let el = chart.canvas.parentNode.querySelector('.chartjs-tooltip');
-      if (!el) {
-        el = document.createElement('div');
-        el.className = 'chartjs-tooltip';
-        el.innerHTML = '<div class="cjs-tooltip__inner"></div>';
-        chart.canvas.parentNode.appendChild(el);
-      }
-      if (tooltip.opacity === 0) { el.style.opacity = '0'; return; }
+        const { chart, tooltip } = context;
 
-      const inner = el.querySelector('.cjs-tooltip__inner');
-      const dp = tooltip.dataPoints?.[0];
-      if (!dp) return;
+        let el = document.body.querySelector('.chartjs-tooltip');
+        
+        if (!el) {
+            el = document.createElement('div');
+            el.className = 'chartjs-tooltip';
+            el.innerHTML = '<div class="cjs-tooltip__inner"></div>';
+            el.style.opacity = '0';
+            el.style.position = 'fixed';
+            el.style.pointerEvents = 'none';
+            el.style.zIndex = '9999';
+            el.style.transition = 'opacity 0.15s ease';
+            document.body.appendChild(el);
+        }
 
-      let html = `<div class="cjs-tooltip__eyebrow">${tooltip.title?.[0] || ''}</div>`;
-      html += `<div class="cjs-tooltip__metrics">`;
-      tooltip.dataPoints.forEach(p => {
-        const color = p.dataset.backgroundColor instanceof Array
-          ? p.dataset.backgroundColor[p.dataIndex]
-          : p.dataset.borderColor || p.dataset.backgroundColor;
-        html += `
-          <div class="cjs-tooltip__metric">
-            <span class="cjs-tooltip__metric-label" style="display:flex;align-items:center;gap:6px">
-              <span class="cjs-tooltip__dot" style="background:${color}"></span>${p.dataset.label || p.label}
-            </span>
-            <span class="cjs-tooltip__metric-value">${p.formattedValue}</span>
-          </div>`;
-      });
-      html += `</div>`;
-      inner.innerHTML = html;
+        // Remove classes de variante anteriores
+        el.classList.remove('chartjs-tooltip--compact', 'chartjs-tooltip--wide');
 
-      el.style.opacity  = '1';
-      const { offsetLeft: posX, offsetTop: posY } = chart.canvas;
-      let left = posX + tooltip.caretX + 12;
-      let top  = posY + tooltip.caretY - 20;
-      const rect = chart.canvas.parentNode.getBoundingClientRect();
-      if (left + 240 > rect.width) left = posX + tooltip.caretX - 240 - 12;
-      el.style.left = `${left}px`;
-      el.style.top  = `${top}px`;
+        if (tooltip.opacity === 0) {
+            el.style.opacity = '0';
+            return;
+        }
+
+        const inner = el.querySelector('.cjs-tooltip__inner');
+        const dp = tooltip.dataPoints?.[0];
+        if (!dp) { el.style.opacity = '0'; return; }
+
+        const canvasId = chart.canvas.id;
+        const label = tooltip.title?.[0] || '';
+        let html = '';
+
+        // ------------------------------------------------------------------
+        // GRÁFICO: Evolução Mensal — mostra faturamento + variação + exames
+        // ------------------------------------------------------------------
+        if (canvasId === 'evolutionChart') {
+            const fatPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Faturamento');
+            const antPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Mesmo período ano anterior');
+            const exPoint  = tooltip.dataPoints.find(p => p.dataset.label === 'Exames');
+
+            if (fatPoint) {
+            const fatVal = fatPoint.raw;
+            const antVal = antPoint ? antPoint.raw : null;
+            let changeHtml = '';
+            if (antVal !== null && antVal > 0) {
+                const pct = ((fatVal - antVal) / antVal * 100);
+                const cls = pct > 0 ? 'cjs-tooltip__change--up' : pct < 0 ? 'cjs-tooltip__change--down' : 'cjs-tooltip__change--flat';
+                const arrow = pct > 0 ? '↑' : pct < 0 ? '↓' : '—';
+                changeHtml = `
+                <div class="cjs-tooltip__change-row">
+                    <span class="cjs-tooltip__change ${cls}">${arrow} ${Math.abs(pct).toFixed(1)}%</span>
+                    <span class="cjs-tooltip__change-context">vs. ano anterior</span>
+                </div>`;
+            }
+
+            html = `
+                <div class="cjs-tooltip__eyebrow">${label}</div>
+                <div class="cjs-tooltip__headline">
+                <span class="cjs-tooltip__headline-label">
+                    <span class="cjs-tooltip__dot" style="background:${CFG.colors.primary}"></span>Faturamento
+                </span>
+                <span class="cjs-tooltip__headline-value">${H.currency(fatVal)}</span>
+                </div>
+                ${changeHtml}`;
+
+            if (exPoint) {
+                html += `
+                <div class="cjs-tooltip__divider"></div>
+                <div class="cjs-tooltip__metrics">
+                    <div class="cjs-tooltip__metric">
+                    <span class="cjs-tooltip__metric-label">
+                        <span class="cjs-tooltip__dot cjs-tooltip__dot--sm" style="background:${CFG.colors.primaryLight}"></span>Exames
+                    </span>
+                    <span class="cjs-tooltip__metric-value">${H.number(exPoint.raw)}</span>
+                    </div>
+                    <div class="cjs-tooltip__metric">
+                    <span class="cjs-tooltip__metric-label">Ticket médio</span>
+                    <span class="cjs-tooltip__metric-value">${H.currency(Math.round(fatVal / Math.max(exPoint.raw, 1)))}</span>
+                    </div>
+                </div>`;
+            }
+
+            html += `<div class="cjs-tooltip__footer-note">Dados acumulados do mês</div>`;
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // GRÁFICO: Por Radiologia — breakdown com barras de participação
+        // ------------------------------------------------------------------
+        else if (canvasId === 'byRadiologyChart') {
+            const p = tooltip.dataPoints[0];
+            const val = p.raw;
+            const total = MOCK_POR_RADIOLOGIA.reduce((s, r) => s + r.faturamento, 0);
+            const pct = total > 0 ? (val / total * 100) : 0;
+            const radioData = MOCK_POR_RADIOLOGIA[p.dataIndex];
+            const color = SERIES_COLORS[p.dataIndex % SERIES_COLORS.length];
+
+            html = `
+            <div class="cjs-tooltip__eyebrow">Radiologia</div>
+            <div class="cjs-tooltip__headline">
+                <span class="cjs-tooltip__headline-label">
+                <span class="cjs-tooltip__dot" style="background:${color}"></span>${label}
+                </span>
+                <span class="cjs-tooltip__headline-value">${H.currency(val)}</span>
+            </div>
+            <div class="cjs-tooltip__divider"></div>
+            <div class="cjs-tooltip__breakdown">
+                <div class="cjs-tooltip__row">
+                <div class="cjs-tooltip__row-top">
+                    <span class="cjs-tooltip__row-label">Participação no total</span>
+                    <div class="cjs-tooltip__row-right">
+                    <span class="cjs-tooltip__row-value">${H.percent(pct)}</span>
+                    </div>
+                </div>
+                <div class="cjs-tooltip__bar-track">
+                    <div class="cjs-tooltip__bar-fill" style="width:${pct}%;background:${color}"></div>
+                </div>
+                </div>
+            </div>
+            <div class="cjs-tooltip__divider"></div>
+            <div class="cjs-tooltip__metrics">
+                <div class="cjs-tooltip__metric">
+                <span class="cjs-tooltip__metric-label">Exames realizados</span>
+                <span class="cjs-tooltip__metric-value">${radioData ? H.number(radioData.exames) : '--'}</span>
+                </div>
+                <div class="cjs-tooltip__metric">
+                <span class="cjs-tooltip__metric-label">Ticket médio</span>
+                <span class="cjs-tooltip__metric-value">${radioData ? H.currency(Math.round(val / Math.max(radioData.exames, 1))) : '--'}</span>
+                </div>
+                <div class="cjs-tooltip__metric">
+                <span class="cjs-tooltip__metric-label">Variação mensal</span>
+                <span class="cjs-tooltip__metric-value" style="color:${radioData && radioData.variacao >= 0 ? '#5EEAA4' : '#F58A83'}">${radioData ? (radioData.variacao >= 0 ? '+' : '') + H.percent(radioData.variacao) : '--'}</span>
+                </div>
+            </div>`;
+        }
+
+        // ------------------------------------------------------------------
+        // GRÁFICO: Top Clínicas — faturamento + participação
+        // ------------------------------------------------------------------
+        
+        // ------------------------------------------------------------------
+        // GRÁFICO: Top Médicos — faturamento + comissão estimada
+        // ------------------------------------------------------------------
+        else if (canvasId === 'distribuicaoChart') {
+            const p = tooltip.dataPoints[0];
+            const val = p.raw;
+            const filtered = H.filteredRadiologies();
+            const total = filtered.reduce((s, r) => s + r.faturamento, 0);
+            const pct = total > 0 ? (val / total * 100) : 0;
+            const radioData = filtered[p.dataIndex];
+            const color = p.dataset.backgroundColor instanceof Array
+                ? p.dataset.backgroundColor[p.dataIndex]
+                : p.dataset.backgroundColor;
+
+            html = `
+            <div class="cjs-tooltip__eyebrow">Radiologia</div>
+            <div class="cjs-tooltip__headline">
+                <span class="cjs-tooltip__headline-label">
+                <span class="cjs-tooltip__dot" style="background:${color}"></span>${label}
+                </span>
+                <span class="cjs-tooltip__headline-value">${H.currency(val)}</span>
+            </div>
+            <div class="cjs-tooltip__breakdown">
+                <div class="cjs-tooltip__row">
+                <div class="cjs-tooltip__row-top">
+                    <span class="cjs-tooltip__row-label">Participação no total</span>
+                    <span class="cjs-tooltip__row-percent">${H.percent(pct)}</span>
+                </div>
+                <div class="cjs-tooltip__bar-track">
+                    <div class="cjs-tooltip__bar-fill" style="width:${pct}%;background:${color}"></div>
+                </div>
+                </div>
+            </div>
+            <div class="cjs-tooltip__footer-note">${radioData ? H.number(radioData.exames) + ' exames no período' : ''}</div>`;
+
+            el.classList.add('chartjs-tooltip--compact');
+        }
+
+        // ------------------------------------------------------------------
+        // GRÁFICO: Distribuição de Exames (doughnut)
+        // ------------------------------------------------------------------
+        else if (canvasId === 'examTypesChart') {
+            const p = tooltip.dataPoints[0];
+            const val = p.raw;
+            const total = MOCK_TIPOS_EXAME.reduce((s, t) => s + t.quantidade, 0);
+            const pct = total > 0 ? (val / total * 100) : 0;
+            const color = p.dataset.backgroundColor instanceof Array
+            ? p.dataset.backgroundColor[p.dataIndex]
+            : p.dataset.backgroundColor;
+
+            html = `
+            <div class="cjs-tooltip__eyebrow">Tipo de Exame</div>
+            <div class="cjs-tooltip__headline">
+                <span class="cjs-tooltip__headline-label">
+                <span class="cjs-tooltip__dot" style="background:${color}"></span>${label}
+                </span>
+                <span class="cjs-tooltip__headline-value">${H.number(val)}</span>
+            </div>
+            <div class="cjs-tooltip__breakdown">
+                <div class="cjs-tooltip__row">
+                <div class="cjs-tooltip__row-top">
+                    <span class="cjs-tooltip__row-label">Participação</span>
+                    <div class="cjs-tooltip__row-right">
+                    <span class="cjs-tooltip__row-value">${H.percent(pct)}</span>
+                    </div>
+                </div>
+                <div class="cjs-tooltip__bar-track">
+                    <div class="cjs-tooltip__bar-fill" style="width:${Math.min(pct * 2, 100)}%;background:${color}"></div>
+                </div>
+                </div>
+            </div>
+            <div class="cjs-tooltip__footer-note">Total no período: ${H.number(total)} exames</div>`;
+
+            el.classList.add('chartjs-tooltip--compact');
+        }
+
+        // ------------------------------------------------------------------
+        // GRÁFICO: Ticket Médio por Radiologia
+        // ------------------------------------------------------------------
+        else if (canvasId === 'avgTicketChart') {
+            const atualPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Mês Atual');
+            const antPoint   = tooltip.dataPoints.find(p => p.dataset.label === 'Mês Anterior');
+
+            if (atualPoint) {
+            const atual = atualPoint.raw;
+            const ant   = antPoint ? antPoint.raw : null;
+            let diffHtml = '';
+            if (ant !== null && ant > 0) {
+                const diff = ((atual - ant) / ant * 100);
+                const cls = diff > 0 ? 'cjs-tooltip__change--up' : diff < 0 ? 'cjs-tooltip__change--down' : 'cjs-tooltip__change--flat';
+                const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '—';
+                diffHtml = `
+                <div class="cjs-tooltip__change-row">
+                    <span class="cjs-tooltip__change ${cls}">${arrow} ${Math.abs(diff).toFixed(1)}%</span>
+                    <span class="cjs-tooltip__change-context">vs. mês anterior</span>
+                </div>`;
+            }
+
+            html = `
+                <div class="cjs-tooltip__eyebrow">${label}</div>
+                <div class="cjs-tooltip__headline">
+                <span class="cjs-tooltip__headline-label">Ticket médio atual</span>
+                <span class="cjs-tooltip__headline-value">${H.currency(atual)}</span>
+                </div>
+                ${diffHtml}
+                <div class="cjs-tooltip__divider"></div>
+                <div class="cjs-tooltip__metrics">
+                <div class="cjs-tooltip__metric">
+                    <span class="cjs-tooltip__metric-label">Mês anterior</span>
+                    <span class="cjs-tooltip__metric-value">${ant !== null ? H.currency(ant) : '--'}</span>
+                </div>
+                <div class="cjs-tooltip__metric">
+                    <span class="cjs-tooltip__metric-label">Diferença absoluta</span>
+                    <span class="cjs-tooltip__metric-value">${ant !== null ? H.currency(Math.round(atual - ant)) : '--'}</span>
+                </div>
+                </div>`;
+
+            el.classList.add('chartjs-tooltip--compact');
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // GRÁFICOS DA ABA COMISSÕES
+        // ------------------------------------------------------------------
+
+        // Top 10 por Comissão Devida
+        else if (canvasId === 'commTopDueChart') {
+            const p = tooltip.dataPoints[0];
+            const val = p.raw;
+            const color = p.dataset.borderColor || p.dataset.backgroundColor;
+
+            html = `
+            <div class="cjs-tooltip__eyebrow">Comissão Devida</div>
+            <div class="cjs-tooltip__headline">
+                <span class="cjs-tooltip__headline-label">
+                <span class="cjs-tooltip__dot" style="background:${color}"></span>${label}
+                </span>
+                <span class="cjs-tooltip__headline-value">${H.currency(val)}</span>
+            </div>
+            <div class="cjs-tooltip__footer-note">Valor total de comissão no período</div>`;
+
+            el.classList.add('chartjs-tooltip--compact');
+        }
+
+        // Distribuição por Radiologia (doughnut)
+        else if (canvasId === 'commByRadiologyChart') {
+            const p = tooltip.dataPoints[0];
+            const val = p.raw;
+            const total = MOCK_COMISSOES_TREE.reduce((s, r) => s + r.comissaoDevida, 0);
+            const pct = total > 0 ? (val / total * 100) : 0;
+            const color = p.dataset.backgroundColor instanceof Array
+            ? p.dataset.backgroundColor[p.dataIndex]
+            : p.dataset.backgroundColor;
+
+            html = `
+            <div class="cjs-tooltip__eyebrow">Comissões por Unidade</div>
+            <div class="cjs-tooltip__headline">
+                <span class="cjs-tooltip__headline-label">
+                <span class="cjs-tooltip__dot" style="background:${color}"></span>${label}
+                </span>
+                <span class="cjs-tooltip__headline-value">${H.currency(val)}</span>
+            </div>
+            <div class="cjs-tooltip__breakdown">
+                <div class="cjs-tooltip__row">
+                <div class="cjs-tooltip__row-top">
+                    <span class="cjs-tooltip__row-label">% do total de comissões</span>
+                    <span class="cjs-tooltip__row-percent">${H.percent(pct)}</span>
+                </div>
+                <div class="cjs-tooltip__bar-track">
+                    <div class="cjs-tooltip__bar-fill" style="width:${Math.min(pct * 2.5, 100)}%;background:${color}"></div>
+                </div>
+                </div>
+            </div>`;
+
+            el.classList.add('chartjs-tooltip--compact');
+        }
+
+        // Evolução Pagas vs Pendentes
+        else if (canvasId === 'commEvolutionChart') {
+            const pagPoint  = tooltip.dataPoints.find(p => p.dataset.label === 'Pagas');
+            const pendPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Pendentes');
+
+            html = `<div class="cjs-tooltip__eyebrow">${label}</div>`;
+
+            if (pagPoint) {
+            html += `
+                <div class="cjs-tooltip__metrics">
+                <div class="cjs-tooltip__metric">
+                    <span class="cjs-tooltip__metric-label">
+                    <span class="cjs-tooltip__dot cjs-tooltip__dot--sm" style="background:${CFG.colors.positive}"></span>Comissões pagas
+                    </span>
+                    <span class="cjs-tooltip__metric-value">${H.currency(pagPoint.raw)}</span>
+                </div>
+                <div class="cjs-tooltip__metric">
+                    <span class="cjs-tooltip__metric-label">
+                    <span class="cjs-tooltip__dot cjs-tooltip__dot--sm" style="background:${CFG.colors.warning}"></span>Comissões pendentes
+                    </span>
+                    <span class="cjs-tooltip__metric-value">${pendPoint ? H.currency(pendPoint.raw) : '--'}</span>
+                </div>`;
+
+            if (pagPoint.raw > 0) {
+                const total = pagPoint.raw + (pendPoint ? pendPoint.raw : 0);
+                const pctPago = total > 0 ? (pagPoint.raw / total * 100) : 0;
+                html += `
+                <div class="cjs-tooltip__divider"></div>
+                <div class="cjs-tooltip__metric">
+                    <span class="cjs-tooltip__metric-label">% pago no mês</span>
+                    <span class="cjs-tooltip__metric-value" style="color:#5EEAA4">${H.percent(pctPago)}</span>
+                </div>`;
+            }
+
+            html += `</div>`;
+            }
+
+            html += `<div class="cjs-tooltip__footer-note">Total no mês: ${H.currency((pagPoint?.raw || 0) + (pendPoint?.raw || 0))}</div>`;
+        }
+
+        // ------------------------------------------------------------------
+        // GRÁFICO: Meta vs Realizado (aba Metas)
+        // ------------------------------------------------------------------
+        else if (canvasId === 'goalVsActualChart') {
+            const metaPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Meta');
+            const realPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Realizado');
+
+            if (metaPoint) {
+            const meta  = metaPoint.raw;
+            const real  = realPoint ? realPoint.raw : 0;
+            const pct   = meta > 0 ? (real / meta * 100) : 0;
+
+            html = `
+                <div class="cjs-tooltip__eyebrow">Meta vs. Realizado</div>
+                <div class="cjs-tooltip__metrics">
+                <div class="cjs-tooltip__metric">
+                    <span class="cjs-tooltip__metric-label">
+                    <span class="cjs-tooltip__dot cjs-tooltip__dot--sm" style="background:${CFG.colors.primaryLight}"></span>Meta
+                    </span>
+                    <span class="cjs-tooltip__metric-value">${H.currency(meta)}</span>
+                </div>
+                <div class="cjs-tooltip__metric">
+                    <span class="cjs-tooltip__metric-label">
+                    <span class="cjs-tooltip__dot cjs-tooltip__dot--sm" style="background:${CFG.colors.primary}"></span>Realizado
+                    </span>
+                    <span class="cjs-tooltip__metric-value">${H.currency(real)}</span>
+                </div>
+                <div class="cjs-tooltip__divider"></div>
+                <div class="cjs-tooltip__metric">
+                    <span class="cjs-tooltip__metric-label">% atingido</span>
+                    <span class="cjs-tooltip__metric-value" style="color:${pct >= 90 ? '#5EEAA4' : pct >= 70 ? '#F5CC6B' : '#F58A83'}">${H.percent(pct)}</span>
+                </div>
+                <div class="cjs-tooltip__metric">
+                    <span class="cjs-tooltip__metric-label">Faltam</span>
+                    <span class="cjs-tooltip__metric-value">${H.currency(Math.max(meta - real, 0))}</span>
+                </div>
+                </div>`;
+
+            el.classList.add('chartjs-tooltip--compact');
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // FALLBACK: tooltip genérico (para gráficos não listados acima)
+        // ------------------------------------------------------------------
+        else {
+            html = `<div class="cjs-tooltip__eyebrow">${label}</div>`;
+            html += `<div class="cjs-tooltip__metrics">`;
+            tooltip.dataPoints.forEach(p => {
+            const color = p.dataset.backgroundColor instanceof Array
+                ? p.dataset.backgroundColor[p.dataIndex]
+                : p.dataset.borderColor || p.dataset.backgroundColor;
+            html += `
+                <div class="cjs-tooltip__metric">
+                <span class="cjs-tooltip__metric-label" style="display:flex;align-items:center;gap:6px">
+                    <span class="cjs-tooltip__dot" style="background:${color}"></span>${p.dataset.label || p.label}
+                </span>
+                <span class="cjs-tooltip__metric-value">${p.formattedValue}</span>
+                </div>`;
+            });
+            html += `</div>`;
+        }
+
+                // ------------------------------------------------------------------
+        // RENDERIZAÇÃO E POSICIONAMENTO (Individualizado por tipo de gráfico)
+        // ------------------------------------------------------------------
+        inner.innerHTML = html;
+
+        // Força o browser a calcular layout antes de posicionar
+        el.style.opacity = '0';
+        // setTimeout 0 garante que o DOM já foi pintado antes de medir
+        setTimeout(() => {
+        const tooltipW = el.offsetWidth;
+        const tooltipH = el.offsetHeight;
+        const canvasBox = chart.canvas.getBoundingClientRect();
+
+        let left, top;
+        const GAP = 12;
+
+        // Barras horizontais (Top Clínicas, Top Comissões)
+        if (canvasId === 'topClinicasChart' || canvasId === 'commTopDueChart') {
+            const active = chart.getActiveElements();
+            if (active.length > 0) {
+            const barBox = active[0].element.getBoundingClientRect();
+            left = barBox.right + GAP;
+            top  = barBox.top + barBox.height / 2 - tooltipH / 2;
+            if (left + tooltipW > window.innerWidth - 8) {
+                left = barBox.left - tooltipW - GAP;
+            }
+            } else {
+            left = canvasBox.right + GAP;
+            top  = canvasBox.top;
+            }
+        }
+
+        // Gráficos de linha/área
+        else if (canvasId === 'evolutionChart' || canvasId === 'commEvolutionChart') {
+            left = canvasBox.left + tooltip.caretX + GAP;
+            top  = canvasBox.top  + tooltip.caretY - tooltipH - GAP;
+            if (left + tooltipW > window.innerWidth - 8) {
+            left = canvasBox.left + tooltip.caretX - tooltipW - GAP;
+            }
+            if (top < 8) {
+            top = canvasBox.top + tooltip.caretY + GAP;
+            }
+        }
+
+        // Barras verticais (Por Radiologia, Ticket Médio, Meta)
+        else if (
+            canvasId === 'byRadiologyChart' ||
+            canvasId === 'avgTicketChart'   ||
+            canvasId === 'goalVsActualChart'||
+            canvasId === 'commTopDueChart'
+        ) {
+            left = canvasBox.left + tooltip.caretX - tooltipW / 2;
+            top  = canvasBox.top  + tooltip.caretY - tooltipH - GAP;
+            if (left + tooltipW > window.innerWidth - 8) left = window.innerWidth - tooltipW - 8;
+            if (left < 8) left = 8;
+            if (top < 8)  top  = canvasBox.top + tooltip.caretY + GAP;
+        }
+
+        // Doughnut (Tipos de Exame, Comissões por Radiologia)
+        else if (canvasId === 'examTypesChart' || canvasId === 'commByRadiologyChart' || canvasId === 'distribuicaoChart') {
+            left = canvasBox.left + tooltip.caretX + GAP;
+            top  = canvasBox.top  + tooltip.caretY - tooltipH / 2;
+            if (left + tooltipW > window.innerWidth - 8) {
+            left = canvasBox.left + tooltip.caretX - tooltipW - GAP;
+            }
+        }
+
+        // Barras horizontais duplas (Top Médicos)
+        
+        // Fallback
+        else {
+            left = canvasBox.left + tooltip.caretX + GAP;
+            top  = canvasBox.top  + tooltip.caretY - tooltipH - GAP;
+            if (left + tooltipW > window.innerWidth - 8) {
+            left = canvasBox.left + tooltip.caretX - tooltipW - GAP;
+            }
+            if (top < 8) top = canvasBox.top + tooltip.caretY + GAP;
+        }
+
+        // Clamp final
+        if (top < 8) top = 8;
+        if (top + tooltipH > window.innerHeight - 8) top = window.innerHeight - tooltipH - 8;
+        if (left < 8) left = 8;
+        if (left + tooltipW > window.innerWidth - 8) left = Math.max(8, window.innerWidth - tooltipW - 8);
+
+        el.style.left    = `${left}px`;
+        el.style.top     = `${top}px`;
+        el.style.opacity = '1';
+        }, 0);
     },
-
     line(ctx, labels, datasets, opts = {}) {
       H.destroyChart(ctx.id);
       const instance = new Chart(ctx, {
         type: 'line',
         data: { labels, datasets },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          plugins: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
             legend: { display: false },
             tooltip: { enabled: false, external: ChartFactory.externalTooltip },
-          },
-          scales: {
+            ...(opts.extra?.plugins || {}),
+            },
+            scales: {
             x: {
-              grid: { display: false },
-              ticks: { font: { size: 11 }, maxRotation: 0 },
+                grid: { display: false },
+                ticks: { font: { size: 11 }, maxRotation: 0 },
             },
             y: {
-              grid: { color: CFG.colors.border },
-              ticks: { font: { family: CFG.chartDefaults.monoFamily, size: 11 }, ...opts.yTicks },
-              beginAtZero: false,
-              ...opts.yScale,
+                grid: { color: CFG.colors.border },
+                ticks: { font: { family: CFG.chartDefaults.monoFamily, size: 11 }, ...opts.yTicks },
+                beginAtZero: false,
+                ...opts.yScale,
             },
             ...(opts.y1 ? { y1: opts.y1 } : {}),
-          },
+            },
+            ...Object.fromEntries(Object.entries(opts.extra || {}).filter(([k]) => k !== 'plugins')),
         },
-      });
+        });
       State.charts[ctx.id] = instance;
       return instance;
     },
 
     bar(ctx, labels, datasets, opts = {}) {
       H.destroyChart(ctx.id);
+      const isHorizontal = opts.horizontal === true;
       const instance = new Chart(ctx, {
         type: 'bar',
         data: { labels, datasets },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          plugins: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+            mode: isHorizontal ? 'y' : 'index',
+            intersect: false,
+            },
+            plugins: {
             legend: { display: false },
             tooltip: { enabled: false, external: ChartFactory.externalTooltip },
-          },
-          scales: {
+            ...(opts.extra?.plugins || {}),
+            },
+            scales: {
             x: {
-              grid: { display: false },
-              ticks: { font: { size: 11 } },
-              stacked: opts.stacked || false,
+                grid: { display: false },
+                ticks: { font: { size: 11 } },
+                stacked: opts.stacked || false,
             },
             y: {
-              grid: { color: CFG.colors.border },
-              ticks: { font: { family: CFG.chartDefaults.monoFamily, size: 11 }, ...opts.yTicks },
-              beginAtZero: true,
-              stacked: opts.stacked || false,
+                grid: { color: CFG.colors.border },
+                ticks: { font: { family: CFG.chartDefaults.monoFamily, size: 11 }, ...opts.yTicks },
+                beginAtZero: true,
+                stacked: opts.stacked || false,
             },
-          },
-          indexAxis: opts.horizontal ? 'y' : 'x',
-          ...opts.extra,
+            },
+            indexAxis: opts.horizontal ? 'y' : 'x',
+            ...Object.fromEntries(Object.entries(opts.extra || {}).filter(([k]) => k !== 'plugins')),
         },
-      });
+        });
       State.charts[ctx.id] = instance;
       return instance;
     },
@@ -815,13 +1291,6 @@
         kpiEx.querySelector('[data-field="change"]').innerHTML    = H.changeBadge(kpi.totalExames.changeMonth);
       }
 
-      // Ticket Médio
-      const kpiTk = document.getElementById('kpiAvgTicket');
-      if (kpiTk) {
-        kpiTk.querySelector('[data-field="value"]').textContent   = H.currency(kpi.ticketMedio.value);
-        kpiTk.querySelector('[data-field="change"]').innerHTML    = H.changeBadge(kpi.ticketMedio.changeMonth);
-      }
-
       // Previsão
       const kpiFc = document.getElementById('kpiForecast');
       if (kpiFc) {
@@ -936,89 +1405,54 @@
     }
 
     /* ----- Gráfico 3: Top Clínicas (horizontal) ----- */
-    function renderTopClinicasChart() {
-      const ctx = document.getElementById('topClinicasChart');
-      if (!ctx) return;
-
-      const data = MOCK_TOP_CLINICAS.slice(0, 10);
-      ChartFactory.bar(ctx,
-        data.map(c => c.nome),
-        [{
-          label: 'Faturamento Gerado',
-          data: data.map(c => c.faturamento),
-          backgroundColor: CFG.colors.primary + 'CC',
-          borderColor: CFG.colors.primary,
-          borderWidth: 1.5,
-          borderRadius: 4,
-          borderSkipped: false,
-        }],
-        {
-          horizontal: true,
-          yTicks: { font: { size: 10 } },
-          extra: {
-            scales: {
-              x: {
-                grid: { color: CFG.colors.border },
-                ticks: { callback: v => 'R$ ' + H.number(v / 1000, 0) + 'k', font: { family: CFG.chartDefaults.monoFamily, size: 10 } },
-              },
-              y: {
-                grid: { display: false },
-                ticks: { font: { size: 10 }, maxTicksLimit: 10 },
-              },
-            },
-          },
-        }
-      );
+    function renderDistribuicaoChart() {
+        const ctx = document.getElementById('distribuicaoChart');
+        if (!ctx) return;
+        const data = H.filteredRadiologies();
+        ChartFactory.doughnut(ctx,
+            data.map(r => r.label),
+            data.map(r => r.faturamento),
+            data.map((_, i) => H.seriesColor(i)),
+            { legendPosition: 'bottom' }
+        );
     }
 
-    /* ----- Gráfico 4: Top Médicos ----- */
-    function renderTopMedicosChart() {
-      const ctx = document.getElementById('topMedicosChart');
-      if (!ctx) return;
+    function renderHighlightsPanel() {
+        const panel = document.getElementById('highlightsPanel');
+        if (!panel) return;
 
-      const data = MOCK_TOP_MEDICOS.slice(0, 10);
-      ChartFactory.bar(ctx,
-        data.map(m => m.nome.replace('Dr. ', '').replace('Dra. ', '')),
-        [
-          {
-            label: 'Faturamento Gerado',
-            data: data.map(m => m.faturamento),
-            backgroundColor: CFG.colors.primary + 'CC',
-            borderColor: CFG.colors.primary,
-            borderWidth: 1.5,
-            borderRadius: 4,
-            borderSkipped: false,
-          },
-          {
-            label: 'Comissão Estimada',
-            data: data.map(m => m.comissaoEstimada),
-            backgroundColor: CFG.colors.primaryLight + 'CC',
-            borderColor: CFG.colors.primaryLight,
-            borderWidth: 1.5,
-            borderRadius: 4,
-            borderSkipped: false,
-          },
-        ],
-        {
-          horizontal: true,
-          extra: {
-            plugins: {
-              legend: { display: true, position: 'top', labels: { font: { size: 11 }, boxWidth: 10, boxHeight: 10 } },
-              tooltip: { enabled: false, external: ChartFactory.externalTooltip },
-            },
-            scales: {
-              x: {
-                grid: { color: CFG.colors.border },
-                ticks: { callback: v => 'R$ ' + H.number(v / 1000, 0) + 'k', font: { family: CFG.chartDefaults.monoFamily, size: 10 } },
-              },
-              y: {
-                grid: { display: false },
-                ticks: { font: { size: 10 } },
-              },
-            },
-          },
-        }
-      );
+        const topClinicas = MOCK_TOP_CLINICAS.slice(0, 5);
+        const topMedicos  = MOCK_TOP_MEDICOS.slice(0, 5);
+
+        const clinicasHtml = topClinicas.map((c, i) => `
+            <div class="highlight-row">
+            <span class="highlight-row__rank">${i + 1}</span>
+            <div class="highlight-row__info">
+                <span class="highlight-row__name">${c.nome}</span>
+                <span class="highlight-row__meta">${H.percent(c.participacao)} do total</span>
+            </div>
+            <span class="highlight-row__value">${H.currency(c.faturamento)}</span>
+            </div>`).join('');
+
+        const medicosHtml = topMedicos.map((m, i) => `
+            <div class="highlight-row">
+            <span class="highlight-row__rank">${i + 1}</span>
+            <div class="highlight-row__info">
+                <span class="highlight-row__name">${m.nome}</span>
+                <span class="highlight-row__meta">${m.clinica} · ${H.number(m.exames)} exames</span>
+            </div>
+            <span class="highlight-row__value">${H.currency(m.faturamento)}</span>
+            </div>`).join('');
+
+        panel.innerHTML = `
+            <div class="highlight-group">
+            <div class="highlight-group__title">Top 5 Clínicas Referenciadoras</div>
+            <div class="highlight-list">${clinicasHtml}</div>
+            </div>
+            <div class="highlight-group">
+            <div class="highlight-group__title">Top 5 Médicos Referenciadores</div>
+            <div class="highlight-list">${medicosHtml}</div>
+            </div>`;
     }
 
     /* ----- Gráfico 5: Distribuição de Exames ----- */
@@ -1123,16 +1557,16 @@
     }
 
     function render() {
-      renderKPIs();
-      renderInsights();
-      renderEvolutionChart();
-      renderByRadiologyChart();
-      renderTopClinicasChart();
-      renderTopMedicosChart();
-      renderExamTypesChart();
-      renderAvgTicketChart();
-      renderResumoTable();
-      renderTopMedicosTable();
+        renderKPIs();
+        renderInsights();
+        renderEvolutionChart();
+        renderByRadiologyChart();
+        renderDistribuicaoChart();
+        renderHighlightsPanel();
+        renderExamTypesChart();
+        renderAvgTicketChart();
+        renderResumoTable();
+        renderTopMedicosTable();
     }
 
     return { render };
@@ -1376,26 +1810,32 @@
       if (ctx1) {
         const data = MOCK_TOP_MEDICOS.slice(0, 10);
         ChartFactory.bar(ctx1,
-          data.map(m => m.nome.replace('Dr. ', '').replace('Dra. ', '')),
-          [{
-            label: 'Comissão Devida',
-            data: data.map(m => m.comissaoEstimada),
-            backgroundColor: CFG.colors.warning + 'BB',
-            borderColor: CFG.colors.warning,
-            borderWidth: 1.5,
-            borderRadius: 4,
-            borderSkipped: false,
-          }],
-          {
-            horizontal: true,
-            extra: {
-              scales: {
-                x: { grid: { color: CFG.colors.border }, ticks: { callback: v => 'R$ ' + H.number(v, 0), font: { family: CFG.chartDefaults.monoFamily, size: 10 } } },
-                y: { grid: { display: false }, ticks: { font: { size: 10 } } },
-              },
-              plugins: { legend: { display: false }, tooltip: { enabled: false, external: ChartFactory.externalTooltip } },
-            },
-          }
+            data.map(m => m.nome.replace('Dr. ', '').replace('Dra. ', '')),
+            [{
+                label: 'Comissão Devida',
+                data: data.map(m => m.comissaoEstimada),
+                backgroundColor: CFG.colors.warning + 'BB',
+                borderColor: CFG.colors.warning,
+                borderWidth: 1.5,
+                borderRadius: 4,
+                borderSkipped: false,
+            }],
+            {
+                horizontal: false,
+                extra: {
+                    scales: {
+                        x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 10 }, maxRotation: 40, minRotation: 40 },
+                        },
+                        y: {
+                        grid: { color: CFG.colors.border },
+                        ticks: { callback: v => 'R$ ' + H.number(v, 0), font: { family: CFG.chartDefaults.monoFamily, size: 10 } },
+                        },
+                    },
+                    plugins: { legend: { display: false }, tooltip: { enabled: false, external: ChartFactory.externalTooltip } },
+                },
+            }
         );
       }
 
@@ -1557,7 +1997,14 @@
           borderRadius: 6,
           borderSkipped: false,
         }],
-        { yTicks: { callback: v => 'R$ ' + H.number(v / 1000, 0) + 'k' } }
+        {
+            yTicks: { callback: v => 'R$ ' + H.number(v / 1000, 0) + 'k' },
+            extra: {
+                plugins: {
+                tooltip: { enabled: false, external: ChartFactory.externalTooltip },
+                },
+            },
+        }
       );
     }
 

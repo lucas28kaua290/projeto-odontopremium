@@ -609,19 +609,23 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 /* =============================================================
    TOOLTIP CUSTOMIZADO DOS GRÁFICOS (Chart.js external tooltip)
    -----------------------------------------------------------
-   Renderizado como HTML absoluto dentro de .chart-card__body,
-   para permitir hierarquia visual real (título, valor em
-   destaque, métricas, breakdown com barras de participação) —
-   algo que o tooltip nativo em <canvas> não consegue oferecer.
+   Renderizado como HTML absoluto/fixo (posição definida em
+   financeiro.css, ver nota abaixo) dentro de <body>, para
+   permitir hierarquia visual real (título, valor em destaque,
+   métricas, breakdown com barras de participação) — algo que
+   o tooltip nativo em <canvas> não consegue oferecer.
+
+   IMPORTANTE: as propriedades de POSICIONAMENTO (position, top,
+   left, z-index, opacity, pointer-events, transition) NÃO são
+   definidas aqui de propósito. Elas ficam centralizadas em
+   financeiro.css (.chartjs-tooltip usa position: fixed), porque
+   é isso que o JS (ChartFactory.externalTooltip, que usa
+   getBoundingClientRect()/window.innerWidth/innerHeight) espera.
+   Se declarar position/top/left aqui de novo, corre o risco de
+   um dos dois arquivos "vencer" a cascata e o tooltip voltar a
+   ficar mal posicionado ou cortado pela tela.
 ============================================================= */
 .chartjs-tooltip {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 20;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.1s ease;
   min-width: 220px;
   max-width: 300px;
   background-color: var(--color-text);
