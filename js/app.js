@@ -478,11 +478,14 @@ const Charts = (() => {
    * tooltip padrão baseado apenas em linhas de texto no canvas.
    */
   function getOrCreateTooltipEl(chart) {
-    let tooltipEl = chart.canvas.parentNode.querySelector('.chartjs-tooltip');
+    // Usa um id único por chart para evitar conflito entre múltiplos gráficos
+    const tooltipId = 'chartjs-tooltip-' + chart.id;
+    let tooltipEl = document.getElementById(tooltipId);
     if (!tooltipEl) {
       tooltipEl = document.createElement('div');
+      tooltipEl.id = tooltipId;
       tooltipEl.className = 'chartjs-tooltip';
-      chart.canvas.parentNode.appendChild(tooltipEl);
+      document.body.appendChild(tooltipEl);
     }
     return tooltipEl;
   }
@@ -581,21 +584,36 @@ const Charts = (() => {
         tooltipEl.innerHTML = renderTooltipHtml(model);
       }
 
-      const { offsetLeft: chartLeft, offsetTop: chartTop } = chart.canvas;
-      const chartWidth = chart.canvas.offsetWidth;
+      const canvasRect = chart.canvas.getBoundingClientRect();
       const tooltipWidth = tooltipEl.offsetWidth || 260;
+      const tooltipHeight = tooltipEl.offsetHeight || 160;
+      const OFFSET = 14;
+      const MARGIN = 8;
 
-      let left = chartLeft + tooltip.caretX + 16;
-      // Evita que o tooltip vaze para fora da direita do card
-      if (left + tooltipWidth > chartLeft + chartWidth) {
-        left = chartLeft + tooltip.caretX - tooltipWidth - 16;
+      // Posição bruta: à direita do caret
+      let left = canvasRect.left + tooltip.caretX + OFFSET;
+      let top  = canvasRect.top  + tooltip.caretY - tooltipHeight / 2;
+
+      // Vaza pela direita? → vai para a esquerda do caret
+      if (left + tooltipWidth + MARGIN > window.innerWidth) {
+        left = canvasRect.left + tooltip.caretX - tooltipWidth - OFFSET;
       }
-      let top = chartTop + tooltip.caretY;
-      top -= tooltipEl.offsetHeight ? tooltipEl.offsetHeight / 2 : 0;
+      // Vaza pelo topo?
+      if (top < MARGIN) {
+        top = MARGIN;
+      }
+      // Vaza pelo rodapé?
+      if (top + tooltipHeight + MARGIN > window.innerHeight) {
+        top = window.innerHeight - tooltipHeight - MARGIN;
+      }
+      // Garante que nunca saia pela esquerda
+      if (left < MARGIN) {
+        left = MARGIN;
+      }
 
       tooltipEl.style.opacity = 1;
       tooltipEl.style.left = left + 'px';
-      tooltipEl.style.top = top + 'px';
+      tooltipEl.style.top  = top  + 'px';
     };
   }
 
@@ -972,319 +990,125 @@ const Charts = (() => {
   return { init, externalTooltipHandler, formatCurrencyFull, formatNumberFull, SERIES_COLORS };
 })();
 
-
 /* =================================================================
-   6. HIERARCHY TABLE (Accordion / Tree Table)
-   -----------------------------------------------------------------
-   Renderiza a árvore Radiologia -> Clínica -> Médico como linhas
-   colapsáveis. Respeita o filtro global de radiologia: quando uma
-   radiologia específica é selecionada, apenas seus dados aparecem
-   (já expandidos); em "Todas", mostra as 4 radiologias (colapsadas
-   por padrão, com opção "Ver todas / Recolher").
-================================================================= */
-const HierarchyTable = (() => {
-  let bodyEl, sortSelect, expandAllBtn, collapseAllBtn, toggleLimitBtn, toggleLimitLabel;
-
-  const LIMITE_RADIOLOGIAS_RESUMO = 2; // versão resumida: mostra até N radiologias antes do "ver mais"
-
-  // Estado de UI local (independente do AppState): quais nós estão expandidos + se a versão resumida está ativa
-  let expandedNodes = new Set();      // ids de radiologia/clínica expandidos
-  let showAllRows = false;            // controla o limite de linhas (versão resumida)
-
-  function formatCurrency(v) { return Kpis.formatCurrency(v); }
-  function formatNumber(v) { return Kpis.formatNumber(v); }
-
-  /** Ordena um array de nós (radiologias, clínicas ou médicos) conforme o critério selecionado */
-  function ordenar(nodes, criterio) {
-    const arr = [...nodes];
-    const getFat = (n) => n.totais ? n.totais.faturamento : n.faturamento;
-    const getPend = (n) => n.totais ? n.totais.pendente : n.pendente;
-    const getExames = (n) => n.totais ? n.totais.exames : n.exames;
-
-    switch (criterio) {
-      case 'faturamento_asc': arr.sort((a, b) => getFat(a) - getFat(b)); break;
-      case 'pendente_desc': arr.sort((a, b) => getPend(b) - getPend(a)); break;
-      case 'exames_desc': arr.sort((a, b) => getExames(b) - getExames(a)); break;
-      case 'nome_asc': arr.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')); break;
-      case 'faturamento_desc':
-      default: arr.sort((a, b) => getFat(b) - getFat(a));
-    }
-    return arr;
-  }
-
-  function criarLinha({ nome, level, exames, faturamento, comissao, pendente, nodeId, hasChildren, isTotal, childCount, childLabel }) {
-    const row = document.createElement('div');
-    row.className = `tree-row tree-row--level-${level}` + (isTotal ? ' tree-row--total' : '');
-    if (nodeId) row.dataset.nodeId = nodeId;
-
-    const isExpanded = nodeId ? expandedNodes.has(nodeId) : true;
-    if (hasChildren && !isExpanded) row.classList.add('is-collapsed');
-
-    const badge = level === 1 ? 'Radiologia' : level === 2 ? 'Clínica' : '';
-    const contagem = (hasChildren && childCount) ? `<span class="tree-row__count">${childCount} ${childLabel}</span>` : '';
-
-    row.innerHTML = `
-      <span class="tree-row__name-cell">
-        ${hasChildren
-          ? `<button type="button" class="tree-row__toggle" aria-label="Expandir/recolher" data-toggle-id="${nodeId}">
-               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-             </button>`
-          : `<span class="tree-row__toggle-spacer"></span>`}
-        <span class="tree-row__name" title="${nome}">${nome}</span>
-        ${badge ? `<span class="tree-row__badge">${badge}</span>` : ''}
-        ${contagem}
-      </span>
-      <span class="tree-row__num" data-label="Exames">${formatNumber(exames)}</span>
-      <span class="tree-row__num" data-label="Faturamento">${formatCurrency(faturamento)}</span>
-      <span class="tree-row__num" data-label="Comissão Devida">${formatCurrency(comissao)}</span>
-      <span class="tree-row__num ${pendente > 0 ? 'tree-row__num--pending' : 'tree-row__num--pending is-zero'}" data-label="Pendente">${pendente > 0 ? formatCurrency(pendente) : '—'}</span>
-      <span class="tree-row__action">
-        ${level === 3 || isTotal ? '' : `<button type="button" class="row-action-btn" aria-label="Ver detalhes" title="Ver detalhes">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
-        </button>`}
-      </span>
-    `;
-    return row;
-  }
-
-  /** Renderiza os médicos (nível 3) de uma clínica dentro de um contêiner de grupo */
-  function renderMedicos(clinica, criterio) {
-    const group = document.createElement('div');
-    group.className = 'tree-group';
-    group.dataset.parentId = clinica.id;
-    if (!expandedNodes.has(clinica.id)) group.classList.add('is-collapsed');
-
-    ordenar(clinica.medicos, criterio).forEach((medico) => {
-      group.appendChild(criarLinha({
-        nome: medico.nome, level: 3,
-        exames: medico.exames, faturamento: medico.faturamento,
-        comissao: medico.comissao, pendente: medico.pendente,
-        hasChildren: false,
-      }));
-    });
-    return group;
-  }
-
-  /** Renderiza as clínicas (nível 2) de uma radiologia dentro de um contêiner de grupo */
-  function renderClinicas(radiologia, criterio) {
-    const group = document.createElement('div');
-    group.className = 'tree-group';
-    group.dataset.parentId = radiologia.id;
-    if (!expandedNodes.has(radiologia.id)) group.classList.add('is-collapsed');
-
-    ordenar(radiologia.clinicas, criterio).forEach((clinica) => {
-      const row = criarLinha({
-        nome: clinica.nome, level: 2,
-        exames: clinica.totais.exames, faturamento: clinica.totais.faturamento,
-        comissao: clinica.totais.comissao, pendente: clinica.totais.pendente,
-        nodeId: clinica.id, hasChildren: clinica.medicos.length > 0,
-        childCount: clinica.medicos.length,
-        childLabel: clinica.medicos.length === 1 ? 'médico' : 'médicos',
-      });
-      group.appendChild(row);
-      group.appendChild(renderMedicos(clinica, criterio));
-    });
-    return group;
-  }
-
-  /** Monta a linha de total geral (soma de todas as radiologias visíveis no momento) */
-  function criarLinhaTotalGeral(radiologiasVisiveis) {
-    const total = radiologiasVisiveis.reduce((acc, r) => ({
-      exames: acc.exames + r.totais.exames,
-      faturamento: acc.faturamento + r.totais.faturamento,
-      comissao: acc.comissao + r.totais.comissao,
-      pendente: acc.pendente + r.totais.pendente,
-    }), { exames: 0, faturamento: 0, comissao: 0, pendente: 0 });
-
-    return criarLinha({
-      nome: 'Total Geral', level: 1,
-      exames: total.exames, faturamento: total.faturamento,
-      comissao: total.comissao, pendente: total.pendente,
-      hasChildren: false, isTotal: true,
-    });
-  }
-
-  /** Renderização principal: respeita o filtro global de radiologia + versão resumida */
-  function render(state) {
-    const criterio = sortSelect.value;
-    const tree = MockData.getHierarchyTree();
-    bodyEl.innerHTML = '';
-
-    let radiologiasVisiveis;
-    let isFiltrado = state.radiologiaSelecionada !== 'all';
-
-    if (isFiltrado) {
-      // Radiologia específica: mostra só ela, já expandida por padrão
-      radiologiasVisiveis = tree.filter((r) => r.id === state.radiologiaSelecionada);
-      radiologiasVisiveis.forEach((r) => {
-        expandedNodes.add(r.id);
-        r.clinicas.forEach((c) => expandedNodes.add(c.id));
-      });
-    } else {
-      radiologiasVisiveis = ordenar(tree, criterio);
-    }
-
-    const totalDisponivel = radiologiasVisiveis.length;
-    const aplicarLimite = !isFiltrado && !showAllRows && totalDisponivel > LIMITE_RADIOLOGIAS_RESUMO;
-    const radiologiasParaExibir = aplicarLimite ? radiologiasVisiveis.slice(0, LIMITE_RADIOLOGIAS_RESUMO) : radiologiasVisiveis;
-
-    if (!radiologiasParaExibir.length) {
-      bodyEl.innerHTML = '<div class="empty-state">Nenhum dado encontrado para esta seleção.</div>';
-    }
-
-    radiologiasParaExibir.forEach((rad) => {
-      const row = criarLinha({
-        nome: rad.nome, level: 1,
-        exames: rad.totais.exames, faturamento: rad.totais.faturamento,
-        comissao: rad.totais.comissao, pendente: rad.totais.pendente,
-        nodeId: rad.id, hasChildren: rad.clinicas.length > 0,
-        childCount: rad.clinicas.length,
-        childLabel: rad.clinicas.length === 1 ? 'clínica' : 'clínicas',
-      });
-      bodyEl.appendChild(row);
-      bodyEl.appendChild(renderClinicas(rad, criterio));
-    });
-
-    // Total geral — soma tudo que está visível no momento (respeita o filtro global)
-    if (radiologiasVisiveis.length > 1) {
-      bodyEl.appendChild(criarLinhaTotalGeral(radiologiasVisiveis));
-    }
-
-    // Rodapé "ver todas / recolher": só faz sentido em "Todas as Radiologias" com mais itens do que o limite
-    const footerBtn = toggleLimitBtn.closest('.tree-table__footer');
-    footerBtn.style.display = (!isFiltrado && totalDisponivel > LIMITE_RADIOLOGIAS_RESUMO) ? 'flex' : 'none';
-    toggleLimitLabel.textContent = showAllRows ? 'Ver resumo (2 primeiras)' : `Ver todas as radiologias (${totalDisponivel})`;
-    toggleLimitBtn.classList.toggle('is-expanded', showAllRows);
-
-    bindRowToggles();
-  }
-
-  /** Liga os cliques dos botões de expandir/recolher em cada linha (delegação simplificada) */
-  function bindRowToggles() {
-    bodyEl.querySelectorAll('[data-toggle-id]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const id = btn.dataset.toggleId;
-        const isExpanded = expandedNodes.has(id);
-        if (isExpanded) expandedNodes.delete(id); else expandedNodes.add(id);
-        render(AppState.getState());
-      });
-    });
-  }
-
-  function expandAll() {
-    const tree = MockData.getHierarchyTree();
-    tree.forEach((r) => {
-      expandedNodes.add(r.id);
-      r.clinicas.forEach((c) => expandedNodes.add(c.id));
-    });
-    render(AppState.getState());
-  }
-
-  function collapseAll() {
-    expandedNodes.clear();
-    render(AppState.getState());
-  }
-
-  function bindEvents() {
-    sortSelect.addEventListener('change', () => render(AppState.getState()));
-    expandAllBtn.addEventListener('click', expandAll);
-    collapseAllBtn.addEventListener('click', collapseAll);
-    toggleLimitBtn.addEventListener('click', () => {
-      showAllRows = !showAllRows;
-      render(AppState.getState());
-    });
-    AppState.subscribe(render);
-  }
-
-  function init() {
-    bodyEl = document.getElementById('treeTableBody');
-    sortSelect = document.getElementById('hierarchySort');
-    expandAllBtn = document.getElementById('hierarchyExpandAll');
-    collapseAllBtn = document.getElementById('hierarchyCollapseAll');
-    toggleLimitBtn = document.getElementById('hierarchyToggleLimit');
-    toggleLimitLabel = document.getElementById('hierarchyToggleLimitLabel');
-    render(AppState.getState());
-    bindEvents();
-  }
-
-  return { init };
-})();
-
-
-/* =================================================================
-   7. COMMISSIONS (resumo + gráficos + tabela top comissões)
-   -----------------------------------------------------------------
-   Toda a seção respeita o filtro global de radiologia: quando uma
-   radiologia específica é selecionada, os cards, gráficos e a
-   tabela consideram apenas os médicos daquela unidade.
+   7. COMMISSIONS — Dashboard (visão geral leve)
+   KPIs + pizza de distribuição + top 10 médicos.
+   A visão completa (tree table, gráfico de evolução) vive em
+   financeiro.js → aba Comissões.
 ================================================================= */
 const Commissions = (() => {
-  const SERIES_COLORS = ['#018093', '#01C6BF', '#5C6A6E', '#8FBFC7', '#B7C2C4', '#046B85'];
+  const SERIES_COLORS = ['#018093','#01C6BF','#5C6A6E','#8FBFC7','#B7C2C4','#046B85'];
 
-  let topDoctorsChart = null;
-  let distributionChart = null;
-  let byEntityChart = null;
+  let distChart = null;
+  let topChart  = null;
 
   function formatCurrency(v) { return Kpis.formatCurrency(v); }
-  function formatNumber(v) { return Kpis.formatNumber(v); }
+  function formatNumber(v)   { return Kpis.formatNumber(v); }
 
-  /** Retorna apenas os médicos da radiologia selecionada (ou todos, se 'all') */
-  function getDoctorsForState(state) {
+  /** Médicos filtrados pela radiologia ativa */
+  function getDoctors(state) {
     const all = MockData.getAllDoctorsFlat();
-    return state.radiologiaSelecionada === 'all' ? all : all.filter((d) => d.radiologiaId === state.radiologiaSelecionada);
+    return state.radiologiaSelecionada === 'all'
+      ? all
+      : all.filter(d => d.radiologiaId === state.radiologiaSelecionada);
   }
 
-  // -----------------------------------------------------------
-  // RESUMO GERAL (cards)
-  // -----------------------------------------------------------
-  function renderSummary(state, doctors) {
-    const totalComissao = doctors.reduce((s, d) => s + d.comissao, 0);
+  /* --- KPIs --- */
+  function renderKPIs(state, doctors) {
+    const totalDevido   = doctors.reduce((s, d) => s + d.comissao, 0);
     const totalPendente = doctors.reduce((s, d) => s + d.pendente, 0);
-    const totalPago = totalComissao - totalPendente;
-    const totalFaturamento = doctors.reduce((s, d) => s + d.faturamento, 0);
-    const medicosComPendencia = doctors.filter((d) => d.pendente > 0.01).length;
+    const totalPago     = totalDevido - totalPendente;
+    const pctPago       = totalDevido > 0 ? (totalPago / totalDevido) * 100 : 0;
+    const medAtivos     = doctors.length;
+    const media         = medAtivos > 0 ? totalDevido / medAtivos : 0;
+    const medsPendentes = doctors.filter(d => d.pendente > 0.01).length;
 
-    document.getElementById('commSummaryTotal').textContent = formatCurrency(totalComissao);
-    document.getElementById('commSummaryTotalHint').textContent =
-      totalFaturamento > 0 ? `${((totalComissao / totalFaturamento) * 100).toFixed(1)}% do faturamento` : '-- % do faturamento';
+    const nomeRad    = MockData.nomeRadiologiaPorId[state.radiologiaSelecionada];
+    const labelPer   = MockData.labelPeriodo(state.periodo);
+    const subEl      = document.getElementById('commissionsSubtitle');
+    if (subEl) subEl.textContent = `${nomeRad} — ${labelPer}`;
 
-    document.getElementById('commSummaryPaid').textContent = formatCurrency(totalPago);
-    document.getElementById('commSummaryPaidHint').textContent =
-      totalComissao > 0 ? `${((totalPago / totalComissao) * 100).toFixed(1)}% do total` : '-- % do total';
+    const setKpi = (id, value, context) => {
+      const card = document.getElementById(id);
+      if (!card) return;
+      card.querySelector('[data-field="value"]').textContent   = value;
+      const ctx = card.querySelector('[data-field="context"]');
+      if (ctx) ctx.textContent = context;
+    };
 
-    document.getElementById('commSummaryPending').textContent = formatCurrency(totalPendente);
-    document.getElementById('commSummaryPendingHint').textContent =
-      `${medicosComPendencia} médico${medicosComPendencia !== 1 ? 's' : ''} aguardando`;
+    setKpi('dashCommTotal',   formatCurrency(totalDevido),   'no período');
+    setKpi('dashCommPaid',    formatCurrency(totalPago),     `${pctPago.toFixed(1)}% do total devido`);
+    setKpi('dashCommPending', formatCurrency(totalPendente), `${medsPendentes} médico${medsPendentes !== 1 ? 's' : ''} aguardando`);
+    setKpi('dashCommAvg',     formatCurrency(media),         null);
 
-    document.getElementById('commSummaryDoctors').textContent = formatNumber(doctors.length);
-    document.getElementById('commSummaryDoctorsHint').textContent = 'ativos no período';
-
-    const nomeRadiologia = MockData.nomeRadiologiaPorId[state.radiologiaSelecionada];
-    const labelPeriodo = MockData.labelPeriodo(state.periodo);
-    document.getElementById('commissionsSubtitle').textContent = `${nomeRadiologia} — ${labelPeriodo}`;
-    document.getElementById('commTopDoctorsSubtitle').textContent = `Maiores comissões — ${labelPeriodo}`;
-    document.getElementById('commDistributionSubtitle').textContent = state.radiologiaSelecionada === 'all' ? 'Por radiologia' : 'Por clínica referenciadora';
-    document.getElementById('commByEntitySubtitle').textContent = state.radiologiaSelecionada === 'all'
-      ? 'Pago vs. pendente, por radiologia'
-      : 'Pago vs. pendente, por clínica referenciadora';
+    const pctCard = document.getElementById('dashCommPercent');
+    if (pctCard) {
+      pctCard.querySelector('[data-field="value"]').textContent = `${pctPago.toFixed(1)}%`;
+      const fill = document.getElementById('dashCommProgressFill');
+      if (fill) fill.style.width = `${Math.min(pctPago, 100)}%`;
+    }
   }
 
-  // -----------------------------------------------------------
-  // GRÁFICO — TOP 10 MÉDICOS (barras horizontais)
-  // -----------------------------------------------------------
-  function renderTopDoctorsChart(doctors) {
-    const ctx = document.getElementById('commTopDoctorsChart');
+  /* --- Gráfico: distribuição (pizza) --- */
+  function renderDistChart(state, doctors) {
+    const ctx = document.getElementById('dashCommDistributionChart');
+    if (!ctx) return;
+
+    const isAll = state.radiologiaSelecionada === 'all';
+    const agrupado = {};
+    doctors.forEach(d => {
+      const key = isAll ? d.radiologiaNome : d.clinicaNome;
+      agrupado[key] = (agrupado[key] || 0) + d.comissao;
+    });
+    const labels = Object.keys(agrupado);
+    const values = Object.values(agrupado);
+
+    const subEl = document.getElementById('dashCommDistSubtitle');
+    if (subEl) subEl.textContent = isAll ? 'Por radiologia' : 'Por clínica referenciadora';
+
+    if (distChart) { distChart.destroy(); distChart = null; }
+
+    distChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          backgroundColor: SERIES_COLORS,
+          borderColor: '#FFFFFF',
+          borderWidth: 2,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'circle', padding: 14, font: { size: 11 } },
+          },
+          tooltip: { enabled: true },
+        },
+      },
+    });
+  }
+
+  /* --- Gráfico: Top 10 médicos (barras horizontais) --- */
+  function renderTopChart(doctors) {
+    const ctx = document.getElementById('dashCommTopChart');
+    if (!ctx) return;
+
     const top10 = [...doctors].sort((a, b) => b.comissao - a.comissao).slice(0, 10);
 
-    if (topDoctorsChart) topDoctorsChart.destroy();
+    if (topChart) { topChart.destroy(); topChart = null; }
 
-    topDoctorsChart = new Chart(ctx, {
+    topChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: top10.map((d) => d.nome),
+        labels: top10.map(d => d.nome),
         datasets: [{
           label: 'Comissão Devida',
-          data: top10.map((d) => d.comissao),
+          data: top10.map(d => d.comissao),
           backgroundColor: '#018093',
           hoverBackgroundColor: '#01C6BF',
           borderRadius: 4,
@@ -1297,219 +1121,34 @@ const Commissions = (() => {
         maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          tooltip: {
-            enabled: false,
-            position: 'nearest',
-            external: Charts.externalTooltipHandler((tooltip) => {
-              const item = tooltip.dataPoints[0];
-              const medico = top10[item.dataIndex];
-              const temPendencia = medico.pendente > 0.01;
-              return {
-                eyebrow: `${medico.radiologiaNome} · ${medico.clinicaNome}`,
-                headline: { label: 'Comissão devida', value: formatCurrency(medico.comissao), color: '#018093' },
-                metrics: [
-                  { label: 'Exames realizados', value: formatNumber(medico.exames) },
-                  { label: 'Faturamento gerado', value: formatCurrency(medico.faturamento) },
-                  { label: 'Pendente de pagamento', value: temPendencia ? formatCurrency(medico.pendente) : 'Quitado' },
-                ],
-              };
-            }),
-          },
+          tooltip: { enabled: true },
         },
         scales: {
-          x: { grid: { color: '#E3E7E8' }, ticks: { font: { size: 11 }, callback: (v) => `R$ ${(v / 1000).toFixed(1).replace('.0', '')} mil` } },
-          y: { grid: { display: false }, ticks: { font: { size: 11 } } },
-        },
-      },
-    });
-  }
-
-  // -----------------------------------------------------------
-  // GRÁFICO — DISTRIBUIÇÃO (pizza)
-  // -----------------------------------------------------------
-  function renderDistributionChart(state, doctors) {
-    const ctx = document.getElementById('commDistributionChart');
-    let labels, values;
-
-    if (state.radiologiaSelecionada === 'all') {
-      const porRadiologia = {};
-      doctors.forEach((d) => { porRadiologia[d.radiologiaNome] = (porRadiologia[d.radiologiaNome] || 0) + d.comissao; });
-      labels = Object.keys(porRadiologia);
-      values = Object.values(porRadiologia);
-    } else {
-      const porClinica = {};
-      doctors.forEach((d) => { porClinica[d.clinicaNome] = (porClinica[d.clinicaNome] || 0) + d.comissao; });
-      labels = Object.keys(porClinica);
-      values = Object.values(porClinica);
-    }
-
-    if (distributionChart) distributionChart.destroy();
-
-    const total = values.reduce((s, v) => s + v, 0) || 1;
-
-    distributionChart = new Chart(ctx, {
-      type: 'pie',
-      data: { labels, datasets: [{ data: values, backgroundColor: SERIES_COLORS, borderColor: '#FFFFFF', borderWidth: 2 }] },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'circle', padding: 14, font: { size: 11 } } },
-          tooltip: {
-            enabled: false,
-            position: 'nearest',
-            external: Charts.externalTooltipHandler((tooltip) => {
-              const item = tooltip.dataPoints[0];
-              const valor = item.parsed;
-              const percent = (valor / total) * 100;
-              return {
-                eyebrow: state.radiologiaSelecionada === 'all' ? 'Radiologia' : 'Clínica referenciadora',
-                headline: {
-                  label: item.label,
-                  value: formatCurrency(valor),
-                  color: SERIES_COLORS[item.dataIndex % SERIES_COLORS.length],
-                },
-                breakdown: {
-                  title: 'Participação no total de comissões',
-                  rows: [{ label: 'do total geral', percent, color: SERIES_COLORS[item.dataIndex % SERIES_COLORS.length] }],
-                },
-              };
-            }),
+          x: {
+            grid: { color: '#E3E7E8' },
+            ticks: {
+              font: { size: 11 },
+              callback: v => `R$ ${(v / 1000).toFixed(1).replace('.0', '')} mil`,
+            },
+          },
+          y: {
+            grid: { display: false },
+            ticks: { font: { size: 11 } },
           },
         },
       },
-    });
-  }
-
-  // -----------------------------------------------------------
-  // GRÁFICO — POR RADIOLOGIA/CLÍNICA (barras empilhadas: pago x pendente)
-  // -----------------------------------------------------------
-  function renderByEntityChart(state, doctors) {
-    const ctx = document.getElementById('commByEntityChart');
-    const chave = state.radiologiaSelecionada === 'all' ? 'radiologiaNome' : 'clinicaNome';
-
-    const agrupado = {};
-    doctors.forEach((d) => {
-      const key = d[chave];
-      if (!agrupado[key]) agrupado[key] = { pago: 0, pendente: 0 };
-      agrupado[key].pendente += d.pendente;
-      agrupado[key].pago += d.comissao - d.pendente;
-    });
-
-    const labels = Object.keys(agrupado);
-    const pagos = labels.map((l) => agrupado[l].pago);
-    const pendentes = labels.map((l) => agrupado[l].pendente);
-
-    if (byEntityChart) byEntityChart.destroy();
-
-    byEntityChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [
-          { label: 'Pago', data: pagos, backgroundColor: '#018093', borderRadius: 4, maxBarThickness: 46, stack: 'comissao' },
-          { label: 'Pendente', data: pendentes, backgroundColor: '#01C6BF', borderRadius: 4, maxBarThickness: 46, stack: 'comissao' },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'circle', padding: 14, font: { size: 11 } } },
-          tooltip: {
-            enabled: false,
-            position: 'nearest',
-            external: Charts.externalTooltipHandler((tooltip) => {
-              const idx = tooltip.dataPoints[0].dataIndex;
-              const label = labels[idx];
-              const pago = pagos[idx];
-              const pendente = pendentes[idx];
-              const totalEntidade = pago + pendente || 1;
-              return {
-                eyebrow: chave === 'radiologiaNome' ? 'Radiologia' : 'Clínica referenciadora',
-                headline: { label, value: formatCurrency(totalEntidade), color: '#018093' },
-                breakdown: {
-                  title: 'Comissão devida: pago vs. pendente',
-                  rows: [
-                    { label: 'Pago', value: formatCurrency(pago), percent: (pago / totalEntidade) * 100, color: '#018093' },
-                    { label: 'Pendente', value: formatCurrency(pendente), percent: (pendente / totalEntidade) * 100, color: '#01C6BF' },
-                  ],
-                },
-              };
-            }),
-          },
-        },
-        scales: {
-          x: { grid: { display: false }, ticks: { font: { size: 11 }, autoSkip: false, maxRotation: 18 } },
-          y: { stacked: true, grid: { color: '#E3E7E8' }, ticks: { font: { size: 11 }, callback: (v) => `R$ ${(v / 1000).toFixed(1).replace('.0', '')} mil` } },
-        },
-        scales_x_stacked: true,
-      },
-    });
-    // Habilita empilhamento no eixo X também (Chart.js exige a flag em ambos os eixos)
-    byEntityChart.options.scales.x.stacked = true;
-    byEntityChart.update();
-  }
-
-  // -----------------------------------------------------------
-  // TABELA — TOP COMISSÕES
-  // -----------------------------------------------------------
-  function renderTopTable(doctors) {
-    const tbody = document.getElementById('commTopTableBody');
-    tbody.innerHTML = '';
-
-    const top = [...doctors].sort((a, b) => b.comissao - a.comissao).slice(0, 8);
-
-    if (!top.length) {
-      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Nenhum médico encontrado para esta seleção.</td></tr>';
-      return;
-    }
-
-    top.forEach((d) => {
-      const tr = document.createElement('tr');
-      const temPendencia = d.pendente > 0.01;
-      tr.innerHTML = `
-        <td>
-          <span class="data-table__name-primary">${d.nome}</span>
-          <span class="data-table__name-secondary">${d.clinicaNome} &middot; ${d.radiologiaNome}</span>
-        </td>
-        <td class="data-table__num">${formatNumber(d.exames)}</td>
-        <td class="data-table__num">${formatCurrency(d.comissao)}</td>
-        <td class="data-table__num">
-          ${temPendencia
-            ? `<span class="pending-tag">${formatCurrency(d.pendente)}</span>`
-            : `<span class="pending-tag pending-tag--none">Quitado</span>`}
-        </td>
-        <td class="data-table__action">
-          <button type="button" class="row-action-btn" aria-label="Ver detalhes de ${d.nome}" title="Ver detalhes">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
-          </button>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
-
-  function bindFullReportButton() {
-    document.getElementById('btnFullCommissionReport').addEventListener('click', () => {
-      // Ponto de extensão futuro: navegação para relatório detalhado de comissões
-      // Ex: Router.navigate('relatorios/comissoes', { radiologia: AppState.getState().radiologiaSelecionada })
-      alert('Relatório completo de comissões — em desenvolvimento. Este botão navegará para a página detalhada de comissões.');
     });
   }
 
   function render(state) {
-    const doctors = getDoctorsForState(state);
-    renderSummary(state, doctors);
-    renderTopDoctorsChart(doctors);
-    renderDistributionChart(state, doctors);
-    renderByEntityChart(state, doctors);
-    renderTopTable(doctors);
+    const doctors = getDoctors(state);
+    renderKPIs(state, doctors);
+    renderDistChart(state, doctors);
+    renderTopChart(doctors);
   }
 
   function init() {
     render(AppState.getState());
-    bindFullReportButton();
     AppState.subscribe(render);
   }
 
@@ -1557,7 +1196,6 @@ document.addEventListener('DOMContentLoaded', () => {
   Filters.init();
   Kpis.init();
   Charts.init();
-  HierarchyTable.init();
   Commissions.init();
   Sidebar.init();
 });

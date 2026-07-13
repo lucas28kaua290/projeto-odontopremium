@@ -1654,6 +1654,240 @@ td.td-change {
 .chartjs-tooltip--compact { max-width: 260px; }
 .chartjs-tooltip--wide { max-width: 340px; }
 
+/* Gráfico Meta vs Realizado inline no KPI card */
+.goal-chart-body {
+  height: 220px;
+  position: relative;
+}
+
+/* Subtítulo dinâmico injetado pelo JS abaixo do label do card */
+.kpi-card__goal-sub {
+  display: block;
+  font-size: var(--fs-xs);
+  color: var(--color-text-subtle);
+  font-weight: var(--fw-regular);
+  margin-top: 2px;
+  margin-bottom: var(--space-1);
+}
+
+/* =============================================================
+   HIGHLIGHT ROW — TOOLTIP DE TEXTO COMPLETO
+============================================================= */
+.highlight-row {
+  position: relative; /* necessário para o tooltip absoluto */
+}
+
+.highlight-row__tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  z-index: 100;
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-size: 11px;
+  font-weight: var(--fw-medium);
+  line-height: 1.45;
+  padding: 7px 11px;
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+  max-width: 260px;
+  white-space: normal;
+  text-align: left;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  transform: translateX(-50%) translateY(4px);
+  box-shadow: 0 6px 20px -4px rgba(19, 39, 43, 0.35);
+}
+
+/* Setinha */
+.highlight-row__tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--color-text);
+}
+
+.highlight-row:hover .highlight-row__tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Garante que nomes e metas não cortam visualmente, truncam com ellipsis */
+.highlight-row__name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 130px; /* ajustado para caber no card */
+}
+
+.highlight-row__meta {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 130px;
+}
+
+/* =============================================================
+   RESUMO COMPARATIVO — larguras fixas para 4 colunas
+============================================================= */
+/* =============================================================
+   RESUMO COMPARATIVO — colunas nomeadas, sem scroll horizontal
+============================================================= */
+#resumoRadiologiaTable {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.resumo-col--radiologia  { width: 28%; }
+
+.resumo-col--faturamento {
+  width: 36%;
+  white-space: nowrap;
+  vertical-align: middle !important;
+}
+
+.resumo-col--exames      { width: 14%; }
+
+.resumo-col--participacao { width: 22%; }
+
+/* Badge de variação alinhado com o valor */
+.resumo-col--faturamento .change-badge {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+#resumoRadiologiaTable thead th:nth-child(3),
+#resumoRadiologiaTable tbody td:nth-child(3) {
+  width: 16%;
+}
+
+#resumoRadiologiaTable thead th:nth-child(4),
+#resumoRadiologiaTable tbody td:nth-child(4) {
+  width: 20%;
+}
+
+/* =============================================================
+   MODAL: DETALHES DO MÉDICO
+============================================================= */
+.doctor-detail__avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--gradient-brand);
+  color: var(--color-bg);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+}
+
+.doctor-detail__clinic {
+  font-size: var(--fs-xs);
+  color: var(--color-text-subtle);
+  font-weight: var(--fw-medium);
+}
+
+.doctor-detail__status-row {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.doctor-detail__kpis {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+
+.doctor-detail__kpi {
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.doctor-detail__kpi-label {
+  font-size: 10px;
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.doctor-detail__kpi-value {
+  font-size: var(--fs-md);
+  font-weight: var(--fw-bold);
+  font-family: var(--font-mono);
+  color: var(--color-text);
+}
+
+.doctor-detail__kpi-value--positive { color: var(--color-positive); }
+.doctor-detail__kpi-value--warning  { color: var(--color-warning); }
+
+.doctor-detail__progress-block {
+  padding: var(--space-4);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.doctor-detail__progress-label {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-muted);
+}
+
+.doctor-detail__progress-pct {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  font-family: var(--font-mono);
+  color: var(--color-primary-dark);
+}
+
+.doctor-detail__finance {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.doctor-detail__finance-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+}
+
+.doctor-detail__finance-label {
+  font-size: 10px;
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.doctor-detail__finance-value {
+  font-size: var(--fs-base);
+  font-weight: var(--fw-semibold);
+  font-family: var(--font-mono);
+  color: var(--color-text);
+}
+
 /* =============================================================
    16. RESPONSIVO
 ============================================================= */
