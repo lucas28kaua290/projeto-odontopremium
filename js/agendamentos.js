@@ -97,17 +97,39 @@ const MockData = (() => {
       dia.setDate(dia.getDate() + offset);
       if (dia.getDay() === 0) continue; // Domingo fechado
 
-      const qtd = 3 + Math.floor(rnd() * 7);
-      const slotsDoDia = [...ALL_SLOTS].sort(() => rnd() - 0.5).slice(0, qtd);
+      const qtdAlvo = 3 + Math.floor(rnd() * 7);
 
-      slotsDoDia.forEach((horario) => {
-        counter++;
+      const slotsEmbaralhados = [...ALL_SLOTS].sort(() => rnd() - 0.5);
+
+      const agendamentosDoDia = [];
+
+      for (let i = 0; i < slotsEmbaralhados.length; i++) {
+        // Já atingiu a meta do dia? Para.
+        if (agendamentosDoDia.length >= qtdAlvo) break;
+
+        const horario = slotsEmbaralhados[i];
         const tipoExame = pick(tiposExame, rnd);
-        const duracao   = DURACAO_POR_EXAME[tipoExame];
-        const valor     = VALOR_POR_EXAME[tipoExame];
-        const paciente  = `${pick(PRIMEIRO_NOME, rnd)} ${pick(SOBRENOME, rnd)}`;
-        const medico    = pick(MEDICOS, rnd);
-        const clinica   = pick(CLINICAS, rnd);
+        const duracao = DURACAO_POR_EXAME[tipoExame];
+
+        const [hh, mm] = horario.split(':').map(Number);
+        const inicioMin = hh * 60 + mm;
+        const fimMin = inicioMin + duracao;
+
+        const conflita = agendamentosDoDia.some(a => {
+          if (a.tipoExame !== tipoExame) return false; 
+          const [ah, am] = a.horarioInicio.split(':').map(Number);
+          const aInicio = ah * 60 + am;
+          const aFim = aInicio + a.duracaoMin;
+          return inicioMin < aFim && fimMin > aInicio;
+        });
+
+        if (conflita) continue; 
+
+        counter++;
+        const valor = VALOR_POR_EXAME[tipoExame];
+        const paciente = `${pick(PRIMEIRO_NOME, rnd)} ${pick(SOBRENOME, rnd)}`;
+        const medico = pick(MEDICOS, rnd);
+        const clinica = pick(CLINICAS, rnd);
 
         let status;
         const r = rnd();
@@ -119,12 +141,11 @@ const MockData = (() => {
           status = r < 0.55 ? 'agendado' : (r < 0.9 ? 'confirmado' : 'cancelado');
         }
 
-        const [hh, mm] = horario.split(':').map(Number);
         const fim = new Date(dia);
         fim.setHours(hh, mm + duracao, 0, 0);
         const horarioFim = `${pad(fim.getHours())}:${pad(fim.getMinutes())}`;
 
-        agendamentos.push({
+        const novoAgendamento = {
           id: `${radId}_${toISODate(dia)}_${counter}`,
           radiologiaId: radId,
           radiologiaNome: nomeRadiologiaPorId[radId],
@@ -141,8 +162,10 @@ const MockData = (() => {
           clinica,
           status,
           observacoes: rnd() < 0.3 ? 'Paciente relatou leve desconforto na última consulta. Verificar histórico antes do exame.' : '',
-        });
-      });
+        };
+        agendamentosDoDia.push(novoAgendamento);
+        agendamentos.push(novoAgendamento);
+      }
     }
     return agendamentos;
   }
@@ -188,7 +211,15 @@ const MockData = (() => {
     })).filter((d) => d.nome !== 'Domingo');
   }
 
-  return { radiologias, nomeRadiologiaPorId, tiposExame, statusConfig, kanbanColumns, getAgendamentos, getOcupacaoGeral, getOcupacaoInterna, toISODate, pad };
+  /* Permite que módulos externos injetem agendamentos novos */
+  function addAgendamento(appt) {
+    todosAgendamentos.push(appt);
+    if (agendamentosPorRadiologia[appt.radiologiaId]) {
+      agendamentosPorRadiologia[appt.radiologiaId].push(appt);
+    }
+  }
+
+  return { radiologias, nomeRadiologiaPorId, tiposExame, statusConfig, kanbanColumns, getAgendamentos, getOcupacaoGeral, getOcupacaoInterna, toISODate, pad, addAgendamento };
 })();
 
 
@@ -866,7 +897,9 @@ const AppointmentModal = (() => {
     });
     document.getElementById('modalBtnPrint').addEventListener('click', () => window.print());
     document.getElementById('modalBtnEdit').addEventListener('click', () => {
-      alert('Edição de agendamento — em desenvolvimento.');
+      if (!currentAppointment) return;
+      close();
+      NewAppointmentModal.openEdit(currentAppointment);
     });
   }
 
@@ -1329,7 +1362,7 @@ const KanbanView = (() => {
     document.addEventListener('appointment:statusChanged', () => render(AppState.getState()));
 
     document.getElementById('btnNovoAgendamento').addEventListener('click', () => {
-      alert('Novo agendamento — em desenvolvimento. Este botão abrirá o formulário de criação.');
+      NewAppointmentModal.open();
     });
   }
 
@@ -1637,6 +1670,560 @@ const ViewSwitcher = (() => {
   return { init };
 })();
 
+/* =================================================================
+   TOAST — feedback visual rápido
+================================================================= */
+function showToast(message, type = 'success') {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+
+  const icons = {
+    success: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    error:   `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>`,
+  };
+
+  const toast = document.createElement('div');
+  toast.className = `toast toast--${type}`;
+  toast.innerHTML = `${icons[type] || ''}<span>${message}</span>`;
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.animation = 'toastOut 240ms ease forwards';
+    setTimeout(() => toast.remove(), 240);
+  }, 3200);
+}
+
+
+/* =================================================================
+   NEW APPOINTMENT MODAL — v2 (fluxo em cascata)
+================================================================= */
+const NewAppointmentModal = (() => {
+  let overlay, closeBtn, cancelBtn, saveBtn;
+  let editingAppointment = null;
+
+  const VALOR_POR_EXAME   = { 'Tomografia': 380, 'Raio-X': 90, 'Ultrassom': 150, 'Panorâmica': 120, 'Escaneamento 3D': 420 };
+  const DURACAO_POR_EXAME = { 'Tomografia': 45, 'Raio-X': 15, 'Ultrassom': 30, 'Panorâmica': 20, 'Escaneamento 3D': 50 };
+
+  /* ------------------------------------------------------------------
+     MOCK: clínicas por radiologia
+  ------------------------------------------------------------------ */
+  const CLINICAS_POR_RAD = {
+    rad_centro: ['Clínica OdontoVida', 'Sorriso & Cia', 'Clínica Dental Plus', 'Bem Estar Odonto'],
+    rad_norte:  ['Odonto Norte', 'Clínica Dental Sul', 'OrtoSorriso'],
+    rad_sul:    ['Clínica Vitallis', 'Sorridental', 'OdontoSul Premium'],
+    rad_leste:  ['Clínica Leste Odonto', 'Dental Leste', 'OdontoMais'],
+  };
+
+  /* MOCK: médicos por clínica */
+  const MEDICOS_POR_CLINICA = {
+    'Clínica OdontoVida':   ['Dra. Beatriz Nunes', 'Dr. Rafael Costa'],
+    'Sorriso & Cia':        ['Dr. Marcelo Alves', 'Dra. Camila Rocha'],
+    'Clínica Dental Plus':  ['Dr. Henrique Lima', 'Dra. Patrícia Souza'],
+    'Bem Estar Odonto':     ['Dr. Diego Farias', 'Dra. Larissa Prado'],
+    'Odonto Norte':         ['Dr. Vinícius Teixeira', 'Dra. Fernanda Dutra'],
+    'Clínica Dental Sul':   ['Dra. Beatriz Nunes', 'Dr. Rafael Costa'],
+    'OrtoSorriso':          ['Dr. Marcelo Alves', 'Dra. Camila Rocha'],
+    'Clínica Vitallis':     ['Dr. Henrique Lima', 'Dra. Patrícia Souza'],
+    'Sorridental':          ['Dr. Diego Farias', 'Dra. Larissa Prado'],
+    'OdontoSul Premium':    ['Dr. Vinícius Teixeira', 'Dra. Fernanda Dutra'],
+    'Clínica Leste Odonto': ['Dra. Beatriz Nunes', 'Dr. Marcelo Alves'],
+    'Dental Leste':         ['Dra. Camila Rocha', 'Dr. Henrique Lima'],
+    'OdontoMais':           ['Dr. Diego Farias', 'Dra. Larissa Prado'],
+  };
+
+  /* ------------------------------------------------------------------
+     HELPERS
+  ------------------------------------------------------------------ */
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  /* Gera todos os slots de 30 min entre 07:00 e 18:00 */
+  function allSlots() {
+    const slots = [];
+    for (let h = 7; h <= 17; h++) {
+      slots.push(`${pad(h)}:00`);
+      slots.push(`${pad(h)}:30`);
+    }
+    slots.push('18:00');
+    return slots;
+  }
+
+  function toMinutes(hora) {
+    const [h, m] = hora.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  function horariosOcupados(radId, isoDate, tipoExame){
+    
+    if (!radId || !isoDate) return [];
+
+    return MockData.getAgendamentos({ radiologiaId: radId })
+      .filter(a =>
+        a.data === isoDate &&
+        a.tipoExame === tipoExame &&
+        a.status !== 'cancelado' &&
+        a.status !== 'faltou'
+      )
+      .map(a => ({
+        inicio: toMinutes(a.horarioInicio),
+        fim: toMinutes(a.horarioFim)
+      }));
+  }
+
+  function horarioLivre(slot, duracao, ocupados) {
+    
+    const inicio = toMinutes(slot);
+    const fim = inicio + duracao;
+    console.log({
+      slot,
+      inicio,
+      fim,
+      ocupados
+    });
+    const conflito = ocupados.some(ag =>
+        inicio < ag.fim &&
+        fim > ag.inicio
+    );
+
+    console.log(slot, conflito);
+
+    return !conflito;
+
+    return !ocupados.some(ag =>
+      inicio < ag.fim &&
+      fim > ag.inicio
+    );
+
+  }
+
+  /* Calcula hora fim a partir de hora início + duração */
+  function calcFim(horarioInicio, duracao) {
+    if (!horarioInicio || !duracao) return '';
+    const [hh, mm] = horarioInicio.split(':').map(Number);
+    const total = hh * 60 + mm + duracao;
+    return `${pad(Math.floor(total / 60) % 24)}:${pad(total % 60)}`;
+  }
+
+  /* ------------------------------------------------------------------
+     CASCATA: Radiologia → Clínica
+  ------------------------------------------------------------------ */
+  function onRadiologiaChange() {
+    const radId   = document.getElementById('newRadiologia').value;
+    const selCli  = document.getElementById('newClinica');
+    const hintCli = document.getElementById('newClinicaHint');
+
+    /* Reset clínica */
+    selCli.innerHTML = '<option value="">Selecione a clínica...</option>';
+    selCli.disabled  = true;
+    hintCli.textContent = '— selecione uma radiologia primeiro';
+
+    /* Reset médico */
+    onClinicaChange();
+
+    if (!radId) return;
+
+    const clinicas = CLINICAS_POR_RAD[radId] || [];
+    clinicas.forEach(nome => {
+      const opt = document.createElement('option');
+      opt.value = nome; opt.textContent = nome;
+      selCli.appendChild(opt);
+    });
+    selCli.disabled = false;
+    hintCli.textContent = '';
+
+    /* Tenta atualizar horários se os outros campos já estiverem preenchidos */
+    tryUpdateHorarios();
+  }
+
+  /* ------------------------------------------------------------------
+     CASCATA: Clínica → Médico
+  ------------------------------------------------------------------ */
+  function onClinicaChange() {
+    const clinica  = document.getElementById('newClinica').value;
+    const selMed   = document.getElementById('newMedico');
+    const hintMed  = document.getElementById('newMedicoHint');
+
+    selMed.innerHTML = '<option value="">Selecione o médico...</option>';
+    selMed.disabled  = true;
+    hintMed.textContent = '— selecione uma clínica primeiro';
+
+    if (!clinica) return;
+
+    const medicos = MEDICOS_POR_CLINICA[clinica] || [];
+    medicos.forEach(nome => {
+      const opt = document.createElement('option');
+      opt.value = nome; opt.textContent = nome;
+      selMed.appendChild(opt);
+    });
+    selMed.disabled = false;
+    hintMed.textContent = '';
+  }
+
+  /* ------------------------------------------------------------------
+     HORÁRIOS DISPONÍVEIS (com spinner simulado)
+  ------------------------------------------------------------------ */
+  let horarioDebounce = null;
+
+  function tryUpdateHorarios() {
+    const radId     = document.getElementById('newRadiologia').value;
+    const tipoExame = document.getElementById('newTipoExame').value;
+    const data      = document.getElementById('newDate').value;
+    const selTime   = document.getElementById('newTimeStart');
+    const hint      = document.getElementById('newTimeHint');
+
+    /* Só ativa quando os 3 campos estão preenchidos */
+    if (!radId || !tipoExame || !data) {
+      selTime.innerHTML = '<option value="">Selecione o horário...</option>';
+      selTime.disabled  = true;
+      hint.textContent  = '— preencha exame, radiologia e data';
+      document.getElementById('newTimeEnd').value = '';
+      return;
+    }
+
+    /* Debounce de 600ms para simular latência */
+    clearTimeout(horarioDebounce);
+    horarioDebounce = setTimeout(() => {
+
+      try {
+
+        const duracao = DURACAO_POR_EXAME[tipoExame] || 30;
+
+        const ocupados = horariosOcupados(
+          radId,
+          data,
+          tipoExame
+        );
+
+        console.log("Ocupados:", ocupados);
+
+        // Primeiro: remove horários ocupados
+        let disponiveis = allSlots().filter(slot =>
+          horarioLivre(slot, duracao, ocupados)
+        );
+
+        // Segundo: se a data é hoje, remove horários que já passaram
+        const hoje = MockData.toISODate(new Date());
+
+        if (data === hoje) {
+
+          const agora = new Date();
+          const agoraMin = agora.getHours() * 60 + agora.getMinutes();
+
+          disponiveis = disponiveis.filter(slot =>
+            toMinutes(slot) > agoraMin
+          );
+
+        }
+
+        selTime.innerHTML = '<option value="">Selecione o horário...</option>';
+
+        if (!disponiveis.length) {
+
+          const opt = document.createElement('option');
+          opt.value = '';
+          opt.textContent = 'Nenhum horário disponível neste dia';
+
+          selTime.appendChild(opt);
+          selTime.disabled = true;
+          hint.textContent = 'Nenhum horário disponível';
+          document.getElementById('newTimeEnd').value = '';
+
+          return;
+        }
+
+        // O primeiro horário disponível já será automaticamente o sugerido
+        const sugestao = disponiveis[0];
+
+        disponiveis.forEach(slot => {
+
+          const opt = document.createElement('option');
+
+          opt.value = slot;
+
+          const fim = calcFim(slot, duracao);
+
+          opt.textContent = `${slot} → ${fim} (${duracao}min)`;
+
+          if (slot === sugestao) {
+            opt.selected = true;
+          }
+
+          selTime.appendChild(opt);
+
+        });
+
+        selTime.disabled = false;
+        hint.textContent = `${disponiveis.length} horários disponíveis`;
+
+        document.getElementById('newTimeEnd').value = calcFim(sugestao, duracao);
+
+      } catch (err) {
+
+        console.error('Erro ao verificar horários:', err);
+
+        selTime.innerHTML = '<option value="">Erro ao carregar horários</option>';
+        selTime.disabled = true;
+        hint.textContent = 'Ocorreu um erro ao verificar os horários.';
+
+        showToast('Erro ao verificar horários disponíveis.', 'error');
+
+      } finally {
+
+      }
+
+    }, 850);
+  }
+
+  /* Quando o usuário muda manualmente o horário, recalcula hora fim */
+  function onHorarioChange() {
+    const tipoExame = document.getElementById('newTipoExame').value;
+    const horario   = document.getElementById('newTimeStart').value;
+    const duracao   = DURACAO_POR_EXAME[tipoExame] || 30;
+    document.getElementById('newTimeEnd').value = calcFim(horario, duracao);
+  }
+
+  /* ------------------------------------------------------------------
+     PREVIEW DE VALOR
+  ------------------------------------------------------------------ */
+  function updateValuePreview() {
+    const tipoExame = document.getElementById('newTipoExame').value;
+    const preview   = document.getElementById('newValuePreview');
+    if (!tipoExame) { preview.hidden = true; return; }
+    document.getElementById('newValueAmount').textContent =
+      VALOR_POR_EXAME[tipoExame].toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    document.getElementById('newValueDuration').textContent =
+      `· duração estimada: ${DURACAO_POR_EXAME[tipoExame]} min`;
+    preview.hidden = false;
+  }
+
+  /* ------------------------------------------------------------------
+     RESET / FILL
+  ------------------------------------------------------------------ */
+  function resetForm() {
+    const today = new Date().toISOString().split('T')[0];
+
+    document.getElementById('newPaciente').value   = '';
+    document.getElementById('newCpf').value        = '';
+    document.getElementById('newTelefone').value   = '';
+    document.getElementById('newIdade').value      = '';
+    document.getElementById('newRadiologia').value = '';
+    document.getElementById('newTipoExame').value  = '';
+    document.getElementById('newDate').value       = today;
+    document.getElementById('newTimeEnd').value    = '';
+    document.getElementById('newStatus').value     = 'agendado';
+    document.getElementById('newObservacoes').value= '';
+    document.getElementById('newValuePreview').hidden = true;
+
+    /* Reset cascatas */
+    const selCli = document.getElementById('newClinica');
+    selCli.innerHTML = '<option value="">Selecione a clínica...</option>';
+    selCli.disabled  = true;
+    document.getElementById('newClinicaHint').textContent = '— selecione uma radiologia primeiro';
+
+    const selMed = document.getElementById('newMedico');
+    selMed.innerHTML = '<option value="">Selecione o médico...</option>';
+    selMed.disabled  = true;
+    document.getElementById('newMedicoHint').textContent = '— selecione uma clínica primeiro';
+
+    const selTime = document.getElementById('newTimeStart');
+    selTime.innerHTML = '<option value="">Selecione o horário...</option>';
+    selTime.disabled  = true;
+    document.getElementById('newTimeHint').textContent = '— preencha exame, radiologia e data';
+
+    overlay.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+  }
+
+  function fillFormForEdit(ag) {
+    document.getElementById('newPaciente').value   = ag.paciente || '';
+    document.getElementById('newCpf').value        = ag.pacienteCpf || '';
+    document.getElementById('newTelefone').value   = ag.pacienteTelefone || '';
+    document.getElementById('newIdade').value      = ag.pacienteIdade || '';
+    document.getElementById('newTipoExame').value  = ag.tipoExame || '';
+    document.getElementById('newDate').value       = ag.data || '';
+    document.getElementById('newStatus').value     = ag.status || 'agendado';
+    document.getElementById('newObservacoes').value= ag.observacoes || '';
+
+    /* Dispara cascatas em sequência */
+    document.getElementById('newRadiologia').value = ag.radiologiaId || '';
+    onRadiologiaChange();
+
+    if (ag.clinica) {
+      const selCli = document.getElementById('newClinica');
+      /* Aguarda populate do select antes de setar valor */
+      requestAnimationFrame(() => {
+        selCli.value = ag.clinica;
+        onClinicaChange();
+        requestAnimationFrame(() => {
+          document.getElementById('newMedico').value = ag.medico || '';
+        });
+      });
+    }
+
+    updateValuePreview();
+
+    /* Dispara cálculo de horários e pré-seleciona o slot do agendamento */
+    tryUpdateHorarios();
+    setTimeout(() => {
+      const selTime = document.getElementById('newTimeStart');
+      if (ag.horarioInicio) {
+        /* Tenta encontrar a opção com aquele slot */
+        const match = [...selTime.options].find(o => o.value === ag.horarioInicio);
+        if (match) { match.selected = true; onHorarioChange(); }
+        else {
+          /* Insere manualmente se o horário não estava disponível (ocupado por outro) */
+          const opt = document.createElement('option');
+          opt.value = ag.horarioInicio;
+          const dur = DURACAO_POR_EXAME[ag.tipoExame] || 30;
+          opt.textContent = `${ag.horarioInicio} → ${ag.horarioFim}  (${dur}min) — atual`;
+          opt.selected = true;
+          selTime.insertBefore(opt, selTime.options[1]);
+          selTime.disabled = false;
+          document.getElementById('newTimeEnd').value = ag.horarioFim;
+        }
+      }
+    }, 750); /* aguarda o debounce do tryUpdateHorarios */
+  }
+
+  /* ------------------------------------------------------------------
+     VALIDAÇÃO
+  ------------------------------------------------------------------ */
+  function validate() {
+    const required = [
+      { id: 'newPaciente',  label: 'Nome do paciente' },
+      { id: 'newRadiologia',label: 'Radiologia' },
+      { id: 'newTipoExame', label: 'Tipo de exame' },
+      { id: 'newDate',      label: 'Data' },
+      { id: 'newTimeStart', label: 'Horário' },
+    ];
+    let valid = true;
+    overlay.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    required.forEach(({ id }) => {
+      const el = document.getElementById(id);
+      if (!el.value.trim()) { el.classList.add('is-invalid'); valid = false; }
+    });
+    return valid;
+  }
+
+  /* ------------------------------------------------------------------
+     BUILD / SAVE
+  ------------------------------------------------------------------ */
+  function buildNewAppointment() {
+    const tipoExame     = document.getElementById('newTipoExame').value;
+    const radId         = document.getElementById('newRadiologia').value;
+    const data          = document.getElementById('newDate').value;
+    const horarioInicio = document.getElementById('newTimeStart').value;
+    const horarioFim    = document.getElementById('newTimeEnd').value
+                          || calcFim(horarioInicio, DURACAO_POR_EXAME[tipoExame] || 30);
+
+    return {
+      id:               editingAppointment ? editingAppointment.id : `${radId}_${data}_new_${Date.now()}`,
+      radiologiaId:     radId,
+      radiologiaNome:   MockData.nomeRadiologiaPorId[radId],
+      data,
+      horarioInicio,
+      horarioFim,
+      duracaoMin:       DURACAO_POR_EXAME[tipoExame] || 30,
+      paciente:         document.getElementById('newPaciente').value.trim(),
+      pacienteCpf:      document.getElementById('newCpf').value.trim(),
+      pacienteTelefone: document.getElementById('newTelefone').value.trim(),
+      pacienteIdade:    parseInt(document.getElementById('newIdade').value) || null,
+      tipoExame,
+      valor:            VALOR_POR_EXAME[tipoExame] || 0,
+      medico:           document.getElementById('newMedico').value.trim(),
+      clinica:          document.getElementById('newClinica').value.trim(),
+      status:           document.getElementById('newStatus').value,
+      observacoes:      document.getElementById('newObservacoes').value.trim(),
+    };
+  }
+
+  function saveAppointment() {
+    if (!validate()) { showToast('Preencha os campos obrigatórios.', 'error'); return; }
+    const appt = buildNewAppointment();
+    if (editingAppointment) {
+      Object.assign(editingAppointment, appt);
+      showToast(`Agendamento de ${appt.paciente} atualizado com sucesso!`);
+    } else {
+      MockData.addAgendamento(appt);
+      showToast(`Agendamento de ${appt.paciente} criado com sucesso!`);
+    }
+    close();
+    const state = AppState.getState();
+    document.dispatchEvent(new CustomEvent('appointment:statusChanged', { detail: { agendamento: appt } }));
+    AppState.update({ ...state });
+  }
+
+  /* ------------------------------------------------------------------
+     OPEN / CLOSE
+  ------------------------------------------------------------------ */
+  function open() {
+    editingAppointment = null;
+    resetForm();
+    document.querySelector('.new-appointment-modal__title').textContent = 'Novo Agendamento';
+    saveBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Salvar Agendamento`;
+    overlay.hidden = false;
+    document.body.style.overflow = 'hidden';
+    document.getElementById('newPaciente').focus();
+  }
+
+  function openEdit(ag) {
+    editingAppointment = ag;
+    resetForm();
+    fillFormForEdit(ag);
+    document.querySelector('.new-appointment-modal__title').textContent = 'Editar Agendamento';
+    saveBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Salvar Alterações`;
+    overlay.hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+
+  function close() {
+    overlay.hidden = true;
+    document.body.style.overflow = '';
+    editingAppointment = null;
+    clearTimeout(horarioDebounce);
+  }
+
+  /* ------------------------------------------------------------------
+     BIND EVENTS
+  ------------------------------------------------------------------ */
+  function bindEvents() {
+    closeBtn.addEventListener('click', close);
+    cancelBtn.addEventListener('click', close);
+    saveBtn.addEventListener('click', saveAppointment);
+
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !overlay.hidden) close(); });
+
+    document.getElementById('newRadiologia').addEventListener('change', onRadiologiaChange);
+    document.getElementById('newClinica').addEventListener('change', onClinicaChange);
+    document.getElementById('newTipoExame').addEventListener('change', () => { updateValuePreview(); tryUpdateHorarios(); });
+    document.getElementById('newDate').addEventListener('change', tryUpdateHorarios);
+    document.getElementById('newTimeStart').addEventListener('change', onHorarioChange);
+
+    /* CPF: máscara simples */
+    document.getElementById('newCpf').addEventListener('input', (e) => {
+      let v = e.target.value.replace(/\D/g, '').slice(0, 11);
+      if (v.length > 9) v = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6,9)}-${v.slice(9)}`;
+      else if (v.length > 6) v = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6)}`;
+      else if (v.length > 3) v = `${v.slice(0,3)}.${v.slice(3)}`;
+      e.target.value = v;
+    });
+
+    /* Remove marcação de erro ao interagir */
+    overlay.querySelectorAll('input, select, textarea').forEach(el => {
+      el.addEventListener('input',  () => el.classList.remove('is-invalid'));
+      el.addEventListener('change', () => el.classList.remove('is-invalid'));
+    });
+  }
+
+  function init() {
+    overlay   = document.getElementById('newAppointmentModalOverlay');
+    closeBtn  = document.getElementById('newModalCloseBtn');
+    cancelBtn = document.getElementById('newModalCancelBtn');
+    saveBtn   = document.getElementById('newModalSaveBtn');
+    bindEvents();
+  }
+
+  return { init, open, openEdit, close };
+})();
 
 /* =================================================================
    14. SIDEBAR
@@ -1662,9 +2249,10 @@ document.addEventListener('DOMContentLoaded', () => {
   OccupancyChart.init();
   AppointmentModal.init();
   DayListModal.init();
+  NewAppointmentModal.init();
   CalendarView.init();
   KanbanView.init();
   DayView.init();
-  ViewSwitcher.init();  // deve vir APÓS a init dos módulos de view
+  ViewSwitcher.init();
   Sidebar.init();
 });
