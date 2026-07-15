@@ -43,13 +43,19 @@
     </div>
     <div class="user-avatar" aria-hidden="true">DI</div>
   </div>
+
+  <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="sidebar">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+  </button>
 </header>
 
 <!-- =========================================================
      APP SHELL (Sidebar + Conteúdo)
 ========================================================== -->
 <div class="app-shell">
-
+  <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <nav class="sidebar__nav" aria-label="Navegação principal">
@@ -185,17 +191,58 @@
         </div>
       </article>
 
-      <article class="kpi-card" id="kpiCommissions">
+      <article class="kpi-card" id="kpiTicketMedio">
         <div class="kpi-card__header">
-          <span class="kpi-card__label">Comissões Totais</span>
-          <span class="kpi-card__icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 15a6 6 0 100-12 6 6 0 000 12z" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 14L7 22l5-2.5L17 22l-1.5-8" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
+          <span class="kpi-card__label">
+            Ticket Médio / Exame
+          </span>
+
+            <span class="kpi-card__icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M3 7h18M6 3h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2z"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linejoin="round"/>
+
+                <path
+                  d="M9 12h6M9 16h4"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"/>
+              </svg>
+            </span>
+
         </div>
-        <div class="kpi-card__value" data-field="value">R$ 0</div>
+
+        <div
+            class="kpi-card__value"
+            data-field="value">
+
+            R$ 0
+
+        </div>
+
         <div class="kpi-card__footer">
-          <span class="kpi-card__change" data-field="change">--</span>
-          <span class="kpi-card__context" data-field="context">-- pendente</span>
+
+            <span
+                class="kpi-card__change"
+                data-field="change">
+
+                --
+
+            </span>
+
+            <span
+                class="kpi-card__context">
+
+                faturamento médio por exame
+
+            </span>
+
         </div>
-      </article>
+
+    </article>
 
     </section>
 
@@ -233,123 +280,235 @@
         </article>
       </div>
     </section>
+
     <!-- ---------------------------------------------------
-     SEÇÃO DE COMISSÕES (visão geral leve)
+     SEÇÃO: ANÁLISE DE EXAMES
     ---------------------------------------------------- -->
-    <section class="commissions-section" aria-label="Resumo de comissões">
+    <section class="exams-section" aria-label="Análise de Exames" id="examsSection">
+
+      <!-- Cabeçalho da seção -->
       <div class="section-toolbar">
         <div>
-          <h2 class="section-toolbar__title">Comissões</h2>
-          <p class="section-toolbar__subtitle" id="commissionsSubtitle">Todas as radiologias — mês atual</p>
-        </div>
-        <div class="section-toolbar__actions">
-          <a href="financeiro.html#comissoes" class="btn btn--primary">
-            Gerenciar Comissões
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </a>
+          <h2 class="section-toolbar__title">Análise de Exames</h2>
+          <p class="section-toolbar__subtitle" id="examsSectionSubtitle">
+            Todas as radiologias — mês atual
+          </p>
         </div>
       </div>
 
-      <!-- Cards KPI vindos do Financeiro -->
-      <div class="kpi-grid kpi-grid--comm-dash">
+      <!-- KPIs RÁPIDOS (4 cards) -->
+      <div class="kpi-grid kpi-grid--exams">
 
-        <article class="kpi-card" id="dashCommTotal">
+        <article class="kpi-card" id="examKpiTotal">
           <div class="kpi-card__header">
-            <span class="kpi-card__label">Total Devido</span>
+            <span class="kpi-card__label">Total de Exames</span>
             <span class="kpi-card__icon kpi-card__icon--primary">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M9 2h6v4H9V2zM5 6h14v16H5V6z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                <path d="M9 11h6M9 15h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
             </span>
           </div>
-          <div class="kpi-card__value" data-field="value">R$ 0</div>
+          <div class="kpi-card__value" data-field="value">0</div>
           <div class="kpi-card__footer">
-            <span class="kpi-card__context" data-field="context">no período</span>
+            <span class="kpi-card__change" data-field="change">--</span>
+            <span class="kpi-card__context">vs. período anterior</span>
           </div>
         </article>
 
-        <article class="kpi-card" id="dashCommPaid">
+        <article class="kpi-card" id="examKpiAvgDay">
           <div class="kpi-card__header">
-            <span class="kpi-card__label">Total Pago</span>
+            <span class="kpi-card__label">Média por Dia</span>
             <span class="kpi-card__icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M7 2v3M17 2v3M3 9h18M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </span>
           </div>
-          <div class="kpi-card__value" data-field="value">R$ 0</div>
+          <div class="kpi-card__value" data-field="value">0</div>
           <div class="kpi-card__footer">
-            <span class="kpi-card__context" data-field="context">— % do total devido</span>
+            <span class="kpi-card__context">exames / dia útil</span>
           </div>
         </article>
 
-        <article class="kpi-card kpi-card--alert" id="dashCommPending">
+        <article class="kpi-card" id="examKpiTopType">
           <div class="kpi-card__header">
-            <span class="kpi-card__label">Pendente</span>
+            <span class="kpi-card__label">Tipo Mais Realizado</span>
             <span class="kpi-card__icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              </svg>
             </span>
           </div>
-          <div class="kpi-card__value" data-field="value">R$ 0</div>
+          <div class="kpi-card__value kpi-card__value--sm" data-field="value">--</div>
           <div class="kpi-card__footer">
-            <span class="kpi-card__context" data-field="context">— médicos aguardando</span>
+            <span class="kpi-card__context" data-field="context">-- exames no período</span>
           </div>
         </article>
 
-        <article class="kpi-card" id="dashCommPercent">
+        <article class="kpi-card" id="examKpiReferenced">
           <div class="kpi-card__header">
-            <span class="kpi-card__label">% Pago</span>
+            <span class="kpi-card__label">Exames Referenciados</span>
             <span class="kpi-card__icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path d="M15 9l-6 6M9 9h.01M15 15h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </span>
           </div>
           <div class="kpi-card__value" data-field="value">0%</div>
-          <div class="progress-bar-wrap">
-            <div class="progress-bar">
-              <div class="progress-bar__fill" id="dashCommProgressFill" style="width:0%"></div>
-            </div>
-          </div>
-        </article>
-
-        <article class="kpi-card" id="dashCommAvg">
-          <div class="kpi-card__header">
-            <span class="kpi-card__label">Média por Médico</span>
-            <span class="kpi-card__icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-          </div>
-          <div class="kpi-card__value" data-field="value">R$ 0</div>
           <div class="kpi-card__footer">
-            <span class="kpi-card__context">por referenciador ativo</span>
+            <span class="kpi-card__context">do total via clínicas</span>
           </div>
         </article>
 
-      </div>
+      </div><!-- /kpi-grid--exams -->
 
-      <!-- Gráfico de distribuição (pizza) vindo do Financeiro -->
-      <div class="charts-grid charts-grid--comm-dash">
-        <article class="chart-card">
+      <!-- ==========================================================
+        EXAMES SOLICITADOS POR MÉDICO
+      =========================================================== -->
+
+      <article
+        class="chart-card exams-doctors-section"
+        id="examsDoctorsSpotlight">
+
+        <div class="chart-card__header">
+
+            <div>
+
+                <h3 class="chart-card__title">
+
+                    Exames Solicitados por Médico
+
+                </h3>
+
+                <p
+                    class="chart-card__subtitle"
+                    id="examsDoctorsSpotlightSubtitle">
+
+                    Perfil de solicitação de exames no período
+
+                </p>
+
+            </div>
+
+        </div>
+
+        <!-- Barra de filtros -->
+        <div class="exams-doctors-toolbar">
+
+            <div class="exams-doctors-filter">
+
+                <label for="doctorClinicFilter">
+
+                    Clínica
+
+                </label>
+
+                <select id="doctorClinicFilter">
+
+                    <option value="all">
+
+                        Todas
+
+                    </option>
+
+                </select>
+
+            </div>
+
+            <div
+                class="exams-doctors-toolbar__summary"
+                id="doctorFilterSummary">
+
+                Top 5 médicos
+
+            </div>
+
+        </div>
+
+        <!-- Lista -->
+        <div
+            class="exams-doctors-grid"
+            id="examsDoctorsGrid">
+
+        </div>
+
+      </article>
+
+      <!-- LINHA PRINCIPAL: pizza (esq) + clínicas/médicos (dir) -->
+      <div class="exams-main-grid">
+
+        <!-- COLUNA ESQUERDA: pizza + destaque médicos empilhados -->
+        <div class="exams-left-col">
+
+          <!-- Gráfico de Pizza -->
+          <article class="chart-card exams-pie-card">
+            <div class="chart-card__header">
+              <div>
+                <h3 class="chart-card__title">Distribuição por Tipo de Exame</h3>
+                <p class="chart-card__subtitle" id="examsPieSubtitle">Participação de cada modalidade no período</p>
+              </div>
+            </div>
+            <div class="chart-card__body chart-card__body--pie">
+              <canvas id="examTypeChart" role="img" aria-label="Distribuição por tipo de exame"></canvas>
+            </div>
+          </article>
+
+          
+        </div><!-- /exams-left-col -->
+
+        <!-- COLUNA DIREITA: clínicas e médicos (mantido exatamente) -->
+        <article class="chart-card exams-lists-card">
           <div class="chart-card__header">
             <div>
-              <h3 class="chart-card__title">Distribuição de Comissões</h3>
-              <p class="chart-card__subtitle" id="dashCommDistSubtitle">Por radiologia</p>
+              <h3 class="chart-card__title">Distribuição por Clínicas e Médicos</h3>
+              <p class="chart-card__subtitle" id="examsListsSubtitle">Maiores volumes do período</p>
             </div>
           </div>
-          <div class="chart-card__body chart-card__body--tall">
-            <canvas id="dashCommDistributionChart" role="img" aria-label="Distribuição de comissões por radiologia"></canvas>
-          </div>
-        </article>
 
-        <article class="chart-card">
-          <div class="chart-card__header">
-            <div>
-              <h3 class="chart-card__title">Top 10 Médicos por Comissão</h3>
-              <p class="chart-card__subtitle" id="dashCommTopSubtitle">Maiores comissões do período</p>
+          <div class="exams-lists-grid">
+
+            <!-- Lista Clínicas -->
+            <div class="exams-rank-col" id="examsClinicsCol">
+              <h4 class="exams-rank-col__title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                </svg>
+                Clínicas com Maior Volume
+              </h4>
+              <ul class="exams-rank-list" id="examsClinicsRankList">
+                <!-- gerado via JS -->
+              </ul>
+            </div>
+
+            <!-- Lista Médicos -->
+            <div class="exams-rank-col" id="examsDoctorsCol">
+              <h4 class="exams-rank-col__title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Médicos com Maior Volume
+              </h4>
+              <ul class="exams-rank-list" id="examsDoctorsRankList">
+                <!-- gerado via JS -->
+              </ul>
+            </div>
+
+          </div><!-- /exams-lists-grid -->
+
+          <!-- Destaques do Período -->
+          <div class="exams-highlights" id="examsHighlights">
+            <h4 class="exams-highlights__title">Destaques do Período</h4>
+            <div class="exams-highlights-grid" id="examsHighlightsGrid">
+              <!-- 4 caixas geradas via JS -->
             </div>
           </div>
-          <div class="chart-card__body chart-card__body--tall">
-            <canvas id="dashCommTopChart" role="img" aria-label="Top 10 médicos por comissão"></canvas>
-          </div>
-        </article>
-      </div>
+
+        </article><!-- /exams-lists-card -->
+
+      </div><!-- /exams-main-grid -->
+
     </section>
-
   </main>
 </div>
 

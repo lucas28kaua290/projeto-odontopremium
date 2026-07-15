@@ -39,20 +39,17 @@ const MockData = (() => {
   const tiposExame = ['Tomografia', 'Raio-X', 'Ultrassom', 'Panorâmica', 'Escaneamento 3D'];
 
   const statusConfig = {
-    agendado:     { label: 'Agendado',     kanbanColumn: 'agendado' },
-    confirmado:   { label: 'Confirmado',   kanbanColumn: 'confirmado' },
-    em_andamento: { label: 'Em Andamento', kanbanColumn: 'em_andamento' },
-    realizado:    { label: 'Realizado',    kanbanColumn: 'realizado' },
-    cancelado:    { label: 'Cancelado',    kanbanColumn: 'cancelado' },
-    faltou:       { label: 'Faltou',       kanbanColumn: 'cancelado' },
+    agendado:   { label: 'Agendado',   kanbanColumn: 'agendado' },
+    confirmado: { label: 'Confirmado', kanbanColumn: 'confirmado' },
+    realizado:  { label: 'Realizado',  kanbanColumn: 'realizado' },
+    cancelado:  { label: 'Cancelado',  kanbanColumn: 'cancelado' },
   };
 
   const kanbanColumns = [
-    { id: 'agendado',     label: 'Aguardando Confirmação' },
-    { id: 'confirmado',   label: 'Confirmado' },
-    { id: 'em_andamento', label: 'Em Andamento' },
-    { id: 'realizado',    label: 'Realizado' },
-    { id: 'cancelado',    label: 'Cancelado / Faltou' },
+    { id: 'agendado',   label: 'Agendado' },
+    { id: 'confirmado', label: 'Confirmado' },
+    { id: 'realizado',  label: 'Realizado' },
+    { id: 'cancelado',  label: 'Cancelado' },
   ];
 
   const PRIMEIRO_NOME = ['Ana', 'Bruno', 'Carla', 'Diego', 'Elaine', 'Fábio', 'Gabriela', 'Hugo', 'Isabela', 'João', 'Karina', 'Lucas', 'Marina', 'Nelson', 'Otávio', 'Patrícia', 'Rafael', 'Sabrina', 'Thiago', 'Vanessa'];
@@ -134,9 +131,9 @@ const MockData = (() => {
         let status;
         const r = rnd();
         if (offset < 0) {
-          status = r < 0.78 ? 'realizado' : (r < 0.92 ? 'faltou' : 'cancelado');
+          status = r < 0.82 ? 'realizado' : 'cancelado';
         } else if (offset === 0) {
-          status = r < 0.35 ? 'confirmado' : (r < 0.55 ? 'em_andamento' : (r < 0.85 ? 'agendado' : 'realizado'));
+          status = r < 0.40 ? 'confirmado' : (r < 0.75 ? 'agendado' : 'realizado');
         } else {
           status = r < 0.55 ? 'agendado' : (r < 0.9 ? 'confirmado' : 'cancelado');
         }
@@ -192,7 +189,7 @@ const MockData = (() => {
   function getOcupacaoGeral() {
     return radiologias.filter((r) => r.id !== 'all').map((r) => {
       const ags = agendamentosPorRadiologia[r.id];
-      const ocupados = ags.filter((a) => a.status !== 'cancelado' && a.status !== 'faltou').length;
+      const ocupados = ags.filter((a) => a.status !== 'cancelado').length;
       const pct = Math.min(96, Math.round((ocupados / (ags.length * 1.15)) * 55 + 30));
       return { id: r.id, nome: r.nome, ocupacao: pct };
     });
@@ -229,7 +226,7 @@ const MockData = (() => {
 const AppState = (() => {
   let state = {
     radiologiaSelecionada: 'all',
-    periodo: 'este_mes',
+    periodo: 'hoje',
     customDateStart: null,
     customDateEnd: null,
     busca: '',
@@ -471,7 +468,7 @@ const Kpis = (() => {
     document.getElementById('kpiPreenchimento').querySelector('[data-field="value"]').textContent = `${preenchimento}%`;
 
     const faturamentoPrevisto = agendamentos
-      .filter((a) => a.status === 'confirmado' || a.status === 'realizado' || a.status === 'em_andamento')
+      .filter((a) => a.status === 'confirmado' || a.status === 'realizado')
       .reduce((s, a) => s + a.valor, 0);
     document.getElementById('kpiFaturamentoPrevisto').querySelector('[data-field="value"]').textContent = formatCurrency(faturamentoPrevisto);
 
@@ -978,6 +975,192 @@ const DayListModal = (() => {
 
 
 /* =================================================================
+   CAL HOVER CARD — preview flutuante ao passar o mouse no calendário
+================================================================= */
+const CalHoverCard = (() => {
+  let cardEl = null;
+  let hideTimer = null;
+  let currentDayEl = null;
+
+  const STATUS_COLORS = {
+    agendado:     '#8B9C9F',
+    confirmado:   '#018093',
+    em_andamento: '#B27A0E',
+    realizado:    '#0E8F63',
+    cancelado:    '#C23B32',
+    faltou:       '#C23B32',
+  };
+
+  function createCard() {
+    cardEl = document.createElement('div');
+    cardEl.className = 'cal-hover-card';
+    cardEl.setAttribute('role', 'tooltip');
+    document.body.appendChild(cardEl);
+
+    /* Permite que o mouse entre no card sem ele sumir */
+    cardEl.addEventListener('mouseenter', () => {
+      clearTimeout(hideTimer);
+    });
+    cardEl.addEventListener('mouseleave', () => {
+      scheduleHide();
+    });
+  }
+
+  function scheduleHide() {
+    hideTimer = setTimeout(hide, 120);
+  }
+
+  function hide() {
+    if (!cardEl) return;
+    cardEl.classList.remove('is-visible');
+  }
+
+  function position(targetEl) {
+    const rect = targetEl.getBoundingClientRect();
+    const cardW = 300;
+    const cardH = cardEl.offsetHeight || 320;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const gap = 10;
+
+    let left = rect.right + gap;
+    let top  = rect.top;
+
+    /* Se sair pela direita, mostra à esquerda */
+    if (left + cardW > vw - 12) left = rect.left - cardW - gap;
+    /* Se sair pela base, sobe */
+    if (top + cardH > vh - 12) top = vh - cardH - 12;
+    /* Garante mínimo */
+    if (top < 8) top = 8;
+    if (left < 8) left = 8;
+
+    cardEl.style.left = `${left}px`;
+    cardEl.style.top  = `${top}px`;
+  }
+
+  function buildContent(isoDate, agendamentos, state) {
+    const date = new Date(`${isoDate}T00:00:00`);
+    const dateLabel = date.toLocaleDateString('pt-BR', {
+      weekday: 'long', day: 'numeric', month: 'long'
+    });
+    const dateCapitalized = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
+
+    const total = agendamentos.length;
+    const ativos = agendamentos.filter(a => a.status !== 'cancelado');
+    const ocupPct = Math.min(100, Math.round((ativos.length / 12) * 100));
+
+    const sorted = [...agendamentos].sort((a, b) =>
+      a.horarioInicio.localeCompare(b.horarioInicio)
+    );
+    const preview = sorted.slice(0, 4);
+
+    const listHTML = preview.length
+      ? preview.map(a => `
+          <div class="cal-hover-card__item" data-id="${a.id}">
+            <div class="cal-hover-card__item-dot"
+                 style="background:${STATUS_COLORS[a.status] || '#8B9C9F'}"></div>
+            <span class="cal-hover-card__item-time">${a.horarioInicio}</span>
+            <div class="cal-hover-card__item-body">
+              <span class="cal-hover-card__item-patient">${a.paciente}</span>
+              <span class="cal-hover-card__item-meta">${a.tipoExame} · ${a.medico.split(' ').slice(0,2).join(' ')}</span>
+            </div>
+          </div>
+        `).join('')
+      : `<div class="cal-hover-card__empty">Nenhum agendamento neste dia</div>`;
+
+    const footerHTML = total > 0 ? `
+      <div class="cal-hover-card__footer">
+        <button class="cal-hover-card__btn" data-iso="${isoDate}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+            <path d="M7 2v3M17 2v3M3 9h18M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Ver todos os ${total} agendamento${total !== 1 ? 's' : ''}
+        </button>
+      </div>` : '';
+
+    cardEl.innerHTML = `
+      <div class="cal-hover-card__stripe"></div>
+      <div class="cal-hover-card__head">
+        <div class="cal-hover-card__date">${dateCapitalized}</div>
+        <div class="cal-hover-card__meta">
+          <div class="cal-hover-card__stat">
+            <span class="cal-hover-card__stat-value">${total}</span>
+            <span class="cal-hover-card__stat-label">Agendamento${total !== 1 ? 's' : ''}</span>
+          </div>
+          <div class="cal-hover-card__stat-divider"></div>
+          <div class="cal-hover-card__stat">
+            <span class="cal-hover-card__stat-value">${ocupPct}%</span>
+            <span class="cal-hover-card__stat-label">Ocupação</span>
+          </div>
+          <div class="cal-hover-card__stat-divider"></div>
+          <div class="cal-hover-card__stat">
+            <span class="cal-hover-card__stat-value">${ativos.length}</span>
+            <span class="cal-hover-card__stat-label">Ativos</span>
+          </div>
+        </div>
+        <div class="cal-hover-card__occ-bar">
+          <div class="cal-hover-card__occ-fill" style="width:${ocupPct}%"></div>
+        </div>
+      </div>
+      <div class="cal-hover-card__list">${listHTML}</div>
+      ${footerHTML}
+    `;
+
+    /* Clique nos itens da lista abre o modal de detalhes */
+    cardEl.querySelectorAll('.cal-hover-card__item').forEach(item => {
+      item.addEventListener('click', () => {
+        const appt = agendamentos.find(a => a.id === item.dataset.id);
+        if (appt) { hide(); AppointmentModal.open(appt); }
+      });
+    });
+
+    /* Botão "Ver todos" abre o DayListModal */
+    const btnAll = cardEl.querySelector('.cal-hover-card__btn');
+    if (btnAll) {
+      btnAll.addEventListener('click', () => {
+        const lbl = date.toLocaleDateString('pt-BR', {
+          weekday: 'long', day: 'numeric', month: 'long'
+        });
+        hide();
+        DayListModal.open(lbl.charAt(0).toUpperCase() + lbl.slice(1), agendamentos);
+      });
+    }
+  }
+
+  function show(targetEl, isoDate, agendamentos, state) {
+    clearTimeout(hideTimer);
+
+    if (!cardEl) createCard();
+
+    /* Evita rebuild desnecessário no mesmo dia */
+    if (currentDayEl === targetEl && cardEl.classList.contains('is-visible')) return;
+    currentDayEl = targetEl;
+
+    buildContent(isoDate, agendamentos, state);
+
+    /* Posiciona antes de mostrar */
+    cardEl.style.opacity = '0';
+    cardEl.style.transform = 'none';
+    cardEl.classList.add('is-visible');
+
+    requestAnimationFrame(() => {
+      position(targetEl);
+      cardEl.style.opacity = '';
+      cardEl.style.transform = '';
+    });
+  }
+
+  function init() {
+    createCard();
+    /* Fecha ao scrollar */
+    window.addEventListener('scroll', hide, { passive: true });
+  }
+
+  return { show, hide, scheduleHide, init };
+})();
+
+/* =================================================================
    10. CALENDAR VIEW (MODO AGENDA)
 ================================================================= */
 const CalendarView = (() => {
@@ -1002,28 +1185,32 @@ const CalendarView = (() => {
     const iso      = MockData.toISODate(date);
     const ags      = agendamentosDoDia(state, iso);
     const isToday  = iso === MockData.toISODate(new Date());
-    const ocupados = ags.filter((a) => a.status !== 'cancelado' && a.status !== 'faltou').length;
-    const ocupacaoPct = Math.min(100, Math.round((ocupados / 12) * 100));
+    const ativos   = ags.filter(a => a.status !== 'cancelado' && a.status !== 'faltou');
+    const ocupPct  = Math.min(100, Math.round((ativos.length / 12) * 100));
 
     const cell = document.createElement('div');
     cell.className = [
       'calendar-day',
-      isOutsideMonth ? 'is-outside' : '',
-      isToday ? 'is-today' : '',
-      ags.length ? 'has-appointments' : '',
+      isOutsideMonth  ? 'is-outside'      : '',
+      isToday         ? 'is-today'        : '',
+      ags.length      ? 'has-appointments': '',
     ].filter(Boolean).join(' ');
 
-    const topApts = [...ags].sort((a, b) => a.horarioInicio.localeCompare(b.horarioInicio)).slice(0, 2);
+    const sorted  = [...ags].sort((a, b) => a.horarioInicio.localeCompare(b.horarioInicio));
+    const topApts = sorted.slice(0, 2);
 
     cell.innerHTML = `
       <div class="calendar-day__head">
         <span class="calendar-day__number">${date.getDate()}</span>
         ${ags.length ? `<span class="calendar-day__count">${ags.length}</span>` : ''}
       </div>
-      ${ags.length ? `<div class="calendar-day__occupancy-track"><div class="calendar-day__occupancy-fill" style="width:${ocupacaoPct}%"></div></div>` : ''}
+      ${ags.length ? `
+        <div class="calendar-day__occupancy-track">
+          <div class="calendar-day__occupancy-fill" style="width:${ocupPct}%"></div>
+        </div>` : ''}
       <div class="calendar-day__appointments">
         ${topApts.map((a) => `
-          <span class="calendar-day__appt-pill">
+          <span class="calendar-day__appt-pill" data-status="${a.status}">
             <span class="calendar-day__appt-pill-time">${a.horarioInicio}</span>
             <span class="calendar-day__appt-pill-name">${a.paciente.split(' ')[0]} · ${a.tipoExame}</span>
           </span>
@@ -1033,8 +1220,11 @@ const CalendarView = (() => {
     `;
 
     if (!isOutsideMonth) {
+      /* Clique abre o DayListModal (comportamento original) */
       cell.addEventListener('click', () => {
-        const label = date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+        const label = date.toLocaleDateString('pt-BR', {
+          weekday: 'long', day: 'numeric', month: 'long'
+        });
         DayListModal.open(label, ags);
       });
     }
@@ -1136,9 +1326,11 @@ const KanbanView = (() => {
 
   function agendamentosDoKanban(state) {
     const kanbanSearch = (searchInput?.value || '').trim().toLowerCase();
-    const base = AgendaData.getFilteredNoPeriod(state);
+    const base = AgendaData.getFiltered(state);
     if (!kanbanSearch) return base;
-    return base.filter((a) => `${a.paciente} ${a.tipoExame} ${a.medico}`.toLowerCase().includes(kanbanSearch));
+    return base.filter((a) =>
+      `${a.paciente} ${a.tipoExame} ${a.medico}`.toLowerCase().includes(kanbanSearch)
+    );
   }
 
   /* Retorna o próximo horário disponível na coluna de destino,
@@ -1401,7 +1593,7 @@ const DayView = (() => {
     const total = agendamentos.length;
     const realizados = agendamentos.filter((a) => a.status === 'realizado').length;
     const faturamento = agendamentos
-      .filter((a) => a.status !== 'cancelado' && a.status !== 'faltou')
+      .filter((a) => a.status !== 'cancelado')
       .reduce((s, a) => s + a.valor, 0);
     const ocupacaoPct = Math.min(100, Math.round((total / 24) * 100));
 
@@ -2239,6 +2431,215 @@ const Sidebar = (() => {
   return { init };
 })();
 
+/* =================================================================
+   PENDING LIST — painel "Pendentes de Confirmação"
+   Integrado aos filtros globais: radiologia, período e busca.
+================================================================= */
+const PendingList = (() => {
+  let listEl, badgeEl, subtitleEl;
+
+  const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const MESES_CURTO = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+  function formatDateLabel(isoDate) {
+    const d     = new Date(`${isoDate}T00:00:00`);
+    const hoje  = MockData.toISODate(new Date());
+    const amanha = MockData.toISODate(DateUtils.addDays(new Date(), 1));
+    if (isoDate === hoje)   return 'Hoje';
+    if (isoDate === amanha) return 'Amanhã';
+    return `${DIAS_SEMANA[d.getDay()]}, ${d.getDate()} ${MESES_CURTO[d.getMonth()]}`;
+  }
+
+  function buildWhatsAppLink(appt) {
+    const phone = appt.pacienteTelefone.replace(/\D/g, '').replace(/^0/, '');
+    const num   = phone.startsWith('55') ? phone : `55${phone}`;
+    const dataLabel = new Date(`${appt.data}T00:00:00`).toLocaleDateString('pt-BR', {
+      weekday: 'long', day: 'numeric', month: 'long',
+    });
+    const msg = encodeURIComponent(
+      `Olá, ${appt.paciente.split(' ')[0]}! 😊 Passando para confirmar seu agendamento na *${appt.radiologiaNome}*.\n\n` +
+      `📅 *Data:* ${dataLabel}\n` +
+      `⏰ *Horário:* ${appt.horarioInicio}\n` +
+      `🩺 *Exame:* ${appt.tipoExame}\n\n` +
+      `Por favor, confirme sua presença respondendo esta mensagem. Qualquer dúvida, estamos à disposição!`
+    );
+    return `https://wa.me/${num}?text=${msg}`;
+  }
+
+  function scrollToAndOpenAppointment(appt) {
+    // 1. Garante que o modo Agenda está ativo
+    const agendaToggle = document.getElementById('agendaViewToggle');
+    const agendaBtn    = agendaToggle?.querySelector('[data-view="agenda"]');
+    if (agendaBtn && !agendaBtn.classList.contains('is-active')) agendaBtn.click();
+
+    // 2. Navega o calendário para o mês do agendamento
+    AppState.update({ calDate: new Date(`${appt.data}T00:00:00`), calGranularity: 'mensal' });
+
+    // 3. Rola suavemente até a seção da Agenda
+    setTimeout(() => {
+      document.querySelector('.agenda-section')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+
+    // 4. Abre o modal de detalhes após o scroll terminar
+    setTimeout(() => AppointmentModal.open(appt), 420);
+  }
+
+  /* ------------------------------------------------------------------
+     FILTRO CENTRAL
+     Usa o mesmo pipeline de AgendaData, mas força status === 'agendado'
+     e garante que só traz datas >= hoje quando o período selecionado
+     inclui datas futuras (para não mostrar pendentes de ontem etc.).
+  ------------------------------------------------------------------ */
+  function getPendentes(state) {
+    // Pega o intervalo de datas do filtro global (mesmo que os KPIs/calendário usam)
+    const { start, end } = DateUtils.getPeriodRange(state);
+
+    // Piso: nunca mostra datas passadas no painel de pendentes
+    const hoje = DateUtils.startOfDay(new Date());
+    const effectiveStart = start >= hoje ? start : hoje;
+
+    // Se o período escolhido termina antes de hoje (ex: filtro "Hoje" num dia passado
+    // por timezone), retorna lista vazia
+    if (end < hoje) return [];
+
+    const base       = MockData.getAgendamentos({ radiologiaId: state.radiologiaSelecionada });
+    const buscaLower = state.busca.trim().toLowerCase();
+
+    return base
+      .filter(a => {
+        // Apenas pendentes de confirmação
+        if (a.status !== 'agendado') return false;
+
+        // Dentro do período do filtro (respeitando piso de hoje)
+        if (!DateUtils.isWithinRange(a.data, effectiveStart, end)) return false;
+
+        // Busca textual (mesmo campo que os outros módulos)
+        if (buscaLower) {
+          const alvo = `${a.paciente} ${a.tipoExame} ${a.medico} ${a.clinica}`.toLowerCase();
+          if (!alvo.includes(buscaLower)) return false;
+        }
+
+        return true;
+      })
+      .sort((a, b) => (a.data + a.horarioInicio).localeCompare(b.data + b.horarioInicio))
+      .slice(0, 50); // teto de 50 itens para não afogar a lista
+  }
+
+  /* ------------------------------------------------------------------
+     BUILD DE ITEM
+  ------------------------------------------------------------------ */
+  function buildItem(appt) {
+    const item = document.createElement('div');
+    item.className = 'pending-item';
+
+    item.innerHTML = `
+      <div class="pending-item__main">
+        <span class="pending-item__patient">${appt.paciente}</span>
+        <span class="pending-item__meta">${formatDateLabel(appt.data)} · ${appt.horarioInicio}</span>
+        <div class="pending-item__tags">
+          <span class="exam-tag">${appt.tipoExame}</span>
+          <span class="radiology-tag">${appt.radiologiaNome.replace('Radiologia ', '')}</span>
+        </div>
+      </div>
+      <div class="pending-item__actions">
+        <button type="button" class="pending-btn-view" title="Ver na agenda">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          Ver
+        </button>
+        <a href="${buildWhatsAppLink(appt)}" target="_blank" rel="noopener noreferrer"
+           class="pending-btn-whatsapp" title="Enviar confirmação pelo WhatsApp">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+            <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          WhatsApp
+        </a>
+      </div>
+    `;
+
+    item.querySelector('.pending-btn-view').addEventListener('click', () =>
+      scrollToAndOpenAppointment(appt)
+    );
+
+    return item;
+  }
+
+  /* ------------------------------------------------------------------
+     RENDER
+  ------------------------------------------------------------------ */
+  function render(state) {
+    if (!listEl) return;
+
+    const pendentes = getPendentes(state);
+
+    // Badge
+    badgeEl.textContent = pendentes.length;
+
+    // Subtítulo contextual — informa qual filtro está ativo
+    if (subtitleEl) {
+      const periodoLabels = {
+        hoje:        'hoje',
+        amanha:      'amanhã',
+        esta_semana: 'nesta semana',
+        este_mes:    'neste mês',
+        proximos_30: 'nos próximos 30 dias',
+        custom:      'no período selecionado',
+      };
+      const periodoLabel = periodoLabels[state.periodo] ?? 'no período';
+      const radLabel = state.radiologiaSelecionada === 'all'
+        ? 'todas as radiologias'
+        : MockData.nomeRadiologiaPorId[state.radiologiaSelecionada];
+
+      subtitleEl.textContent = pendentes.length
+        ? `${pendentes.length} pendente${pendentes.length !== 1 ? 's' : ''} · ${periodoLabel} · ${radLabel}`
+        : `Nenhum pendente · ${periodoLabel} · ${radLabel}`;
+    }
+
+    listEl.innerHTML = '';
+
+    if (!pendentes.length) {
+      listEl.innerHTML = `
+        <div class="pending-panel__empty">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+            <path d="M20 6L9 17l-5-5" stroke="var(--color-positive)"
+                  stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>Nenhum pendente para este filtro</span>
+        </div>`;
+      return;
+    }
+
+    const frag = document.createDocumentFragment();
+    pendentes.forEach(appt => frag.appendChild(buildItem(appt)));
+    listEl.appendChild(frag);
+  }
+
+  /* ------------------------------------------------------------------
+     INIT
+  ------------------------------------------------------------------ */
+  function init() {
+    listEl     = document.getElementById('pendingList');
+    badgeEl    = document.getElementById('pendingCountBadge');
+    subtitleEl = document.getElementById('pendingSubtitle');
+
+    render(AppState.getState());
+
+    // Reage a qualquer mudança de filtro (radiologia, período, busca, status)
+    AppState.subscribe(render);
+
+    // Reage a mudanças de status feitas em outros módulos (modal, kanban drag)
+    document.addEventListener('appointment:statusChanged', () =>
+      render(AppState.getState())
+    );
+  }
+
+  return { init };
+})();
 
 /* =================================================================
    15. INIT — bootstrap
@@ -2250,6 +2651,7 @@ document.addEventListener('DOMContentLoaded', () => {
   AppointmentModal.init();
   DayListModal.init();
   NewAppointmentModal.init();
+  PendingList.init();
   CalendarView.init();
   KanbanView.init();
   DayView.init();

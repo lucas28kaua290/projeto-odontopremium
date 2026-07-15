@@ -134,7 +134,6 @@
             <option value="confirmado">Confirmado</option>
             <option value="realizado">Realizado</option>
             <option value="cancelado">Cancelado</option>
-            <option value="faltou">Faltou</option>
           </select>
           <svg class="period-select__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
@@ -211,7 +210,7 @@
 
     </section>
 
-    <!-- VISÃO DE OCUPAÇÃO -->
+    <!-- VISÃO DE OCUPAÇÃO + PENDENTES (layout 2 colunas) -->
     <section class="charts-section" aria-label="Ocupação das radiologias">
       <div class="charts-section__toolbar">
         <div>
@@ -225,11 +224,29 @@
         <!-- preenchido pelo JS -->
       </div>
 
-      <article class="chart-card chart-card--wide">
-        <div class="chart-card__body chart-card__body--tall">
-          <canvas id="occupancyChart" role="img" aria-label="Gráfico de ocupação das radiologias"></canvas>
-        </div>
-      </article>
+      <!-- GRID: Gráfico (esq) + Pendentes (dir) -->
+      <div class="occupancy-split-grid">
+
+        <!-- COLUNA ESQUERDA: Gráfico -->
+        <article class="chart-card chart-card--occupancy">
+          <div class="chart-card__body chart-card__body--medium">
+            <canvas id="occupancyChart" role="img" aria-label="Gráfico de ocupação das radiologias"></canvas>
+          </div>
+        </article>
+
+        <!-- COLUNA DIREITA: Pendentes de Confirmação -->
+        <section class="pending-panel" aria-label="Pendentes de confirmação">
+          <div class="pending-panel__header">
+            <div class="pending-panel__header-text">
+              <h3 class="pending-panel__title">Pendentes de Confirmação</h3>
+              <p class="pending-panel__subtitle" id="pendingSubtitle">Aguardando confirmação do paciente</p>
+            </div>
+            <span class="pending-count-badge" id="pendingCountBadge">0</span>
+          </div>
+          <div class="pending-panel__list" id="pendingList"></div>
+        </section>
+
+      </div>
     </section>
 
     <!-- SEÇÃO DA AGENDA (Agenda / Kanban / Dia) -->
@@ -334,7 +351,6 @@
             <option value="confirmado">Confirmado</option>
             <option value="realizado">Realizado</option>
             <option value="cancelado">Cancelado</option>
-            <option value="faltou">Faltou</option>
           </select>
         </div>
       </div>

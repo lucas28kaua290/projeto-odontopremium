@@ -1127,6 +1127,235 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 .pending-tag--none { background-color: var(--color-positive-bg); color: var(--color-positive); }
 
 /* =============================================================
+   SEÇÃO: ANÁLISE DE EXAMES
+============================================================= */
+
+.exams-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* --- KPIs (4 colunas) --- */
+.kpi-grid--exams {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* valor menor para textos longos (nome do tipo de exame) */
+.kpi-card__value--sm {
+  font-size: 1.25rem;
+}
+
+/* --- Grid principal: pizza (esquerda) + listas (direita) --- */
+.exams-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.55fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.exams-pie-card .chart-card__body--pie {
+  height: 340px;
+}
+
+/* --- Card de listas --- */
+.exams-lists-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* Duas colunas internas (clínicas | médicos) */
+.exams-lists-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-5);
+}
+
+/* Coluna de ranking */
+.exams-rank-col__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--space-3);
+}
+
+.exams-rank-col__title svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+/* Lista de itens de ranking */
+.exams-rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-height: 348px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.exams-rank-list::-webkit-scrollbar{
+  width: 8px;
+}
+
+.exams-rank-list::-webkit-scrollbar-track{
+  background: transparent;
+}
+
+.exams-rank-list::-webkit-scrollbar-thumb{
+  background: var(--color-border);
+  border-radius: 999px;
+}
+
+.exams-rank-list::-webkit-scrollbar-thumb:hover{
+  background: var(--color-text-subtle);
+}
+
+.exams-rank-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.exams-rank-item__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.exams-rank-item__name {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 62%;
+}
+
+.exams-rank-item__sub {
+  font-size: var(--fs-xs);
+  color: var(--color-text-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 62%;
+}
+
+.exams-rank-item__count {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  font-family: var(--font-mono);
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.exams-rank-item__pct {
+  font-size: 10.5px;
+  color: var(--color-text-subtle);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.exams-rank-item__bar-track {
+  height: 5px;
+  border-radius: 999px;
+  background-color: var(--color-border);
+  overflow: hidden;
+}
+
+.exams-rank-item__bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--gradient-brand);
+  transition: width var(--transition-slow);
+}
+
+/* --- Destaques do Período --- */
+.exams-highlights {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-4);
+}
+
+.exams-highlights__title {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-3);
+}
+
+.exams-highlights-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+}
+
+.exams-highlight-box {
+  background-color: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.exams-highlight-box:hover {
+  border-color: var(--color-primary-100);
+  box-shadow: var(--shadow-xs);
+}
+
+.exams-highlight-box__eyebrow {
+  font-size: 10px;
+  font-weight: var(--fw-semibold);
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.exams-highlight-box__value {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  color: var(--color-text);
+  line-height: 1.3;
+  overflow-wrap: break-word;
+}
+
+.exams-highlight-box__hint {
+  font-size: var(--fs-xs);
+  color: var(--color-text-subtle);
+  line-height: 1.4;
+}
+
+/* --- Responsivo --- */
+@media (max-width: 1280px) {
+  .kpi-grid--exams { grid-template-columns: repeat(2, 1fr); }
+  .exams-main-grid { grid-template-columns: 1fr; }
+  .exams-pie-card .chart-card__body--pie { height: 300px; }
+}
+
+@media (max-width: 768px) {
+  .exams-lists-grid { grid-template-columns: 1fr; }
+  .exams-highlights-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 480px) {
+  .kpi-grid--exams { grid-template-columns: 1fr; }
+  .exams-highlights-grid { grid-template-columns: 1fr; }
+}
+
+
+/* =============================================================
    12. RESPONSIVO GERAL / MISC
 ============================================================= */
 .empty-state {
@@ -1158,3 +1387,516 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 @media (max-width: 768px)  { .kpi-grid--comm-dash { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 480px)  { .kpi-grid--comm-dash { grid-template-columns: 1fr; } }
 @media (max-width: 1024px) { .charts-grid--comm-dash { grid-template-columns: 1fr; } }
+
+/* =============================================================
+   SIDEBAR: HAMBÚRGUER + OVERLAY (mobile)
+============================================================= */
+.sidebar-toggle {
+  display: none;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: rgba(253, 255, 254, 0.9);
+  background: rgba(253, 255, 254, 0.1);
+  border: 1px solid rgba(253, 255, 254, 0.18);
+  transition: background var(--transition-fast);
+  flex-shrink: 0;
+  margin-right: var(--space-2);
+  order: -1;
+}
+.sidebar-toggle:hover { background: rgba(253, 255, 254, 0.2); }
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(19, 39, 43, 0.42);
+  z-index: 149;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+.sidebar-overlay.is-visible {
+  opacity: 1;
+}
+
+/* =============================================================
+   ANÁLISE DE EXAMES — NOVO LAYOUT
+   Grade 50/50: coluna esquerda (pizza + destaque médicos)
+   e coluna direita (clínicas e médicos — inalterada).
+============================================================= */
+
+/* Override do grid principal para 50/50 */
+.exams-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+/* Coluna esquerda: empilha pizza acima + destaque médicos abaixo */
+.exams-left-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Pizza: altura um pouco menor para sobrar espaço pro card abaixo */
+.exams-pie-card .chart-card__body--pie {
+  height: 300px;
+}
+
+/* Card "Destaque por Médicos" */
+.exams-doctors-spotlight {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Grid interno dos minicards de médicos */
+.exams-doctors-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Minicard individual de médico */
+.doctor-spotlight-card {
+  display:grid;
+  grid-template-columns:44px 1fr 28px;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-muted);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.doctor-spotlight-card__toggle{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  color:var(--color-text-subtle);
+  transition:
+    transform .28s ease,
+    color .25s ease;
+}
+
+.doctor-spotlight-card__toggle:hover{
+    color:var(--color-primary);
+}
+
+.doctor-spotlight-card.is-open
+.doctor-spotlight-card__toggle{
+  transform: rotate(180deg);
+}
+
+.doctor-spotlight-card__details{
+  grid-column:1 / -1;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0 solid transparent;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    max-height .35s ease,
+    opacity .25s ease,
+    padding .30s ease,
+    margin .30s ease,
+    border-color .30s ease;
+}
+
+.doctor-spotlight-card.is-open
+.doctor-spotlight-card__details{
+
+    max-height: 600px;
+
+    opacity: 1;
+
+    margin-top: 16px;
+    padding-top: 16px;
+
+    border-top: 1px solid var(--color-border);
+
+}
+
+.doctor-exam-list{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+}
+
+.doctor-exam-item{
+    display:grid;
+    grid-template-columns:140px 55px 1fr;
+    gap:12px;
+    align-items:center;
+}
+
+.doctor-exam-name{
+    font-size:13px;
+    font-weight:600;
+}
+
+.doctor-exam-value{
+    font-size:12px;
+    color:var(--color-text-subtle);
+    font-family:var(--font-mono);
+}
+
+.doctor-exam-progress{
+    height:7px;
+    background:var(--color-border);
+    border-radius:999px;
+    overflow:hidden;
+}
+
+.doctor-exam-progress span{
+  display:block;
+  height:100%;
+  border-radius:999px;
+  background:var(--gradient-brand);
+  transition: width .55s ease;
+}
+
+.exams-doctors-toolbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:20px;
+  margin-bottom:20px;
+  padding-bottom:16px;
+  border-bottom:1px solid var(--color-border);
+
+}
+
+.exams-doctors-filter{
+
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+
+}
+
+.exams-doctors-filter label{
+
+    font-size:12px;
+    font-weight:600;
+
+    color:var(--color-text-subtle);
+
+}
+
+.exams-doctors-filter select{
+  min-width:240px;
+  height:38px;
+  padding:0 14px;
+  border:1px solid var(--color-border);
+  border-radius:10px;
+  background:var(--color-surface);
+  color:var(--color-text);
+  font-size:14px;
+  transition:.2s;
+}
+
+.exams-doctors-filter select:hover{
+  border-color:var(--color-primary-200);
+}
+
+.exams-doctors-filter select:focus{
+
+    outline:none;
+
+    border-color:var(--color-primary);
+
+    box-shadow:0 0 0 3px rgba(37,99,235,.12);
+
+}
+
+.exams-doctors-toolbar__summary{
+
+  font-size:13px;
+
+  color:var(--color-text-subtle);
+
+  font-weight:600;
+
+}
+.doctor-spotlight-footer{
+    margin-top:18px;
+    padding-top:14px;
+
+    border-top:1px solid var(--color-border);
+
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.doctor-spotlight-footer__label{
+    font-size:12px;
+    color:var(--color-text-subtle);
+}
+
+.doctor-spotlight-footer__value{
+    font-size:15px;
+    font-weight:700;
+    color:var(--color-primary-dark);
+    font-family:var(--font-mono);
+}
+
+
+.doctor-spotlight-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--gradient-brand);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+.doctor-spotlight-card:hover {
+  border-color: var(--color-primary-100);
+  box-shadow:var(--shadow-md);
+  background-color: var(--color-surface);
+  transform: translateY(-2px);
+    border-color: var(--color-primary-100);
+    box-shadow: var(--shadow-md);
+    background-color: var(--color-surface);
+}
+
+.doctor-spotlight-card__main-exam{
+    margin-top:6px;
+    font-size:12px;
+    color:var(--color-text-subtle);
+    line-height:1.4;
+}
+
+.doctor-spotlight-card__main-exam strong{
+    color:var(--color-primary-dark);
+    font-weight:600;
+}
+
+.doctor-spotlight-card:hover::before { opacity: 1; }
+
+/* Avatar circular com inicial */
+.doctor-spotlight-card__avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--gradient-brand);
+  color: #fff;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: -0.02em;
+}
+
+/* Coluna central: nome + clínica + tags */
+.doctor-spotlight-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.doctor-spotlight-card__name {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.doctor-spotlight-card__clinic {
+  font-size: var(--fs-xs);
+  color: var(--color-text-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Posição 1: destaque dourado */
+.doctor-spotlight-card--rank-1 .doctor-spotlight-card__avatar {
+  background: var(--gradient-brand);
+}
+
+/* =============================================================
+   RESPONSIVIDADE GERAL — REVISÃO COMPLETA
+   Ordem: ≤ 1280px → ≤ 1024px → ≤ 860px → ≤ 640px → ≤ 480px
+============================================================= */
+
+/* --- ≤ 1280px: grids de 5 colunas → 3 → etc --- */
+@media (max-width: 1280px) {
+  .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+  .kpi-grid--exams { grid-template-columns: repeat(2, 1fr); }
+  .exams-main-grid { grid-template-columns: 1fr; }
+  .exams-pie-card .chart-card__body--pie { height: 280px; }
+}
+
+/* --- ≤ 1024px: sidebar colapsa, layout empilha --- */
+@media (max-width: 1024px) {
+
+  /* Sidebar: torna-se um drawer lateral em mobile */
+  .sidebar-toggle { display: flex; }
+
+  .sidebar {
+    position: fixed;
+    top: var(--header-height);
+    left: 0;
+    height: calc(100vh - var(--header-height));
+    width: 260px;
+    transform: translateX(-100%);
+    transition: transform var(--transition-slow);
+    z-index: 150;
+    box-shadow: none;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: var(--space-5) 0;
+    border-right: 1px solid var(--color-sidebar-border);
+  }
+
+  .sidebar.is-open {
+    transform: translateX(0);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .sidebar-overlay { display: block; }
+
+  .nav-list {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 2px;
+    padding: 0 var(--space-3);
+  }
+
+  /* Restaura o comportamento vertical correto das nav-links */
+  .nav-link::before {
+    left: -12px;
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 0;
+  }
+  .nav-link.is-active::before {
+    height: 60%;
+    width: 3px;
+  }
+  .nav-link__label { display: inline; }
+  .nav-link { padding: 10px var(--space-3); }
+
+  /* Sidebar footer visível no drawer */
+  .sidebar__footer { display: block; padding: 0 var(--space-5); }
+
+  /* Main content: sem margem lateral (sidebar não ocupa espaço no flow) */
+  .main-content {
+    margin-left: 0;
+    padding: var(--space-5);
+  }
+
+  /* Charts: sempre 1 coluna */
+  .charts-grid,
+  .charts-grid--commissions { grid-template-columns: 1fr; }
+
+  /* KPIs de comissão */
+  .kpi-grid--comm-dash { grid-template-columns: repeat(2, 1fr); }
+  .charts-grid--comm-dash { grid-template-columns: 1fr; }
+
+  /* Tabela hierárquica */
+  .tree-table__head { display: none; }
+  .tree-group { margin-left: var(--space-3); }
+  .tree-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+    row-gap: 6px;
+    padding: var(--space-4);
+  }
+  .tree-row--level-2 .tree-row__name-cell,
+  .tree-row--level-3 .tree-row__name-cell { padding-left: 0; }
+  .tree-row__num,
+  .tree-row__action { justify-self: start; text-align: left; }
+  .tree-row__num::before { content: attr(data-label) ": "; color: var(--color-text-subtle); font-weight: var(--fw-regular); }
+  .tree-row__action { margin-top: var(--space-1); }
+
+  /* Comissões summary */
+  .commission-summary-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* --- ≤ 860px: ajustes intermediários --- */
+@media (max-width: 860px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .exams-lists-grid { grid-template-columns: 1fr; }
+  .exams-highlights-grid { grid-template-columns: repeat(2, 1fr); }
+
+  /* Minicard: colapsa grid para layout vertical */
+  .doctor-spotlight-card {
+    grid-template-columns: 38px 1fr;
+    row-gap: var(--space-2);
+  }
+  .doctor-spotlight-card__metrics {
+    grid-column: 2;
+    align-items: flex-start;
+    flex-direction: row;
+    gap: var(--space-3);
+  }
+}
+
+/* --- ≤ 640px: mobile puro --- */
+@media (max-width: 640px) {
+  .app-header { padding: 0 var(--space-4); gap: var(--space-2); }
+  .brand-text__subtitle { display: none; }
+  .user-info { display: none; }
+
+  .main-content { padding: var(--space-4); gap: var(--space-4); }
+
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .kpi-grid--exams { grid-template-columns: repeat(2, 1fr); }
+
+  .filters-bar { flex-direction: column; align-items: stretch; padding: var(--space-4); gap: var(--space-4); }
+  .filters-bar__group--period { margin-left: 0; }
+
+  .charts-section__toolbar { flex-direction: column; align-items: stretch; }
+  .view-toggle { width: 100%; }
+  .view-toggle__btn { font-size: var(--fs-xs); padding: 8px 10px; }
+
+  .chart-card__body { height: 240px; }
+  .exams-pie-card .chart-card__body--pie { height: 260px; }
+
+  .section-toolbar { gap: var(--space-3); }
+
+  /* Minicards de médicos: layout mais compacto */
+  .doctor-spotlight-card {
+    grid-template-columns: 36px 1fr;
+    padding: var(--space-3);
+  }
+  .doctor-spotlight-card__metrics {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .doctor-spotlight-card__tags { display: none; } /* esconde tags em telas muito pequenas */
+}
+
+/* --- ≤ 480px: smartphones pequenos --- */
+@media (max-width: 480px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+  .kpi-grid--exams { grid-template-columns: 1fr; }
+  .exams-highlights-grid { grid-template-columns: 1fr; }
+  .commission-summary-grid { grid-template-columns: 1fr; }
+  .kpi-grid--comm-dash { grid-template-columns: 1fr; }
+
+  .kpi-card__value { font-size: 1.45rem; }
+}
