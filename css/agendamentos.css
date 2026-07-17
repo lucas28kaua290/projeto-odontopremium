@@ -975,6 +975,20 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
   opacity: 0.35;
 }
 
+/* =============================================================
+   PENDING PANEL — pills de filtro interno
+============================================================= */
+.pending-panel__filter-pills {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.pending-panel__filter-pills .pill {
+  padding: 5px 14px;
+  font-size: var(--fs-xs);
+}
+
 /* Responsivo */
 @media (max-width: 1100px) {
   .occupancy-split-grid {
@@ -2196,8 +2210,8 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(10, 26, 30, 0.64);
-  backdrop-filter: blur(6px) saturate(1.2);
+  background-color: rgba(10, 26, 30, 0.68);
+  backdrop-filter: blur(8px) saturate(1.3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2215,7 +2229,10 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 .modal {
   background-color: var(--color-surface);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
+  box-shadow:
+    0 32px 80px -12px rgba(4, 40, 48, 0.30),
+    0 8px 24px rgba(4, 40, 48, 0.12),
+    0 0 0 1px rgba(1, 128, 147, 0.08);
   width: 100%;
   max-height: calc(100vh - var(--space-8));
   display: flex;
@@ -2225,41 +2242,87 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 }
 
 @keyframes modalPopIn {
-  from { opacity: 0; transform: translateY(14px) scale(0.975); filter: blur(2px); }
+  from { opacity: 0; transform: translateY(18px) scale(0.97); filter: blur(3px); }
   to   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
 }
 
-.appointment-modal { max-width: 640px; }
+.appointment-modal { max-width: 660px; }
 
+/* ---- HEADER ---- */
 .appointment-modal__header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4);
-  padding: var(--space-5) var(--space-5) var(--space-4);
-  border-bottom: 1px solid var(--color-primary-100);
-  background: linear-gradient(135deg, #EAF6F6 0%, #F0FAFA 60%, #FDFFFE 100%);
+  padding: var(--space-5) var(--space-6) var(--space-5);
+  background: linear-gradient(135deg, #018093 70%,  #044d5c 100%);
   position: relative;
+  overflow: hidden;
 }
 
-/* Faixa de cor na borda esquerda do header */
-.appointment-modal__header::before {
+
+.appointment-modal__header::after {
   content: '';
   position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 4px;
-  background: var(--gradient-brand);
-  border-radius: var(--radius-xl) 0 0 0;
+  bottom: -30%;
+  left: 15%;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(127,224,218,0.12) 0%, transparent 70%);
+  pointer-events: none;
 }
 
-.appointment-modal__header-main { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
-.appointment-modal__time {
-  font-size: 1.45rem;
-  color: var(--color-primary-dark);
-  letter-spacing: -0.02em;
-  font-weight: var(--fw-bold);
-  font-variant-numeric: tabular-nums;
+.appointment-modal__header-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  position: relative;
+  z-index: 1;
 }
+
+/* Eyebrow: radiologia + exame */
+.appointment-modal__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.appointment-modal__eyebrow-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(253, 255, 254, 0.75);
+  background: rgba(253, 255, 254, 0.12);
+  border: 1px solid rgba(253, 255, 254, 0.18);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+/* Horário grande */
+.appointment-modal__time {
+  font-size: 2.2rem;
+  font-weight: var(--fw-bold);
+  color: #ffffff;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 8px rgba(4,40,48,0.25);
+}
+.appointment-modal__time-sep {
+  opacity: 0.55;
+  margin: 0 4px;
+}
+
+/* Badge de status (no header claro, reestilizado para fundo escuro) */
+.appointment-modal__header .status-badge--agendado   { background: rgba(253,255,254,0.15); color: #fff; border-color: rgba(253,255,254,0.25); }
+.appointment-modal__header .status-badge--confirmado { background: rgba(1,198,191,0.25); color: #b2ede9; border-color: rgba(1,198,191,0.35); }
+.appointment-modal__header .status-badge--realizado  { background: rgba(14,143,99,0.25); color: #7de0b5; border-color: rgba(14,143,99,0.35); }
+.appointment-modal__header .status-badge--cancelado  { background: rgba(194,59,50,0.25); color: #f5a8a4; border-color: rgba(194,59,50,0.35); }
 
 .status-badge-select { position: relative; display: inline-flex; align-items: center; }
 .status-badge-select svg { position: absolute; right: 8px; color: currentColor; pointer-events: none; opacity: 0.7; }
@@ -2267,17 +2330,29 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 .status-badge-select .status-badge { padding-right: 24px; cursor: pointer; }
 
 .modal-close-btn {
-  width: 34px; height: 34px;
+  width: 34px;
+  height: 34px;
   border-radius: var(--radius-sm);
-  display: flex; align-items: center; justify-content: center;
-  color: var(--color-text-muted);
-  transition: background-color var(--transition-fast), color var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(253,255,254,0.7);
+  background: rgba(253,255,254,0.1);
+  border: 1px solid rgba(253,255,254,0.15);
+  transition: all var(--transition-fast);
   flex-shrink: 0;
+  position: relative;
+  z-index: 1;
 }
-.modal-close-btn:hover { background-color: var(--color-surface-muted); color: var(--color-text); }
+.modal-close-btn:hover {
+  background: rgba(253,255,254,0.2);
+  color: #fff;
+  border-color: rgba(253,255,254,0.3);
+}
 
+/* ---- BODY ---- */
 .appointment-modal__body {
-  padding: var(--space-5);
+  padding: var(--space-5) var(--space-6);
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
@@ -2285,6 +2360,7 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 }
 
 .modal-section { display: flex; flex-direction: column; gap: var(--space-3); }
+
 .modal-section__title {
   font-size: 10px;
   font-weight: var(--fw-bold);
@@ -2297,13 +2373,10 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
   align-items: center;
   gap: var(--space-2);
 }
-
-/* Pontinho decorativo antes do título de seção */
 .modal-section__title::before {
   content: '';
   display: inline-block;
-  width: 6px;
-  height: 6px;
+  width: 6px; height: 6px;
   border-radius: 50%;
   background: var(--gradient-brand);
   flex-shrink: 0;
@@ -2312,63 +2385,118 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 .modal-section__grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
+
 .modal-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   min-width: 0;
   background-color: var(--color-surface-muted);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 10px var(--space-3);
-  transition: border-color var(--transition-fast);
+  border-radius: var(--radius-md);
+  padding: 12px var(--space-3);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
-
 .modal-field:hover {
   border-color: var(--color-primary-100);
+  box-shadow: var(--shadow-xs);
 }
-
-.modal-field__label { 
-  font-size: 10.5px;
-  font-weight: var(--fw-medium);
+.modal-field__label {
+  font-size: 10px;
+  font-weight: var(--fw-semibold);
   color: var(--color-text-subtle);
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-.modal-field__value { font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--color-text); overflow: hidden; text-overflow: ellipsis; }
-.modal-field__value--mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.modal-field__value {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.35;
+}
+.modal-field__value--mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-primary-dark);
+}
 
 .modal-observations {
   font-size: var(--fs-sm);
   color: var(--color-text-muted);
   background-color: var(--color-surface-muted);
   border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-primary-100);
   border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
-  line-height: 1.6;
+  line-height: 1.65;
 }
 
+/* ---- FOOTER ---- */
 .appointment-modal__footer {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: var(--space-2);
-  padding: var(--space-4) var(--space-5);
-  border-top: 1px solid var(--color-primary-100);
-  background: linear-gradient(180deg, var(--color-surface-muted) 0%, #f5fafa 100%);
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--color-border);
+  background: linear-gradient(180deg, var(--color-surface) 0%, #f5fafa 100%);
 }
-.appointment-modal__footer .btn--primary { margin-left: auto; }
-.modal-btn-danger:hover { border-color: var(--color-negative); color: var(--color-negative); background-color: var(--color-negative-bg); }
+
+/* Botão WhatsApp principal — lado direito, grande e verde */
+.modal-btn-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px var(--space-5);
+  border-radius: var(--radius-sm);
+  background-color: rgb(32, 163, 80);
+  color: #ffffff;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 4px 14px -3px rgba(37, 211, 102, 0.5);
+  transition: all var(--transition-fast);
+  margin-left: auto;
+}
+.modal-btn-whatsapp:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -4px rgba(37, 211, 102, 0.55);
+  filter: brightness(1.06);
+}
+.modal-btn-whatsapp:active { transform: translateY(0); }
+.modal-btn-whatsapp svg { flex-shrink: 0; }
+
+/* Separa grupo de ações secundárias do botão WhatsApp */
+.modal-footer__secondary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.modal-btn-danger:hover {
+  border-color: var(--color-negative);
+  color: var(--color-negative);
+  background-color: var(--color-negative-bg);
+}
 
 @media (max-width: 640px) {
+  .appointment-modal__header { padding: var(--space-4); }
+  .appointment-modal__body { padding: var(--space-4); }
+  .appointment-modal__footer { padding: var(--space-3) var(--space-4); flex-direction: column; align-items: stretch; }
+  .modal-btn-whatsapp { margin-left: 0; justify-content: center; }
+  .modal-footer__secondary { justify-content: flex-start; }
   .modal-section__grid { grid-template-columns: 1fr 1fr; }
-  .appointment-modal__footer { justify-content: stretch; }
-  .appointment-modal__footer .btn { flex: 1; justify-content: center; }
-  .appointment-modal__footer .btn--primary { margin-left: 0; order: -1; }
 }
 @media (max-width: 420px) {
+  .appointment-modal__time { font-size: 1.7rem; }
   .modal-section__grid { grid-template-columns: 1fr; }
 }
 
@@ -2740,4 +2868,163 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
         transform:scale(1);
     }
 
+}
+
+/* =============================================================
+   KANBAN HOVER CARD — preview flutuante ao hover do card
+============================================================= */
+.kanban-hover-card {
+  position: fixed;
+  z-index: 350;
+  width: 300px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 20px 50px -8px rgba(4, 40, 48, 0.22),
+    0 6px 16px rgba(4, 40, 48, 0.10),
+    0 0 0 1px rgba(1,128,147,0.06);
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(6px) scale(0.97);
+  transition:
+    opacity 180ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 180ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity, transform;
+}
+.kanban-hover-card.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+/* Stripe de cor no topo baseada no status */
+.kanban-hover-card__stripe {
+  height: 4px;
+  width: 100%;
+}
+.kanban-hover-card[data-status="agendado"]   .kanban-hover-card__stripe { background: var(--color-text-subtle); }
+.kanban-hover-card[data-status="confirmado"] .kanban-hover-card__stripe { background: var(--color-primary); }
+.kanban-hover-card[data-status="realizado"]  .kanban-hover-card__stripe { background: var(--color-positive); }
+.kanban-hover-card[data-status="cancelado"]  .kanban-hover-card__stripe { background: var(--color-negative); }
+
+.kanban-hover-card__inner {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Cabeçalho: nome + status */
+.kanban-hover-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.kanban-hover-card__name {
+  font-size: var(--fs-base);
+  font-weight: var(--fw-bold);
+  color: var(--color-text);
+  line-height: 1.25;
+}
+
+/* Linha de meta (data, hora, duração) */
+.kanban-hover-card__meta-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.kanban-hover-card__meta-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+  font-weight: var(--fw-medium);
+}
+.kanban-hover-card__meta-item svg {
+  color: var(--color-text-subtle);
+  flex-shrink: 0;
+}
+
+/* Tags (exame + radiologia) */
+.kanban-hover-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+/* Linha de faturamento */
+.kanban-hover-card__value-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 8px var(--space-3);
+}
+.kanban-hover-card__value-label {
+  font-size: var(--fs-xs);
+  color: var(--color-text-subtle);
+  font-weight: var(--fw-medium);
+}
+.kanban-hover-card__value-amount {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  color: var(--color-primary-dark);
+}
+
+/* Divisor */
+.kanban-hover-card__divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 0 calc(-1 * var(--space-4));
+}
+
+/* Origem (médico + clínica) */
+.kanban-hover-card__origin {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.kanban-hover-card__origin-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+}
+.kanban-hover-card__origin-item svg {
+  color: var(--color-text-subtle);
+  flex-shrink: 0;
+}
+
+/* Botão WhatsApp no hover card */
+.kanban-hover-card__whatsapp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background-color: rgb(32, 163, 80);
+  color: #ffffff;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  white-space: nowrap;
+  text-decoration: none;
+  box-shadow: 0 3px 10px -2px rgba(37, 211, 102, 0.45);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  border: none;
+}
+.kanban-hover-card__whatsapp:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 6px 16px -3px rgba(37, 211, 102, 0.55);
+  transform: translateY(-1px);
 }

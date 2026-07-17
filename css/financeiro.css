@@ -1889,6 +1889,960 @@ td.td-change {
 }
 
 /* =============================================================
+   TABELAS SOLO (full width, empilhadas)
+============================================================= */
+.detail-tables-solo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.table-card__header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* =============================================================
+   TABELA HIERÁRQUICA — VISÃO GERAL
+   Colunas: Estrutura | Exames | Faturamento | % Total | Ticket | Exames Tags
+============================================================= */
+.hier-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+
+.hier-legend__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-xs);
+  color: var(--color-text-subtle);
+  font-weight: var(--fw-medium);
+}
+
+.hier-legend__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.hier-legend__dot--1 { background: var(--color-primary); }
+.hier-legend__dot--2 { background: var(--color-primary-light); }
+.hier-legend__dot--3 { background: #7B68EE; }
+
+/* Cabeçalho */
+.hier-table__head {
+  display: grid;
+  grid-template-columns:
+    minmax(220px, 2.5fr)   /* estrutura */
+    minmax(72px,  0.6fr)   /* exames */
+    minmax(130px, 1.1fr)   /* faturamento */
+    minmax(140px, 1fr)     /* % total */
+    minmax(110px, 0.8fr)   /* ticket médio */
+    minmax(180px, 1.4fr);  /* principais exames */
+  padding: var(--space-2) var(--space-5);
+  background-color: var(--color-surface-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.hier-table__col {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: var(--space-2) var(--space-2);
+}
+
+.hier-table__col--num,
+.hier-table__col--tags {
+  text-align: right;
+}
+
+.hier-table__col--tags {
+  text-align: left;
+}
+
+/* Corpo */
+.hier-table__body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Linhas */
+.hier-row {
+  display: grid;
+  grid-template-columns:
+    minmax(220px, 2.5fr)
+    minmax(72px, 0.6fr)
+    minmax(130px, 1.1fr)
+    minmax(140px, 1fr)
+    minmax(110px, 0.8fr)
+    minmax(180px, 1.4fr);
+  align-items: center;
+  padding: 10px var(--space-5);
+  min-height: 62px;
+  background: #fff;
+  border-bottom: 1px solid #edf2f7;
+  transition:
+    background .18s ease,
+    box-shadow .18s ease;
+}
+
+.hier-row:last-child{
+  border-bottom:none;
+}
+
+.hier-row:hover{
+  background:#f8fbff;
+}
+
+/* Nível 1 — Radiologia */
+.hier-row--level-1{
+  background:#ffffff;
+  min-height:68px;
+  border-bottom:1px solid #dde7f0;
+  font-weight:600;
+}
+
+.hier-row--level-1:hover{
+  background:#f3f9fd;
+}
+
+/* Nível 2 — Clínica */
+.hier-row--level-2{
+  background:#ffffff;
+  min-height:58px;
+}
+
+/* Nível 3 — Médico */
+.hier-row--level-3{
+  background:#ffffff;
+  min-height:54px;
+}
+
+.hier-row--level-3:hover{
+  background:#fafcff;
+}
+
+/* Células */
+.hier-row__cell {
+  padding: var(--space-2) var(--space-2);
+  font-size: var(--fs-sm);
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+}
+
+.hier-row__cell--num {
+  justify-content: flex-end;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+}
+
+.hier-row__cell--tags {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* Célula de nome com recuo por nível */
+.hier-row__name-cell{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+  padding:8px 6px;
+}
+
+.hier-row--level-2 .hier-row__name-cell { padding-left: 28px; }
+.hier-row--level-3 .hier-row__name-cell { padding-left: 52px; }
+
+/* Botão toggle */
+.hier-row__toggle{
+  width:26px;
+  height:26px;
+  border-radius:8px;
+  background:#eef4f8;
+  color:#54748b;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  transition:
+    transform 0.32s cubic-bezier(0.32, 0.72, 0, 1),
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.hier-row__toggle:hover{
+  background:#dfeef8;
+  color:#1c5d83;
+}
+
+.hier-row__toggle:hover { background-color: var(--color-primary-100); color: var(--color-primary-dark); }
+
+.hier-row__toggle{
+  transition:
+    transform .22s ease,
+    background-color .18s ease;
+}
+
+.hier-row__toggle.is-open{
+  transform:rotate(180deg);
+}
+
+.hier-row.is-expanded{
+  background:#f7fbfd;
+}
+
+.hier-row__toggle-spacer { width: 20px; flex-shrink: 0; }
+
+/* Nome e badge */
+.hier-row__name{
+  font-size:15px;
+  font-weight:500;
+  color:#1e293b;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  letter-spacing:.1px;
+}
+
+.hier-row--level-1 .hier-row__name{
+  font-size:17px;
+  font-weight:700;
+  color:#0f4f71;
+}
+
+.hier-row--level-2 .hier-row__name{
+  font-size:15px;
+  font-weight:600;
+  color:#334155;
+}
+
+.hier-row--level-3 .hier-row__name{
+  font-size:14px;
+  font-weight:500;
+  color:#64748b;
+}
+
+.hier-row__badge{
+  display:inline-flex;
+  align-items:center;
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:600;
+  background:#eef6fb;
+  color:#2c6b8a;
+  border:1px solid #d6e8f3;
+  white-space:nowrap;
+  flex-shrink:0;
+}
+
+/* Faturamento com variação inline */
+.hier-fat-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.hier-fat-wrap .change-badge {
+  font-size: 10px;
+  padding: 1px 5px;
+}
+
+/* Barra de participação inline */
+.hier-pct-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  width: 100%;
+}
+
+.hier-pct-wrap__value {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+}
+
+.hier-pct-bar {
+  width: 100%;
+  max-width: 100px;
+  height: 4px;
+  border-radius: 999px;
+  background-color: var(--color-border);
+  overflow: hidden;
+}
+
+.hier-pct-bar__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--gradient-brand);
+}
+
+/* Tags de tipo de exame */
+.exam-tag{
+  display:inline-flex;
+  align-items:center;
+  padding:5px 11px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:600;
+  background:#f4f8fb;
+  border:1px solid #dce8f1;
+  color:#486273;
+  white-space:nowrap;
+  transition:.18s;
+}
+
+.exam-tag:hover{
+  background:#e7f3fb;
+  border-color:#b9d9ec;
+  color:#175d82;
+}
+
+.hier-group {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows 0.38s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.hier-group.is-collapsed {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.hier-group__inner {
+  overflow: hidden;
+  min-height: 0; 
+}
+
+.hier-group:not(.is-collapsed) .hier-row {
+  animation: hierReveal 0.35s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes hierReveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hier-row{
+  transition:
+    background-color .18s ease,
+    box-shadow .18s ease,
+    transform .18s ease;
+}
+
+.hier-row:hover{
+  transform:translateX(2px);
+}
+
+.hier-row--level-1 .hier-row__cell--num {
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-sm);
+  color: var(--color-text);
+}
+
+.hier-row--level-2 .hier-row__cell--num {
+  font-weight: var(--fw-medium);
+  color: var(--color-text-muted);
+}
+
+/* Responsivo */
+@media (max-width: 1100px) {
+  .hier-table__head,
+  .hier-row {
+    grid-template-columns:
+      minmax(180px, 2fr)
+      minmax(60px, 0.5fr)
+      minmax(110px, 1fr)
+      minmax(110px, 0.9fr)
+      minmax(90px,  0.7fr)
+      minmax(140px, 1.2fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .hier-table__head { display: none; }
+  .hier-row {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+  }
+}
+
+/* =============================================================
+   METAS & CONTROLE — REDESIGN
+============================================================= */
+
+/* Row de KPIs de meta */
+.metas-kpi-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-4);
+}
+
+@media (max-width: 1100px) { .metas-kpi-row { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 640px)  { .metas-kpi-row { grid-template-columns: 1fr; } }
+
+/* Card de KPI de meta */
+.meta-kpi-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.meta-kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--gradient-brand);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.meta-kpi-card--yearly::before {
+  background: #09accc;
+}
+
+.meta-kpi-card--units::before {
+  background: linear-gradient(90deg, #F5A623, #f7c26a);
+}
+
+.meta-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.meta-kpi-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.meta-kpi-card__icon-wrap {
+  width: 28px; height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-50);
+  color: var(--color-primary);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.meta-kpi-card--yearly .meta-kpi-card__icon-wrap {
+  background: rgba(123, 104, 238, 0.1);
+  color: #09accc;
+}
+
+.meta-kpi-card--units .meta-kpi-card__icon-wrap {
+  background: rgba(245, 166, 35, 0.1);
+  color: #B27A0E;
+}
+
+.meta-kpi-card__label {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex: 1;
+}
+
+.meta-kpi-card__pct-badge {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  font-family: var(--font-mono);
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--color-primary-50);
+  color: var(--color-primary-dark);
+  flex-shrink: 0;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.meta-kpi-card__pct-badge--year {
+  background: rgba(123, 104, 238, 0.1);
+  color: #09accc;
+}
+
+.meta-kpi-card__pct-badge.is-achieved {
+  background: var(--color-positive-bg);
+  color: var(--color-positive);
+}
+
+.meta-kpi-card__value {
+  font-size: 1.5rem;
+  font-weight: var(--fw-bold);
+  font-family: var(--font-mono);
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.meta-kpi-card__realized {
+  font-size: var(--fs-xs);
+  color: var(--color-text-subtle);
+  line-height: 1.4;
+}
+
+/* Barra de progresso do KPI de meta */
+.meta-kpi-card__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.meta-kpi-progress__bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.meta-kpi-progress__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--gradient-brand);
+  transition: width 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.meta-kpi-progress__fill--year {
+  background: #09accc;
+}
+
+.meta-kpi-progress__fill--achieved {
+  background: linear-gradient(90deg, var(--color-positive), #2ec88a);
+}
+
+.meta-kpi-progress__fill--warning {
+  background: linear-gradient(90deg, #B27A0E, #E0A020);
+}
+
+.meta-kpi-progress__label {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-muted);
+}
+
+/* Lista de unidades no 3º KPI card */
+.meta-units-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.meta-unit-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.meta-unit-row__name {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  color: var(--color-text-muted);
+  width: 78px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta-unit-row__bar-wrap {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.meta-unit-row__bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.meta-unit-row__pct {
+  font-size: var(--fs-xs);
+  font-family: var(--font-mono);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-muted);
+  width: 36px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* Gráfico Meta vs Realizado full-width */
+.chart-card--goal-full {
+  /* herda .chart-card, só sobrescreve o height do body */
+}
+
+.chart-card__body--goal {
+  height: 300px;
+  position: relative;
+}
+
+/* Legenda do gráfico de meta */
+.goal-chart-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* =============================================================
+   TABELA DE METAS — layout customizado (não usa <table>)
+============================================================= */
+.metas-table-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.metas-table-head {
+  display: grid;
+  grid-template-columns:
+    minmax(160px, 1.8fr)  /* nome */
+    minmax(140px, 1.2fr)  /* meta mensal */
+    minmax(120px, 1fr)    /* realizado */
+    minmax(100px, 0.8fr)  /* % */
+    minmax(180px, 1.6fr)  /* progresso */
+    minmax(140px, 1.2fr)  /* meta anual */
+    48px;                 /* ação */
+  padding: var(--space-2) var(--space-5);
+  background: var(--color-surface-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.metas-col {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: var(--space-2);
+}
+
+.metas-col--num,
+.metas-col--progress,
+.metas-col--action { text-align: right; }
+
+.metas-table-body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Linha da tabela de metas */
+.meta-row {
+  display: grid;
+  grid-template-columns:
+    minmax(160px, 1.8fr)
+    minmax(140px, 1.2fr)
+    minmax(120px, 1fr)
+    minmax(100px, 0.8fr)
+    minmax(180px, 1.6fr)
+    minmax(140px, 1.2fr)
+    48px;
+  align-items: center;
+  padding: 14px var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  transition: background var(--transition-fast);
+  gap: 0;
+}
+
+.meta-row:last-child { border-bottom: none; }
+.meta-row:hover { background: var(--color-surface-muted); }
+
+.meta-row__cell {
+  padding: 0 var(--space-2);
+  font-size: var(--fs-sm);
+  color: var(--color-text);
+}
+
+.meta-row__cell--name {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.meta-row__name {
+  font-weight: var(--fw-semibold);
+  color: var(--color-text);
+}
+
+.meta-row__id {
+  font-size: var(--fs-xs);
+  color: var(--color-text-subtle);
+}
+
+/* Input monetário inline na tabela */
+.meta-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.meta-input-prefix {
+  font-size: var(--fs-xs);
+  color: var(--color-text-subtle);
+  font-weight: var(--fw-medium);
+  flex-shrink: 0;
+}
+
+.meta-input {
+  width: 110px;
+  padding: 6px var(--space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  font-size: var(--fs-sm);
+  font-family: var(--font-mono);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text);
+  text-align: right;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.meta-input:hover { border-color: var(--color-primary-light); }
+
+.meta-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
+  background: var(--color-surface);
+}
+
+.meta-input.is-modified {
+  border-color: var(--color-primary);
+  background: var(--color-primary-50);
+  color: var(--color-primary-dark);
+}
+
+/* Valor realizado na tabela */
+.meta-row__realized {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--color-text-muted);
+}
+
+/* % atingido */
+.meta-row__pct {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  transition: color var(--transition-fast);
+}
+
+.meta-row__pct--achieved { color: var(--color-positive); }
+.meta-row__pct--good     { color: var(--color-primary-dark); }
+.meta-row__pct--warning  { color: var(--color-warning); }
+.meta-row__pct--danger   { color: var(--color-negative); }
+
+/* Progresso inline na tabela */
+.meta-row__progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+.meta-row__progress-bar {
+  flex: 1;
+  max-width: 120px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.meta-row__progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 500ms cubic-bezier(0.16, 1, 0.3, 1), background 500ms;
+}
+
+/* Botão de editar na tabela */
+.meta-row__edit-btn {
+  width: 30px; height: 30px;
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--color-text-subtle);
+  transition: background var(--transition-fast), color var(--transition-fast);
+  margin-left: auto;
+}
+
+.meta-row__edit-btn:hover {
+  background: var(--color-primary-50);
+  color: var(--color-primary-dark);
+}
+
+/* =============================================================
+   MODAL DE META — header melhorado
+============================================================= */
+.modal-goal-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.modal-goal-avatar {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: var(--gradient-brand);
+  color: var(--color-bg);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+}
+
+.modal-goal-subtitle {
+  font-size: var(--fs-xs);
+  color: var(--color-text-subtle);
+  font-weight: var(--fw-medium);
+  display: block;
+  margin-top: 2px;
+}
+
+/* Snapshot do estado atual no modal */
+.modal-goal-snapshot {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.modal-snapshot-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+  text-align: center;
+}
+
+.modal-snapshot-item__label {
+  font-size: 10px;
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.modal-snapshot-item__value {
+  font-size: var(--fs-base);
+  font-weight: var(--fw-bold);
+  font-family: var(--font-mono);
+  color: var(--color-text);
+}
+
+.modal-snapshot-item__value--primary { color: var(--color-primary-dark); }
+.modal-snapshot-item__value--positive { color: var(--color-positive); }
+.modal-snapshot-item__value--warning  { color: var(--color-warning); }
+
+/* Input com prefixo monetário no modal */
+.form-input-money-wrap {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  overflow: hidden;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.form-input-money-wrap:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
+  background: var(--color-surface);
+}
+
+.form-input-money-prefix {
+  padding: 10px var(--space-2) 10px var(--space-3);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-subtle);
+  background: transparent;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.form-input--money {
+  flex: 1;
+  padding: 10px var(--space-3) 10px 0;
+  border: none;
+  background: transparent;
+  font-size: var(--fs-sm);
+  font-family: var(--font-mono);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text);
+  text-align: right;
+}
+
+.form-input--money:focus { outline: none; }
+
+/* Preview de impacto no modal */
+.modal-goal-preview {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-primary-50);
+  border: 1px solid var(--color-primary-100);
+  font-size: var(--fs-xs);
+  color: var(--color-primary-dark);
+  font-weight: var(--fw-medium);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 42px;
+  transition: opacity var(--transition-fast);
+}
+
+.modal-goal-preview:empty { display: none; }
+
+.modal-goal-preview svg { flex-shrink: 0; color: var(--color-primary); }
+
+/* =============================================================
    16. RESPONSIVO
 ============================================================= */
 @media (max-width: 1024px) {

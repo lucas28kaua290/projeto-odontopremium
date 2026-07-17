@@ -835,27 +835,81 @@ const AppointmentModal = (() => {
   let overlay, closeBtn, statusBadge, statusSelect;
   let currentAppointment = null;
 
+  /* Gera link WhatsApp baseado no status */
+  function buildWhatsAppLink(agendamento) {
+    const phone = agendamento.pacienteTelefone.replace(/\D/g, '').replace(/^0/, '');
+    const num = phone.startsWith('55') ? phone : `55${phone}`;
+    const dataLabel = new Date(`${agendamento.data}T00:00:00`).toLocaleDateString('pt-BR', {
+      weekday: 'long', day: 'numeric', month: 'long',
+    });
+
+    let msg;
+    if (agendamento.status === 'confirmado') {
+      msg =
+        `Olá, ${agendamento.paciente.split(' ')[0]}! 👋 Lembrando do seu exame agendado:\n\n` +
+        `📍 *Local:* ${agendamento.radiologiaNome}\n` +
+        `📅 *Data:* ${dataLabel}\n` +
+        `⏰ *Horário:* ${agendamento.horarioInicio}\n` +
+        `🩺 *Exame:* ${agendamento.tipoExame}\n\n` +
+        `Por favor, chegue com 10 minutos de antecedência. Em caso de imprevisto, entre em contato para reagendarmos. Até lá! 😊`;
+    } else {
+      msg =
+        `Olá, ${agendamento.paciente.split(' ')[0]}! 😊 Passando para confirmar seu agendamento na *${agendamento.radiologiaNome}*.\n\n` +
+        `📅 *Data:* ${dataLabel}\n` +
+        `⏰ *Horário:* ${agendamento.horarioInicio}\n` +
+        `🩺 *Exame:* ${agendamento.tipoExame}\n\n` +
+        `Por favor, confirme sua presença respondendo esta mensagem. Qualquer dúvida, estamos à disposição! 🙏`;
+    }
+
+    return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
+  }
+
   function fill(agendamento) {
     currentAppointment = agendamento;
     const cfg = MockData.statusConfig[agendamento.status];
 
-    document.getElementById('modalTime').textContent = `${agendamento.horarioInicio} – ${agendamento.horarioFim}`;
+    /* Header */
+    document.getElementById('modalTime').textContent =
+      `${agendamento.horarioInicio} – ${agendamento.horarioFim}`;
+
+    const headerRadEl = document.getElementById('modalHeaderRadiologia');
+    const headerExEl  = document.getElementById('modalHeaderExame');
+    if (headerRadEl) headerRadEl.textContent = agendamento.radiologiaNome;
+    if (headerExEl)  headerExEl.textContent  = agendamento.tipoExame;
+
     statusBadge.textContent = cfg.label;
-    statusBadge.className = `status-badge status-badge--${agendamento.status}`;
-    statusSelect.value = agendamento.status;
+    statusBadge.className   = `status-badge status-badge--${agendamento.status}`;
+    statusSelect.value       = agendamento.status;
 
-    document.getElementById('modalPatientName').textContent = agendamento.paciente;
+    /* Campos do body */
+    document.getElementById('modalPatientName').textContent  = agendamento.paciente;
     document.getElementById('modalPatientPhone').textContent = agendamento.pacienteTelefone;
-    document.getElementById('modalPatientAge').textContent = `${agendamento.pacienteIdade} anos`;
+    document.getElementById('modalPatientAge').textContent   = `${agendamento.pacienteIdade} anos`;
 
-    document.getElementById('modalExamType').textContent = agendamento.tipoExame;
-    document.getElementById('modalExamValue').textContent = Kpis.formatCurrency(agendamento.valor);
+    document.getElementById('modalExamType').textContent     = agendamento.tipoExame;
+    document.getElementById('modalExamValue').textContent    = Kpis.formatCurrency(agendamento.valor);
     document.getElementById('modalExamDuration').textContent = `${agendamento.duracaoMin} minutos`;
 
-    document.getElementById('modalRadiologia').textContent = agendamento.radiologiaNome;
-    document.getElementById('modalClinica').textContent = agendamento.clinica;
-    document.getElementById('modalMedico').textContent = agendamento.medico;
-    document.getElementById('modalObservations').textContent = agendamento.observacoes || 'Nenhuma observação registrada.';
+    document.getElementById('modalRadiologia').textContent   = agendamento.radiologiaNome;
+    document.getElementById('modalClinica').textContent      = agendamento.clinica;
+    document.getElementById('modalMedico').textContent       = agendamento.medico;
+    document.getElementById('modalObservations').textContent =
+      agendamento.observacoes || 'Nenhuma observação registrada.';
+
+    /* Botão WhatsApp dinâmico */
+    const waBtn   = document.getElementById('modalBtnWhatsapp');
+    const waLabel = document.getElementById('modalBtnWhatsappLabel');
+    if (waBtn && waLabel) {
+      waBtn.href = buildWhatsAppLink(agendamento);
+      if (agendamento.status === 'confirmado') {
+        waLabel.textContent = 'Enviar Lembrete via WhatsApp';
+      } else if (agendamento.status === 'cancelado' || agendamento.status === 'realizado') {
+        waBtn.style.display = 'none';
+      } else {
+        waBtn.style.display = '';
+        waLabel.textContent = 'Confirmar via WhatsApp';
+      }
+    }
   }
 
   function open(agendamento) {
@@ -871,7 +925,9 @@ const AppointmentModal = (() => {
   }
 
   function notifyStatusChange(agendamento) {
-    document.dispatchEvent(new CustomEvent('appointment:statusChanged', { detail: { agendamento } }));
+    document.dispatchEvent(
+      new CustomEvent('appointment:statusChanged', { detail: { agendamento } })
+    );
   }
 
   function setStatus(newStatus) {
@@ -886,12 +942,9 @@ const AppointmentModal = (() => {
     overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !overlay.hidden) close(); });
     statusSelect.addEventListener('change', (e) => setStatus(e.target.value));
-    document.getElementById('modalBtnConfirm').addEventListener('click', () => setStatus('confirmado'));
+
     document.getElementById('modalBtnDone').addEventListener('click', () => setStatus('realizado'));
     document.getElementById('modalBtnCancel').addEventListener('click', () => setStatus('cancelado'));
-    document.getElementById('modalBtnReminder').addEventListener('click', () => {
-      alert(`Lembrete enviado para ${currentAppointment.paciente} (${currentAppointment.pacienteTelefone}).`);
-    });
     document.getElementById('modalBtnPrint').addEventListener('click', () => window.print());
     document.getElementById('modalBtnEdit').addEventListener('click', () => {
       if (!currentAppointment) return;
@@ -1314,6 +1367,188 @@ const CalendarView = (() => {
   return { init, render };
 })();
 
+/* =================================================================
+   KANBAN HOVER CARD — preview flutuante ao hover dos cards
+================================================================= */
+const KanbanHoverCard = (() => {
+  let cardEl = null;
+  let hideTimer = null;
+  let currentCardEl = null;
+
+  function getOrCreate() {
+    if (cardEl) return cardEl;
+    cardEl = document.createElement('div');
+    cardEl.className = 'kanban-hover-card';
+    document.body.appendChild(cardEl);
+    cardEl.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+    cardEl.addEventListener('mouseleave', () => scheduleHide());
+    return cardEl;
+  }
+
+  function scheduleHide() {
+    hideTimer = setTimeout(hide, 150);
+  }
+
+  function hide() {
+    if (!cardEl) return;
+    cardEl.classList.remove('is-visible');
+    currentCardEl = null;
+  }
+
+  function buildWhatsAppLink(appt) {
+    const phone = appt.pacienteTelefone.replace(/\D/g, '').replace(/^0/, '');
+    const num = phone.startsWith('55') ? phone : `55${phone}`;
+    const dataLabel = new Date(`${appt.data}T00:00:00`).toLocaleDateString('pt-BR', {
+      weekday: 'long', day: 'numeric', month: 'long',
+    });
+    const isConfirmado = appt.status === 'confirmado';
+    const msg = isConfirmado
+      ? `Olá, ${appt.paciente.split(' ')[0]}! 👋 Lembrando do seu exame:\n\n📍 *Local:* ${appt.radiologiaNome}\n📅 *Data:* ${dataLabel}\n⏰ *Horário:* ${appt.horarioInicio}\n🩺 *Exame:* ${appt.tipoExame}\n\nPor favor, chegue 10 minutos antes. Até lá! 😊`
+      : `Olá, ${appt.paciente.split(' ')[0]}! 😊 Confirmando seu agendamento na *${appt.radiologiaNome}*.\n\n📅 *Data:* ${dataLabel}\n⏰ *Horário:* ${appt.horarioInicio}\n🩺 *Exame:* ${appt.tipoExame}\n\nPor favor, confirme sua presença. Qualquer dúvida, é só chamar! 🙏`;
+    return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
+  }
+
+  function buildContent(appt) {
+    const card = getOrCreate();
+    card.dataset.status = appt.status;
+
+    const dataLabel = new Date(`${appt.data}T00:00:00`)
+      .toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' });
+
+    const showWa = appt.status === 'agendado' || appt.status === 'confirmado';
+    const waLabel = appt.status === 'confirmado' ? 'Enviar Lembrete via WhatsApp' : 'Confirmar via WhatsApp';
+    const waLink  = buildWhatsAppLink(appt);
+
+    const waHTML = showWa ? `
+      <a href="${waLink}" target="_blank" rel="noopener noreferrer"
+         class="kanban-hover-card__whatsapp">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+          <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        ${waLabel}
+      </a>` : '';
+
+    card.innerHTML = `
+      <div class="kanban-hover-card__stripe"></div>
+      <div class="kanban-hover-card__inner">
+
+        <div class="kanban-hover-card__head">
+          <span class="kanban-hover-card__name">${appt.paciente}</span>
+          <span class="status-badge status-badge--${appt.status}">
+            ${MockData.statusConfig[appt.status].label}
+          </span>
+        </div>
+
+        <div class="kanban-hover-card__meta-row">
+          <div class="kanban-hover-card__meta-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+              <path d="M7 2v3M17 2v3M3 9h18M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            ${dataLabel}
+          </div>
+          <div class="kanban-hover-card__meta-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 7v5l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            ${appt.horarioInicio}–${appt.horarioFim}
+          </div>
+          <div class="kanban-hover-card__meta-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 8v4h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            ${appt.duracaoMin}min
+          </div>
+        </div>
+
+        <div class="kanban-hover-card__tags">
+          <span class="exam-tag">${appt.tipoExame}</span>
+          <span class="radiology-tag">${appt.radiologiaNome.replace('Radiologia ', '')}</span>
+        </div>
+
+        <div class="kanban-hover-card__value-row">
+          <span class="kanban-hover-card__value-label">Valor do exame</span>
+          <span class="kanban-hover-card__value-amount">${Kpis.formatCurrency(appt.valor)}</span>
+        </div>
+
+        <div class="kanban-hover-card__divider"></div>
+
+        <div class="kanban-hover-card__origin">
+          <div class="kanban-hover-card__origin-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+              <path d="M12 12a5 5 0 100-10 5 5 0 000 10zM3 21a9 9 0 0118 0"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            ${appt.medico}
+          </div>
+          <div class="kanban-hover-card__origin-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"
+                    stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+            ${appt.clinica}
+          </div>
+        </div>
+
+        ${waHTML}
+
+      </div>
+    `;
+  }
+
+  function position(targetEl) {
+    const card = getOrCreate();
+    const rect  = targetEl.getBoundingClientRect();
+    const cw    = 300;
+    const ch    = card.offsetHeight || 360;
+    const vw    = window.innerWidth;
+    const vh    = window.innerHeight;
+    const gap   = 12;
+
+    let left = rect.right + gap;
+    let top  = rect.top;
+
+    if (left + cw > vw - 12) left = rect.left - cw - gap;
+    if (top + ch > vh - 12)  top  = vh - ch - 12;
+    if (top < 8) top = 8;
+    if (left < 8) left = 8;
+
+    card.style.left = `${left}px`;
+    card.style.top  = `${top}px`;
+  }
+
+  function show(targetEl, appt) {
+    clearTimeout(hideTimer);
+    const card = getOrCreate();
+
+    if (currentCardEl === targetEl && card.classList.contains('is-visible')) return;
+    currentCardEl = targetEl;
+
+    buildContent(appt);
+
+    /* Posiciona antes de tornar visível para evitar flash */
+    card.style.opacity = '0';
+    card.classList.add('is-visible');
+    requestAnimationFrame(() => {
+      position(targetEl);
+      card.style.opacity = '';
+    });
+  }
+
+  function init() {
+    getOrCreate();
+    window.addEventListener('scroll', hide, { passive: true });
+    /* Fecha ao clicar fora */
+    document.addEventListener('click', (e) => {
+      if (cardEl && !cardEl.contains(e.target)) hide();
+    });
+  }
+
+  return { show, hide, scheduleHide, init };
+})();
 
 /* =================================================================
    11. KANBAN VIEW
@@ -1374,6 +1609,14 @@ const KanbanView = (() => {
 
     card.addEventListener('click', () => {
       if (!draggedId) AppointmentModal.open(agendamento);
+    });
+
+    /* Hover card */
+    card.addEventListener('mouseenter', () => {
+      if (!draggedId) KanbanHoverCard.show(card, agendamento);
+    });
+    card.addEventListener('mouseleave', () => {
+      KanbanHoverCard.scheduleHide();
     });
 
     card.addEventListener('dragstart', (e) => {
@@ -2434,9 +2677,11 @@ const Sidebar = (() => {
 /* =================================================================
    PENDING LIST — painel "Pendentes de Confirmação"
    Integrado aos filtros globais: radiologia, período e busca.
+   Com filtro interno por status (agendado / confirmado).
 ================================================================= */
 const PendingList = (() => {
   let listEl, badgeEl, subtitleEl;
+  let currentFilter = 'agendado'; // estado interno do filtro de pills
 
   const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
   const MESES_CURTO = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
@@ -2450,7 +2695,10 @@ const PendingList = (() => {
     return `${DIAS_SEMANA[d.getDay()]}, ${d.getDate()} ${MESES_CURTO[d.getMonth()]}`;
   }
 
-  function buildWhatsAppLink(appt) {
+  /* ------------------------------------------------------------------
+     Mensagem de confirmação (status === 'agendado')
+  ------------------------------------------------------------------ */
+  function buildWhatsAppLinkConfirmacao(appt) {
     const phone = appt.pacienteTelefone.replace(/\D/g, '').replace(/^0/, '');
     const num   = phone.startsWith('55') ? phone : `55${phone}`;
     const dataLabel = new Date(`${appt.data}T00:00:00`).toLocaleDateString('pt-BR', {
@@ -2461,46 +2709,56 @@ const PendingList = (() => {
       `📅 *Data:* ${dataLabel}\n` +
       `⏰ *Horário:* ${appt.horarioInicio}\n` +
       `🩺 *Exame:* ${appt.tipoExame}\n\n` +
-      `Por favor, confirme sua presença respondendo esta mensagem. Qualquer dúvida, estamos à disposição!`
+      `Por favor, confirme sua presença respondendo esta mensagem. Qualquer dúvida, estamos à disposição! 🙏`
+    );
+    return `https://wa.me/${num}?text=${msg}`;
+  }
+
+  /* ------------------------------------------------------------------
+     Mensagem de lembrete (status === 'confirmado')
+  ------------------------------------------------------------------ */
+  function buildWhatsAppLinkLembrete(appt) {
+    const phone = appt.pacienteTelefone.replace(/\D/g, '').replace(/^0/, '');
+    const num   = phone.startsWith('55') ? phone : `55${phone}`;
+    const dataLabel = new Date(`${appt.data}T00:00:00`).toLocaleDateString('pt-BR', {
+      weekday: 'long', day: 'numeric', month: 'long',
+    });
+    const msg = encodeURIComponent(
+      `Olá, ${appt.paciente.split(' ')[0]}! 👋 Lembrando do seu exame agendado:\n\n` +
+      `📍 *Local:* ${appt.radiologiaNome}\n` +
+      `📅 *Data:* ${dataLabel}\n` +
+      `⏰ *Horário:* ${appt.horarioInicio}\n` +
+      `🩺 *Exame:* ${appt.tipoExame}\n\n` +
+      `Por favor, chegue com 10 minutos de antecedência. Em caso de imprevisto, entre em contato para reagendarmos. Até lá! 😊`
     );
     return `https://wa.me/${num}?text=${msg}`;
   }
 
   function scrollToAndOpenAppointment(appt) {
-    // 1. Garante que o modo Agenda está ativo
     const agendaToggle = document.getElementById('agendaViewToggle');
     const agendaBtn    = agendaToggle?.querySelector('[data-view="agenda"]');
     if (agendaBtn && !agendaBtn.classList.contains('is-active')) agendaBtn.click();
 
-    // 2. Navega o calendário para o mês do agendamento
     AppState.update({ calDate: new Date(`${appt.data}T00:00:00`), calGranularity: 'mensal' });
 
-    // 3. Rola suavemente até a seção da Agenda
     setTimeout(() => {
       document.querySelector('.agenda-section')
         ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
 
-    // 4. Abre o modal de detalhes após o scroll terminar
     setTimeout(() => AppointmentModal.open(appt), 420);
   }
 
   /* ------------------------------------------------------------------
      FILTRO CENTRAL
-     Usa o mesmo pipeline de AgendaData, mas força status === 'agendado'
-     e garante que só traz datas >= hoje quando o período selecionado
-     inclui datas futuras (para não mostrar pendentes de ontem etc.).
+     Mesma lógica anterior, mas filtra pelo `currentFilter` em vez de
+     fixar em 'agendado'.
   ------------------------------------------------------------------ */
   function getPendentes(state) {
-    // Pega o intervalo de datas do filtro global (mesmo que os KPIs/calendário usam)
     const { start, end } = DateUtils.getPeriodRange(state);
-
-    // Piso: nunca mostra datas passadas no painel de pendentes
     const hoje = DateUtils.startOfDay(new Date());
     const effectiveStart = start >= hoje ? start : hoje;
 
-    // Se o período escolhido termina antes de hoje (ex: filtro "Hoje" num dia passado
-    // por timezone), retorna lista vazia
     if (end < hoje) return [];
 
     const base       = MockData.getAgendamentos({ radiologiaId: state.radiologiaSelecionada });
@@ -2508,22 +2766,16 @@ const PendingList = (() => {
 
     return base
       .filter(a => {
-        // Apenas pendentes de confirmação
-        if (a.status !== 'agendado') return false;
-
-        // Dentro do período do filtro (respeitando piso de hoje)
+        if (a.status !== currentFilter) return false;
         if (!DateUtils.isWithinRange(a.data, effectiveStart, end)) return false;
-
-        // Busca textual (mesmo campo que os outros módulos)
         if (buscaLower) {
           const alvo = `${a.paciente} ${a.tipoExame} ${a.medico} ${a.clinica}`.toLowerCase();
           if (!alvo.includes(buscaLower)) return false;
         }
-
         return true;
       })
       .sort((a, b) => (a.data + a.horarioInicio).localeCompare(b.data + b.horarioInicio))
-      .slice(0, 50); // teto de 50 itens para não afogar a lista
+      .slice(0, 50);
   }
 
   /* ------------------------------------------------------------------
@@ -2532,6 +2784,15 @@ const PendingList = (() => {
   function buildItem(appt) {
     const item = document.createElement('div');
     item.className = 'pending-item';
+
+    const isConfirmado = appt.status === 'confirmado';
+    const waLink = isConfirmado
+      ? buildWhatsAppLinkLembrete(appt)
+      : buildWhatsAppLinkConfirmacao(appt);
+    const waLabel = isConfirmado ? 'Lembrete' : 'WhatsApp';
+    const waTitle = isConfirmado
+      ? 'Enviar lembrete pelo WhatsApp'
+      : 'Enviar confirmação pelo WhatsApp';
 
     item.innerHTML = `
       <div class="pending-item__main">
@@ -2551,13 +2812,14 @@ const PendingList = (() => {
           </svg>
           Ver
         </button>
-        <a href="${buildWhatsAppLink(appt)}" target="_blank" rel="noopener noreferrer"
-           class="pending-btn-whatsapp" title="Enviar confirmação pelo WhatsApp">
+        <a href="${waLink}" target="_blank" rel="noopener noreferrer"
+           class="pending-btn-whatsapp ${isConfirmado ? 'pending-btn-whatsapp--lembrete' : ''}"
+           title="${waTitle}">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
             <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"
                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          WhatsApp
+          ${waLabel}
         </a>
       </div>
     `;
@@ -2577,10 +2839,8 @@ const PendingList = (() => {
 
     const pendentes = getPendentes(state);
 
-    // Badge
     badgeEl.textContent = pendentes.length;
 
-    // Subtítulo contextual — informa qual filtro está ativo
     if (subtitleEl) {
       const periodoLabels = {
         hoje:        'hoje',
@@ -2594,22 +2854,26 @@ const PendingList = (() => {
       const radLabel = state.radiologiaSelecionada === 'all'
         ? 'todas as radiologias'
         : MockData.nomeRadiologiaPorId[state.radiologiaSelecionada];
+      const filterLabel = currentFilter === 'confirmado' ? 'confirmados' : 'agendados';
 
       subtitleEl.textContent = pendentes.length
-        ? `${pendentes.length} pendente${pendentes.length !== 1 ? 's' : ''} · ${periodoLabel} · ${radLabel}`
-        : `Nenhum pendente · ${periodoLabel} · ${radLabel}`;
+        ? `${pendentes.length} ${filterLabel} · ${periodoLabel} · ${radLabel}`
+        : `Nenhum ${filterLabel} · ${periodoLabel} · ${radLabel}`;
     }
 
     listEl.innerHTML = '';
 
     if (!pendentes.length) {
+      const emptyLabel = currentFilter === 'confirmado'
+        ? 'Nenhum confirmado para este filtro'
+        : 'Nenhum pendente para este filtro';
       listEl.innerHTML = `
         <div class="pending-panel__empty">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
             <path d="M20 6L9 17l-5-5" stroke="var(--color-positive)"
                   stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span>Nenhum pendente para este filtro</span>
+          <span>${emptyLabel}</span>
         </div>`;
       return;
     }
@@ -2627,12 +2891,27 @@ const PendingList = (() => {
     badgeEl    = document.getElementById('pendingCountBadge');
     subtitleEl = document.getElementById('pendingSubtitle');
 
+    /* Pills de filtro interno */
+    const pillsContainer = document.getElementById('pendingFilterPills');
+    if (pillsContainer) {
+      pillsContainer.querySelectorAll('.pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+          currentFilter = pill.dataset.pendingFilter;
+
+          pillsContainer.querySelectorAll('.pill').forEach(p => {
+            p.classList.toggle('is-active', p === pill);
+            p.setAttribute('aria-selected', String(p === pill));
+          });
+
+          render(AppState.getState());
+        });
+      });
+    }
+
     render(AppState.getState());
 
-    // Reage a qualquer mudança de filtro (radiologia, período, busca, status)
     AppState.subscribe(render);
 
-    // Reage a mudanças de status feitas em outros módulos (modal, kanban drag)
     document.addEventListener('appointment:statusChanged', () =>
       render(AppState.getState())
     );
@@ -2653,6 +2932,7 @@ document.addEventListener('DOMContentLoaded', () => {
   NewAppointmentModal.init();
   PendingList.init();
   CalendarView.init();
+  KanbanHoverCard.init();
   KanbanView.init();
   DayView.init();
   ViewSwitcher.init();

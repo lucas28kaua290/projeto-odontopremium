@@ -77,7 +77,7 @@
           </a>
         </li>
         <li class="nav-item">
-          <a href="#" class="nav-link" data-page="configuracoes">
+          <a href="configuracoes.html" class="nav-link" data-page="configuracoes">
             <span class="nav-link__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
             <span class="nav-link__label">Configurações</span>
           </a>
@@ -119,10 +119,6 @@
       <button type="button" class="fin-tab is-active" data-tab="visao-geral" role="tab" aria-selected="true">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 13h6V4H4v9zm0 7h6v-5H4v5zm10 0h6V11h-6v9zm0-16v5h6V4h-6z" fill="currentColor"/></svg>
         Visão Geral
-      </button>
-      <button type="button" class="fin-tab" data-tab="comissoes" role="tab" aria-selected="false">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 15a6 6 0 100-12 6 6 0 000 12z" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 14L7 22l5-2.5L17 22l-1.5-8" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
-        Comissões
       </button>
       <button type="button" class="fin-tab" data-tab="metas" role="tab" aria-selected="false">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg>
@@ -327,9 +323,9 @@
       </div>
 
       <!-- Tabelas de detalhamento -->
-      <div class="detail-tables-grid">
+      <div class="detail-tables-solo">
 
-        <!-- Tabela 1: Resumo comparativo por radiologia -->
+        <!-- Tabela 1: Resumo comparativo por radiologia (full width) -->
         <div class="table-card">
           <div class="table-card__header">
             <div>
@@ -358,33 +354,49 @@
           </div>
         </div>
 
-        <!-- Tabela 2: Top médicos por faturamento -->
+        <!-- Tabela 2: Hierarquia Radiologia → Clínica → Médico (full width) -->
         <div class="table-card">
           <div class="table-card__header">
             <div>
-              <h3 class="table-card__title">Top 10 Médicos por Faturamento</h3>
-              <span class="table-card__hint">Comissão estimada incluída</span>
+              <h3 class="table-card__title">Desempenho por Estrutura</h3>
+              <span class="table-card__hint">Radiologia → Clínica Referenciadora → Médico Referenciador</span>
             </div>
-            <button type="button" class="btn btn--ghost btn--sm" id="btnExportMedicos">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              Exportar
-            </button>
+            <div class="table-card__header-actions">
+              <button type="button" class="btn btn--ghost btn--sm" id="hierExpandAll">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                Expandir
+              </button>
+              <button type="button" class="btn btn--ghost btn--sm" id="hierCollapseAll">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                Recolher
+              </button>
+              <button type="button" class="btn btn--ghost btn--sm" id="btnExportHier">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Exportar
+              </button>
+            </div>
           </div>
-          <div class="table-card__scroll">
-            <table class="data-table" id="topMedicosTable">
-              <thead>
-                <tr>
-                  <th>Médico</th>
-                  <th class="data-table__num">Exames</th>
-                  <th class="data-table__num">Faturamento Gerado</th>
-                  <th class="data-table__num">% Comissão</th>
-                  <th class="data-table__num">Comissão Estimada</th>
-                </tr>
-              </thead>
-              <tbody id="topMedicosTableBody">
-                <!-- Gerado pelo JS -->
-              </tbody>
-            </table>
+
+          <!-- Legenda de níveis -->
+          <div class="hier-legend">
+            <span class="hier-legend__item"><span class="hier-legend__dot hier-legend__dot--1"></span>Radiologia</span>
+            <span class="hier-legend__item"><span class="hier-legend__dot hier-legend__dot--2"></span>Clínica Referenciadora</span>
+            <span class="hier-legend__item"><span class="hier-legend__dot hier-legend__dot--3"></span>Médico Referenciador</span>
+          </div>
+
+          <!-- Cabeçalho da tabela hierárquica -->
+          <div class="hier-table__head" role="row">
+            <span class="hier-table__col hier-table__col--name">Estrutura</span>
+            <span class="hier-table__col hier-table__col--num">Exames</span>
+            <span class="hier-table__col hier-table__col--num">Faturamento</span>
+            <span class="hier-table__col hier-table__col--num">% do Total</span>
+            <span class="hier-table__col hier-table__col--num">Ticket Médio</span>
+            <span class="hier-table__col hier-table__col--tags">Principais Exames</span>
+          </div>
+
+          <!-- Corpo da tabela -->
+          <div class="hier-table__body" id="hierTableBody">
+            <!-- Gerado pelo JS -->
           </div>
         </div>
 
@@ -393,249 +405,15 @@
 
 
     <!-- =======================================================
-         ABA: COMISSÕES
-    ======================================================== -->
-    <section id="tab-comissoes" class="fin-panel fin-panel--hidden" aria-label="Gestão de Comissões">
-
-      <!-- KPIs de comissão -->
-      <div class="kpi-grid kpi-grid--5">
-
-        <article class="kpi-card" id="kpiCommTotal">
-          <div class="kpi-card__header">
-            <span class="kpi-card__label">Total Devido</span>
-            <span class="kpi-card__icon kpi-card__icon--primary">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-          </div>
-          <div class="kpi-card__value" data-field="value">R$ 0</div>
-          <div class="kpi-card__footer">
-            <span class="kpi-card__context" data-field="context">no período</span>
-          </div>
-        </article>
-
-        <article class="kpi-card" id="kpiCommPaid">
-          <div class="kpi-card__header">
-            <span class="kpi-card__label">Total Pago</span>
-            <span class="kpi-card__icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-          </div>
-          <div class="kpi-card__value kpi-card__value--positive" data-field="value">R$ 0</div>
-          <div class="kpi-card__footer">
-            <span class="kpi-card__context" data-field="context">-- % do total devido</span>
-          </div>
-        </article>
-
-        <article class="kpi-card kpi-card--alert" id="kpiCommPending">
-          <div class="kpi-card__header">
-            <span class="kpi-card__label">Pendente</span>
-            <span class="kpi-card__icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            </span>
-          </div>
-          <div class="kpi-card__value kpi-card__value--warning" data-field="value">R$ 0</div>
-          <div class="kpi-card__footer">
-            <span class="kpi-card__context" data-field="context">-- médicos aguardando</span>
-          </div>
-        </article>
-
-        <article class="kpi-card" id="kpiCommPercent">
-          <div class="kpi-card__header">
-            <span class="kpi-card__label">% Pago</span>
-            <span class="kpi-card__icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path d="M15 9l-6 6M9 9h.01M15 15h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            </span>
-          </div>
-          <div class="kpi-card__value" data-field="value">0%</div>
-          <div class="progress-bar-wrap">
-            <div class="progress-bar"><div class="progress-bar__fill" id="commProgressFill" style="width:0%"></div></div>
-          </div>
-        </article>
-
-        <article class="kpi-card" id="kpiCommAvg">
-          <div class="kpi-card__header">
-            <span class="kpi-card__label">Média por Médico</span>
-            <span class="kpi-card__icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-          </div>
-          <div class="kpi-card__value" data-field="value">R$ 0</div>
-          <div class="kpi-card__footer">
-            <span class="kpi-card__context">por referenciador ativo</span>
-          </div>
-        </article>
-
-      </div>
-
-      <!-- Toolbar da seção de comissões -->
-      <div class="section-toolbar">
-        <div>
-          <h2 class="section-toolbar__title">Comissões por Referenciadores</h2>
-          <p class="section-toolbar__subtitle">Radiologia &rarr; Clínica Referenciadora &rarr; Médico Referenciador</p>
-        </div>
-        <div class="section-toolbar__actions">
-          <div class="select-wrapper">
-            <select id="commStatusFilter" class="period-select" aria-label="Filtrar por status">
-              <option value="todas">Todas</option>
-              <option value="pendentes">Pendentes</option>
-              <option value="pagas">Pagas</option>
-              <option value="parciais">Parciais</option>
-            </select>
-            <svg class="period-select__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-
-          <div class="fin-search-wrap">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            <input type="search" id="commSearch" class="fin-search" placeholder="Buscar médico ou clínica..." aria-label="Buscar na tabela de comissões">
-          </div>
-
-          <button type="button" class="btn btn--ghost" id="commExpandAll">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            Expandir Tudo
-          </button>
-          <button type="button" class="btn btn--ghost" id="commCollapseAll">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            Recolher Tudo
-          </button>
-          <button type="button" class="btn btn--primary" id="btnPaySelected" disabled>
-            Pagar Selecionados
-          </button>
-        </div>
-      </div>
-
-      <!-- Legenda -->
-      <div class="tree-table-legend" aria-hidden="true">
-        <span class="tree-table-legend__item"><span class="tree-table-legend__dot tree-table-legend__dot--1"></span>Radiologia</span>
-        <span class="tree-table-legend__item"><span class="tree-table-legend__dot tree-table-legend__dot--2"></span>Clínica Referenciadora</span>
-        <span class="tree-table-legend__item"><span class="tree-table-legend__dot tree-table-legend__dot--3"></span>Médico Referenciador</span>
-      </div>
-
-      <!-- Tabela hierárquica de comissões -->
-      <div class="tree-table-card">
-        <div class="tree-table__head tree-table__head--comm" role="row">
-          <span class="tree-table__col tree-table__col--select"></span>
-          <span class="tree-table__col tree-table__col--name">Estrutura</span>
-          <span class="tree-table__col tree-table__col--num">Exames</span>
-          <span class="tree-table__col tree-table__col--num">Faturamento</span>
-          <span class="tree-table__col tree-table__col--num">% Comissão</span>
-          <span class="tree-table__col tree-table__col--num">Total Devido</span>
-          <span class="tree-table__col tree-table__col--num">Já Pago</span>
-          <span class="tree-table__col tree-table__col--num">Pendente</span>
-          <span class="tree-table__col tree-table__col--status">Status</span>
-          <span class="tree-table__col tree-table__col--action">Ação</span>
-        </div>
-
-        <div class="tree-table__body" id="commTreeBody">
-          <!-- Linhas renderizadas pelo JS (CommissionsTree) -->
-        </div>
-      </div>
-
-      <!-- Gráficos de suporte — versão expandida (recebe os gráficos do Dashboard) -->
-
-      <!-- Linha 1: distribuição pizza + top 10 médicos (vindos do Dashboard) -->
-      <div class="charts-grid charts-grid--even">
-        <article class="chart-card">
-          <div class="chart-card__header">
-            <div>
-              <h3 class="chart-card__title">Distribuição de Comissões</h3>
-              <p class="chart-card__subtitle" id="commDistributionSubtitle">Por radiologia</p>
-            </div>
-          </div>
-          <div class="chart-card__body chart-card__body--tall">
-            <canvas id="commDistributionChart" role="img" aria-label="Distribuição de comissões por radiologia"></canvas>
-          </div>
-        </article>
-
-        <article class="chart-card">
-          <div class="chart-card__header">
-            <div>
-              <h3 class="chart-card__title">Top 10 Médicos por Comissão</h3>
-              <p class="chart-card__subtitle" id="commTopDoctorsSubtitle">Maiores comissões do período</p>
-            </div>
-          </div>
-          <div class="chart-card__body chart-card__body--tall">
-            <canvas id="commTopDoctorsChart" role="img" aria-label="Top 10 médicos por comissão devida"></canvas>
-          </div>
-        </article>
-      </div>
-
-      <!-- Linha 2: pizza por radiologia + evolução -->
-      <div class="charts-grid charts-grid--even">
-        <article class="chart-card">
-          <div class="chart-card__header">
-            <div>
-              <h3 class="chart-card__title">Distribuição por Radiologia</h3>
-              <p class="chart-card__subtitle">% das comissões por unidade</p>
-            </div>
-          </div>
-          <div class="chart-card__body chart-card__body--tall">
-            <canvas id="commByRadiologyChart" role="img" aria-label="Pizza de distribuição de comissões por radiologia"></canvas>
-          </div>
-        </article>
-
-        <article class="chart-card">
-          <div class="chart-card__header">
-            <div>
-              <h3 class="chart-card__title">Pagas vs. Pendentes</h3>
-              <p class="chart-card__subtitle">Evolução mensal dos últimos 6 meses</p>
-            </div>
-          </div>
-          <div class="chart-card__body chart-card__body--tall">
-            <canvas id="commEvolutionChart" role="img" aria-label="Linhas de evolução de comissões pagas e pendentes"></canvas>
-          </div>
-        </article>
-      </div>
-
-      <!-- Linha 3: barras empilhadas pago vs pendente por entidade (vinda do Dashboard) -->
-      <article class="chart-card">
-        <div class="chart-card__header">
-          <div>
-            <h3 class="chart-card__title">Comissões por Radiologia / Clínica</h3>
-            <p class="chart-card__subtitle" id="commByEntitySubtitle">Pago vs. pendente, empilhado por entidade</p>
-          </div>
-        </div>
-        <div class="chart-card__body">
-          <canvas id="commByEntityChart" role="img" aria-label="Barras empilhadas de comissões pagas e pendentes por entidade"></canvas>
-        </div>
-      </article>
-
-      <!-- Tabela Top Comissões (vinda do Dashboard) -->
-      <div class="table-card">
-        <div class="table-card__header">
-          <h3 class="table-card__title">Comissões</h3>
-          <span class="table-card__hint">Ordenado por valor de comissão devida</span>
-        </div>
-        <div class="table-card__scroll">
-          <table class="data-table" id="commTopTable">
-            <thead>
-              <tr>
-                <th>Médico Referenciador</th>
-                <th class="data-table__num">Exames</th>
-                <th class="data-table__num">Comissão Devida</th>
-                <th class="data-table__num">Pendente</th>
-                <th class="data-table__action">Ação</th>
-              </tr>
-            </thead>
-            <tbody id="commTopTableBody">
-              <!-- Gerado pelo JS -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-    </section>
-
-
-    <!-- =======================================================
-         ABA: METAS & CONTROLE
+     ABA: METAS & CONTROLE
     ======================================================== -->
     <section id="tab-metas" class="fin-panel fin-panel--hidden" aria-label="Metas e Controle">
 
-      <!-- 1. Metas de Faturamento -->
+      <!-- Toolbar da seção -->
       <div class="section-toolbar">
         <div>
           <h2 class="section-toolbar__title">Metas de Faturamento</h2>
-          <p class="section-toolbar__subtitle">Progresso em tempo real</p>
+          <p class="section-toolbar__subtitle">Acompanhe o progresso em tempo real por unidade</p>
         </div>
         <button type="button" class="btn btn--primary" id="btnSaveMetas">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M17 21v-8H7v8M7 3v5h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -643,150 +421,111 @@
         </button>
       </div>
 
-      <!-- KPIs de progresso -->
-      <div class="kpi-grid kpi-grid--3">
+      <!-- KPI Cards de progresso (linha única) -->
+      <div class="metas-kpi-row">
 
-        <article class="kpi-card kpi-card--goal" id="kpiGoalMonthly">
-          <div class="kpi-card__header">
-            <span class="kpi-card__label">Meta Mensal Geral</span>
-            <span class="kpi-card__icon kpi-card__icon--primary">
+        <article class="meta-kpi-card meta-kpi-card--monthly" id="kpiGoalMonthly">
+          <div class="meta-kpi-card__header">
+            <div class="meta-kpi-card__icon-wrap">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg>
-            </span>
+            </div>
+            <span class="meta-kpi-card__label">Meta Mensal Geral</span>
+            <span class="meta-kpi-card__pct-badge" id="goalMonthlyBadge">0%</span>
           </div>
-          <div class="kpi-card__value" data-field="value">R$ 0</div>
-          <div class="goal-progress">
-            <div class="goal-progress__bar"><div class="goal-progress__fill" id="goalMonthlyFill" style="width:0%"></div></div>
-            <span class="goal-progress__label" id="goalMonthlyLabel">0% atingido</span>
-          </div>
-          <div class="kpi-card__footer">
-            <span class="kpi-card__context" data-field="context">-- realizado até agora</span>
+          <div class="meta-kpi-card__value" data-field="value">R$ 0</div>
+          <div class="meta-kpi-card__realized" data-field="context">—</div>
+          <div class="meta-kpi-card__progress">
+            <div class="meta-kpi-progress__bar">
+              <div class="meta-kpi-progress__fill" id="goalMonthlyFill" style="width:0%"></div>
+            </div>
+            <span class="meta-kpi-progress__label" id="goalMonthlyLabel">0% atingido</span>
           </div>
         </article>
 
-        <article class="kpi-card kpi-card--goal" id="kpiGoalYearly">
-          <div class="kpi-card__header">
-            <span class="kpi-card__label">Meta Anual Geral</span>
-            <span class="kpi-card__icon">
+        <article class="meta-kpi-card meta-kpi-card--yearly" id="kpiGoalYearly">
+          <div class="meta-kpi-card__header">
+            <div class="meta-kpi-card__icon-wrap">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M7 2v3M17 2v3M3 9h18M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
+            </div>
+            <span class="meta-kpi-card__label">Meta Anual Geral</span>
+            <span class="meta-kpi-card__pct-badge meta-kpi-card__pct-badge--year" id="goalYearlyBadge">0%</span>
           </div>
-          <div class="kpi-card__value" data-field="value">R$ 0</div>
-          <div class="goal-progress">
-            <div class="goal-progress__bar"><div class="goal-progress__fill" id="goalYearlyFill" style="width:0%"></div></div>
-            <span class="goal-progress__label" id="goalYearlyLabel">0% atingido</span>
-          </div>
-          <div class="kpi-card__footer">
-            <span class="kpi-card__context" data-field="context">-- realizado no ano</span>
+          <div class="meta-kpi-card__value" data-field="value">R$ 0</div>
+          <div class="meta-kpi-card__realized" data-field="context">—</div>
+          <div class="meta-kpi-card__progress">
+            <div class="meta-kpi-progress__bar">
+              <div class="meta-kpi-progress__fill meta-kpi-progress__fill--year" id="goalYearlyFill" style="width:0%"></div>
+            </div>
+            <span class="meta-kpi-progress__label" id="goalYearlyLabel">0% atingido</span>
           </div>
         </article>
 
-        <!-- Gráfico de meta vs realizado inline no card -->
-        <article class="kpi-card kpi-card--goal kpi-card--chart-inline" id="kpiGoalChart">
-          <div class="kpi-card__header">
-            <span class="kpi-card__label">Meta vs. Realizado — Mês Atual</span>
-            <span class="kpi-card__icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 12h-4l-3 9L9 3l-3 9H2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
+        <!-- Resumo rápido das 4 unidades -->
+        <article class="meta-kpi-card meta-kpi-card--units" id="kpiGoalUnits">
+          <div class="meta-kpi-card__header">
+            <div class="meta-kpi-card__icon-wrap">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+            </div>
+            <span class="meta-kpi-card__label">Status por Unidade</span>
           </div>
-          <div class="chart-card__body goal-chart-body">
-            <canvas id="goalVsActualChart" role="img" aria-label="Comparativo de meta vs realizado no mês atual"></canvas>
+          <div class="meta-units-list" id="metaUnitsList">
+            <!-- Gerado pelo JS -->
           </div>
         </article>
 
       </div>
 
-      <!-- Metas por Radiologia -->
+      <!-- Gráfico Meta vs Realizado — full width -->
+      <article class="chart-card chart-card--goal-full">
+        <div class="chart-card__header">
+          <div>
+            <h3 class="chart-card__title" id="goalChartTitle">Meta vs. Realizado por Radiologia</h3>
+            <p class="chart-card__subtitle" id="goalChartSubtitle">Mês atual · comparativo de todas as unidades</p>
+          </div>
+          <div class="goal-chart-legend" id="goalChartLegend">
+            <span class="chart-legend-item">
+              <span class="chart-legend-dot" style="background:var(--color-border)"></span>Meta
+            </span>
+            <span class="chart-legend-item">
+              <span class="chart-legend-dot" style="background:var(--color-primary)"></span>Realizado
+            </span>
+          </div>
+        </div>
+        <div class="chart-card__body chart-card__body--goal">
+          <canvas id="goalVsActualChart" role="img" aria-label="Comparativo de meta vs realizado"></canvas>
+        </div>
+      </article>
+
+      <!-- Tabela de Metas por Radiologia -->
       <div class="table-card">
         <div class="table-card__header">
           <div>
             <h3 class="table-card__title">Metas por Radiologia</h3>
-            <span class="table-card__hint">Defina e acompanhe metas individuais por unidade</span>
+            <span class="table-card__hint">Edite os valores diretamente · % e progresso atualizam em tempo real</span>
           </div>
         </div>
-        <div class="table-card__scroll">
-          <table class="data-table" id="metasByRadiologiaTable">
-            <thead>
-              <tr>
-                <th>Radiologia</th>
-                <th class="data-table__num">Meta Mensal (R$)</th>
-                <th class="data-table__num">Realizado</th>
-                <th class="data-table__num">% Atingido</th>
-                <th class="data-table__num">Progresso</th>
-                <th class="data-table__num">Meta Anual (R$)</th>
-                <th class="data-table__action">Editar</th>
-              </tr>
-            </thead>
-            <tbody id="metasByRadiologiaBody">
-              <!-- Gerado pelo JS -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- 2. Controle de Comissões -->
-      <div class="section-toolbar" style="margin-top: var(--space-2)">
-        <div>
-          <h2 class="section-toolbar__title">Controle de Comissões</h2>
-          <p class="section-toolbar__subtitle">Taxa padrão e configuração por médico</p>
-        </div>
-        <button type="button" class="btn btn--ghost" id="btnApplyAllComm">
-          Aplicar % padrão para todos
-        </button>
-      </div>
-
-      <!-- Taxa padrão -->
-      <div class="comm-rate-card">
-        <div class="comm-rate-card__label">Taxa de Comissão Padrão</div>
-        <div class="comm-rate-card__input-wrap">
-          <input type="number" id="defaultCommRate" class="comm-rate-input" value="15" min="0" max="100" step="0.5" aria-label="Taxa de comissão padrão em %">
-          <span class="comm-rate-card__unit">%</span>
-        </div>
-        <p class="comm-rate-card__hint">Aplica a todos os médicos que não possuem taxa individual definida.</p>
-
-        <!-- Simulador de Impacto -->
-        <div class="impact-simulator" id="impactSimulator">
-          <span class="impact-simulator__label">Impacto estimado:</span>
-          <span class="impact-simulator__value" id="impactValue">R$ 0 / mês</span>
-          <span class="impact-simulator__hint" id="impactHint">Custo adicional se alterar para <strong id="impactRate">15%</strong></span>
-        </div>
-      </div>
-
-      <!-- Tabela de comissões por médico (editável) -->
-      <div class="table-card">
-        <div class="table-card__header">
-          <div>
-            <h3 class="table-card__title">Comissões por Médico</h3>
-            <span class="table-card__hint">Clique no campo % para editar individualmente</span>
+        <div class="metas-table-wrap">
+          <div class="metas-table-head">
+            <span class="metas-col metas-col--name">Radiologia</span>
+            <span class="metas-col metas-col--num">Meta Mensal</span>
+            <span class="metas-col metas-col--num">Realizado</span>
+            <span class="metas-col metas-col--num">% Atingido</span>
+            <span class="metas-col metas-col--progress">Progresso</span>
+            <span class="metas-col metas-col--num">Meta Anual</span>
+            <span class="metas-col metas-col--action"></span>
           </div>
-          <button type="button" class="btn btn--primary btn--sm" id="btnSaveCommRates">
-            Salvar Alterações
-          </button>
-        </div>
-        <div class="table-card__scroll">
-          <table class="data-table" id="commRatesTable">
-            <thead>
-              <tr>
-                <th>Médico</th>
-                <th>Clínica</th>
-                <th class="data-table__num">% Comissão Atual</th>
-                <th class="data-table__num">Nova %</th>
-                <th class="data-table__num">Faturamento Gerado</th>
-                <th class="data-table__num">Comissão Estimada</th>
-              </tr>
-            </thead>
-            <tbody id="commRatesBody">
-              <!-- Gerado pelo JS -->
-            </tbody>
-          </table>
+          <div class="metas-table-body" id="metasByRadiologiaBody">
+            <!-- Gerado pelo JS -->
+          </div>
         </div>
       </div>
 
-      <!-- 3. Histórico de ajustes -->
+      <!-- Histórico de ajustes -->
       <div class="table-card">
         <div class="table-card__header">
           <div>
             <h3 class="table-card__title">Histórico de Ajustes</h3>
-            <span class="table-card__hint">Últimas alterações de metas e taxas</span>
+            <span class="table-card__hint">Últimas alterações de metas</span>
           </div>
         </div>
         <div class="table-card__scroll">
@@ -809,8 +548,6 @@
       </div>
 
     </section>
-
-
     <!-- =======================================================
          ABA: RELATÓRIOS
     ======================================================== -->
@@ -844,21 +581,6 @@
               Excel
             </button>
             <button type="button" class="btn btn--ghost btn--sm" data-export="csv" data-report="faturamento-geral">CSV</button>
-          </div>
-        </article>
-
-        <article class="report-card" data-report="comissoes">
-          <div class="report-card__icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 15a6 6 0 100-12 6 6 0 000 12z" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 14L7 22l5-2.5L17 22l-1.5-8" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
-          </div>
-          <div class="report-card__content">
-            <h3 class="report-card__title">Relatório de Comissões</h3>
-            <p class="report-card__desc">Detalhamento de comissões devidas, pagas e pendentes por médico e clínica.</p>
-          </div>
-          <div class="report-card__actions">
-            <button type="button" class="btn btn--ghost btn--sm" data-export="pdf" data-report="comissoes">PDF</button>
-            <button type="button" class="btn btn--ghost btn--sm" data-export="excel" data-report="comissoes">Excel</button>
-            <button type="button" class="btn btn--ghost btn--sm" data-export="csv" data-report="comissoes">CSV</button>
           </div>
         </article>
 
@@ -928,7 +650,9 @@
           </div>
           <div class="report-card__content">
             <h3 class="report-card__title">Relatório Completo do Período</h3>
-            <p class="report-card__desc">Consolidação de todos os dados: faturamento, exames, comissões e metas em um único documento.</p>
+            <p class="report-card__desc">
+              Consolidação de todos os dados: faturamento, exames, radiologias e metas em um único documento.
+            </p>
           </div>
           <div class="report-card__actions">
             <button type="button" class="btn btn--primary btn--sm" data-export="pdf" data-report="completo">
@@ -1016,110 +740,58 @@
 
 
 <!-- =======================================================
-     MODAL: REGISTRAR PAGAMENTO
-======================================================== -->
-<div class="modal-backdrop" id="modalPaymentBackdrop" hidden aria-hidden="true">
-  <div class="modal" id="modalPayment" role="dialog" aria-modal="true" aria-labelledby="modalPaymentTitle">
-    <div class="modal__header">
-      <h2 class="modal__title" id="modalPaymentTitle">Registrar Pagamento</h2>
-      <button type="button" class="modal__close" id="modalPaymentClose" aria-label="Fechar modal">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-    </div>
-
-    <div class="modal__body">
-      <!-- Info do médico -->
-      <div class="modal-info-row">
-        <div class="modal-info-item">
-          <span class="modal-info-item__label">Médico</span>
-          <span class="modal-info-item__value" id="modalDoctorName">--</span>
-        </div>
-        <div class="modal-info-item">
-          <span class="modal-info-item__label">Clínica</span>
-          <span class="modal-info-item__value" id="modalClinicName">--</span>
-        </div>
-        <div class="modal-info-item">
-          <span class="modal-info-item__label">Comissão Total Devida</span>
-          <span class="modal-info-item__value modal-info-item__value--highlight" id="modalTotalDue">R$ 0</span>
-        </div>
-        <div class="modal-info-item">
-          <span class="modal-info-item__label">Já Pago</span>
-          <span class="modal-info-item__value" id="modalAlreadyPaid">R$ 0</span>
-        </div>
-      </div>
-
-      <!-- Formulário -->
-      <div class="modal-form-grid">
-        <div class="form-field">
-          <label class="form-label" for="paymentAmount">Valor a Pagar Agora (R$)</label>
-          <input type="number" id="paymentAmount" class="form-input" placeholder="0,00" min="0" step="0.01" aria-describedby="paymentAmountHint">
-          <span class="form-hint" id="paymentAmountHint">Saldo pendente: <strong id="modalPending">R$ 0</strong></span>
-        </div>
-
-        <div class="form-field">
-          <label class="form-label" for="paymentDate">Data do Pagamento</label>
-          <input type="date" id="paymentDate" class="form-input">
-        </div>
-
-        <div class="form-field">
-          <label class="form-label" for="paymentMethod">Forma de Pagamento</label>
-          <div class="select-wrapper" style="width:100%">
-            <select id="paymentMethod" class="period-select" style="width:100%">
-              <option value="pix">Pix</option>
-              <option value="transferencia">Transferência Bancária</option>
-              <option value="ted">TED</option>
-              <option value="dinheiro">Dinheiro</option>
-              <option value="cheque">Cheque</option>
-            </select>
-            <svg class="period-select__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-        </div>
-
-        <div class="form-field form-field--wide">
-          <label class="form-label" for="paymentNotes">Observações</label>
-          <textarea id="paymentNotes" class="form-textarea" rows="3" placeholder="Referência, comprovante, observação..."></textarea>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal__footer">
-      <button type="button" class="btn btn--ghost" id="modalPaymentCancel">Cancelar</button>
-      <button type="button" class="btn btn--primary" id="modalPaymentConfirm">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Confirmar Pagamento
-      </button>
-    </div>
-  </div>
-</div>
-
-
-<!-- =======================================================
      MODAL: EDITAR META DE RADIOLOGIA
 ======================================================== -->
 <div class="modal-backdrop" id="modalGoalBackdrop" hidden aria-hidden="true">
   <div class="modal modal--sm" id="modalGoal" role="dialog" aria-modal="true" aria-labelledby="modalGoalTitle">
     <div class="modal__header">
-      <h2 class="modal__title" id="modalGoalTitle">Editar Meta</h2>
+      <div class="modal-goal-header">
+        <div class="modal-goal-avatar" id="modalGoalAvatar">R</div>
+        <div>
+          <h2 class="modal__title" id="modalGoalTitle">Editar Meta</h2>
+          <span class="modal-goal-subtitle" id="modalGoalRadiologia">Radiologia —</span>
+        </div>
+      </div>
       <button type="button" class="modal__close" id="modalGoalClose" aria-label="Fechar">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
     </div>
+
+    <!-- Snapshot atual (só-leitura) -->
     <div class="modal__body">
-      <p class="modal-goal-name" id="modalGoalRadiologia">Radiologia --</p>
+      <div class="modal-goal-snapshot" id="modalGoalSnapshot">
+        <!-- Gerado pelo JS -->
+      </div>
+
       <div class="modal-form-grid modal-form-grid--2">
         <div class="form-field">
           <label class="form-label" for="goalMonthlyInput">Meta Mensal (R$)</label>
-          <input type="number" id="goalMonthlyInput" class="form-input" placeholder="0">
+          <div class="form-input-money-wrap">
+            <span class="form-input-money-prefix">R$</span>
+            <input type="text" id="goalMonthlyInput" class="form-input form-input--money" placeholder="0,00" inputmode="numeric">
+          </div>
         </div>
         <div class="form-field">
           <label class="form-label" for="goalYearlyInput">Meta Anual (R$)</label>
-          <input type="number" id="goalYearlyInput" class="form-input" placeholder="0">
+          <div class="form-input-money-wrap">
+            <span class="form-input-money-prefix">R$</span>
+            <input type="text" id="goalYearlyInput" class="form-input form-input--money" placeholder="0,00" inputmode="numeric">
+          </div>
         </div>
       </div>
+
+      <!-- Preview do impacto -->
+      <div class="modal-goal-preview" id="modalGoalPreview">
+        <!-- Gerado pelo JS após digitar -->
+      </div>
     </div>
+
     <div class="modal__footer">
       <button type="button" class="btn btn--ghost" id="modalGoalCancel">Cancelar</button>
-      <button type="button" class="btn btn--primary" id="modalGoalConfirm">Salvar Meta</button>
+      <button type="button" class="btn btn--primary" id="modalGoalConfirm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Confirmar Meta
+      </button>
     </div>
   </div>
 </div>

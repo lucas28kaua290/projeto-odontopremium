@@ -1482,12 +1482,23 @@
         // GRÁFICO: Meta vs Realizado — tooltip individual por barra
         // ------------------------------------------------------------------
         else if (canvasId === 'goalVsActualChart') {
-            const p   = tooltip.dataPoints[0];
-            if (!p) { el.style.opacity = '0'; return; }
+            const metaPoint = tooltip.dataPoints.find(
+              p => p.dataset.label === 'Meta'
+            );
+
+            const realPoint = tooltip.dataPoints.find(
+              p => p.dataset.label === 'Realizado'
+            );
+
+            const firstPoint = metaPoint || realPoint;
+
+            if (!firstPoint) {
+              el.style.opacity = '0';
+              return;
+            }
 
             const gd       = State._goalChartData || {};
-            const idx      = p.dataIndex;
-            const isMeta   = p.dataset.label === 'Meta';
+            const idx      = firstPoint.dataIndex;
             const isAll    = gd.isAll;
 
             const meta     = gd.dataMeta?.[idx]      || 0;
@@ -1519,71 +1530,134 @@
               : `${gd.radioLabel || ''} · ${itemLabel}`;
 
             // Tooltip da barra de Meta — simples, só referência
-            if (isMeta) {
-                html = `
-                <div class="cjs-tooltip__eyebrow">${eyebrow}</div>
-                <div class="cjs-tooltip__headline">
-                    <span class="cjs-tooltip__headline-label">
-                    <span class="cjs-tooltip__dot cjs-tooltip__dot--sm" style="background:${CFG.colors.textSubtle}"></span>Meta ${isAll ? 'mensal' : 'do mês'}
-                    </span>
-                    <span class="cjs-tooltip__headline-value">${H.currency(meta)}</span>
-                </div>
-                <div class="cjs-tooltip__divider"></div>
-                <div class="cjs-tooltip__metrics">
-                    <div class="cjs-tooltip__metric">
-                    <span class="cjs-tooltip__metric-label">Realizado</span>
-                    <span class="cjs-tooltip__metric-value" style="color:${barColorLight}">${H.currency(real)}</span>
-                    </div>
-                    <div class="cjs-tooltip__metric">
-                    <span class="cjs-tooltip__metric-label">% atingido</span>
-                    <span class="cjs-tooltip__metric-value" style="color:${barColorLight}">${H.percent(pct)}</span>
-                    </div>
-                </div>
-                <div class="cjs-tooltip__footer-note" style="color:${statusColor};font-weight:600">${statusTexto}</div>`;
+            html = `
+              <div class="cjs-tooltip__eyebrow">
+                  ${eyebrow}
+              </div>
 
-            // Tooltip da barra de Realizado — completo e contextual
-            } else {
-                html = `
-                <div class="cjs-tooltip__eyebrow">${eyebrow}</div>
-                <div class="cjs-tooltip__headline">
-                    <span class="cjs-tooltip__headline-label">
-                    <span class="cjs-tooltip__dot cjs-tooltip__dot--sm" style="background:${barColorDark}"></span>Realizado
+              <div class="cjs-tooltip__headline">
+                <span class="cjs-tooltip__headline-label">
+                  Meta vs. Realizado
+                </span>
+
+                <span class="cjs-tooltip__headline-value">
+                  ${H.percent(pct)}
+                </span>
+              </div>
+
+              <div class="cjs-tooltip__divider"></div>
+
+              <div class="cjs-tooltip__metrics">
+
+                <div class="cjs-tooltip__metric">
+                  <span class="cjs-tooltip__metric-label">
+                    <span class="cjs-tooltip__dot cjs-tooltip__dot--sm"
+                      style="background:${CFG.colors.textSubtle}">
+                      </span>
+                      Meta
+                  </span>
+
+                    <span class="cjs-tooltip__metric-value">
+                        ${H.currency(meta)}
                     </span>
-                    <span class="cjs-tooltip__headline-value">${H.currency(real)}</span>
                 </div>
-                <div class="cjs-tooltip__breakdown">
-                    <div class="cjs-tooltip__row">
-                    <div class="cjs-tooltip__row-top">
-                        <span class="cjs-tooltip__row-label">% da meta atingido</span>
-                        <span class="cjs-tooltip__row-percent" style="color:${barColorLight}">${H.percent(pct)}</span>
-                    </div>
-                    <div class="cjs-tooltip__bar-track">
-                        <div class="cjs-tooltip__bar-fill" style="width:${Math.min(pct, 100)}%;background:${barColorDark}"></div>
-                    </div>
-                    </div>
-                </div>
-                <div class="cjs-tooltip__divider"></div>
-                <div class="cjs-tooltip__metrics">
-                    <div class="cjs-tooltip__metric">
+
+                <div class="cjs-tooltip__metric">
                     <span class="cjs-tooltip__metric-label">
-                        <span class="cjs-tooltip__dot cjs-tooltip__dot--sm" style="background:${CFG.colors.textSubtle}"></span>Meta
+                        <span class="cjs-tooltip__dot cjs-tooltip__dot--sm"
+                              style="background:${CFG.colors.primary}">
+                        </span>
+                        Realizado
                     </span>
-                    <span class="cjs-tooltip__metric-value">${H.currency(meta)}</span>
-                    </div>
-                    <div class="cjs-tooltip__metric">
-                    <span class="cjs-tooltip__metric-label">
-                        ${falta > 0
-                          ? `<span class="cjs-tooltip__dot cjs-tooltip__dot--sm" style="background:${barColorDark}"></span>Faltam`
-                          : `<span class="cjs-tooltip__dot cjs-tooltip__dot--sm" style="background:${CFG.colors.positive}"></span>Excedeu em`}
+
+                    <span class="cjs-tooltip__metric-value">
+                        ${H.currency(real)}
                     </span>
-                    <span class="cjs-tooltip__metric-value" style="color:${falta > 0 ? '#F5CC6B' : '#5EEAA4'}">
-                        ${falta > 0 ? H.currency(falta) : H.currency(excede)}
-                    </span>
-                    </div>
                 </div>
-                <div class="cjs-tooltip__divider"></div>
-                <div class="cjs-tooltip__footer-note" style="color:${statusColor};font-weight:600">${statusTexto}</div>`;
-            }
+
+              </div>
+
+              <div class="cjs-tooltip__divider"></div>
+
+              <div class="cjs-tooltip__breakdown">
+
+                  <div class="cjs-tooltip__row">
+
+                      <div class="cjs-tooltip__row-top">
+                          <span class="cjs-tooltip__row-label">
+                              Progresso da Meta
+                          </span>
+
+                          <span class="cjs-tooltip__row-percent"
+                                style="color:${barColorLight}">
+                              ${H.percent(pct)}
+                          </span>
+                      </div>
+
+                      <div class="cjs-tooltip__bar-track">
+
+                          <div
+                              class="cjs-tooltip__bar-fill"
+                              style="
+                                  width:${Math.min(pct,100)}%;
+                                  background:${barColorDark};
+                              ">
+                          </div>
+
+                      </div>
+
+                  </div>
+
+              </div>
+
+              <div class="cjs-tooltip__divider"></div>
+
+              <div class="cjs-tooltip__metrics">
+
+                  ${
+                      pct >= 100
+
+                      ?
+
+                      `
+                      <div class="cjs-tooltip__metric">
+                          <span class="cjs-tooltip__metric-label">
+                              Excedeu em
+                          </span>
+
+                          <span class="cjs-tooltip__metric-value cjs-tooltip__metric-value--positive">
+                              ${H.currency(excede)}
+                          </span>
+                      </div>
+                      `
+
+                      :
+
+                      `
+                      <div class="cjs-tooltip__metric">
+                          <span class="cjs-tooltip__metric-label">
+                              Falta para atingir
+                          </span>
+
+                          <span class="cjs-tooltip__metric-value cjs-tooltip__metric-value--warning">
+                              ${H.currency(falta)}
+                          </span>
+                      </div>
+                      `
+
+                  }
+
+              </div>
+
+              <div class="cjs-tooltip__divider"></div>
+
+              <div class="cjs-tooltip__footer-note"
+                  style="color:${statusColor};font-weight:600">
+
+              ${statusTexto}
+
+              </div>
+              `;
 
             el.classList.add('chartjs-tooltip--compact');
         }
@@ -1890,7 +1964,6 @@
       // Re-renderiza a aba ativa com os novos filtros
       const tab = State.activeTab;
       if (tab === 'visao-geral') VisaoGeral.render();
-      if (tab === 'comissoes')   Comissoes.render();
       if (tab === 'metas')       Metas.render();
       if (tab === 'relatorios')  Relatorios.render();
     }
@@ -1932,7 +2005,6 @@
 
       // Renderiza a aba ativada
       if (tabId === 'visao-geral') VisaoGeral.render();
-      if (tabId === 'comissoes')   Comissoes.render();
       if (tabId === 'metas')       Metas.render();
       if (tabId === 'relatorios')  Relatorios.render();
     }
@@ -2329,22 +2401,334 @@
         </tr>`).join('');
     }
 
-    /* ----- Tabela: Top Médicos ----- */
-    function renderTopMedicosTable() {
-      const tbody = document.getElementById('topMedicosTableBody');
-      if (!tbody) return;
+    /* ----- Mock de tipos de exame por estrutura (para as tags) ----- */
+    const EXAM_TAGS_BY_RADIO = {
+      centro: ['Panorâmica', 'CBCT (3D)', 'Cefalométrica'],
+      norte:  ['Panorâmica', 'Periapical', 'Bite-wing'],
+      sul:    ['Periapical', 'Oclusal', 'Panorâmica'],
+      leste:  ['Panorâmica', 'Bite-wing', 'Periapical'],
+    };
 
-      tbody.innerHTML = H.getFilteredData().topMedicos.slice(0, 10).map(m => `
-        <tr>
-          <td>
-            <span class="data-table__name-primary">${m.nome}</span>
-            <span class="data-table__name-secondary">${m.clinica}</span>
-          </td>
-          <td class="data-table__num">${H.number(m.exames)}</td>
-          <td class="data-table__num">${H.currency(m.faturamento)}</td>
-          <td class="data-table__num">${H.percent(m.comissao)}</td>
-          <td class="data-table__num">${H.currency(m.comissaoEstimada)}</td>
-        </tr>`).join('');
+    const EXAM_TAGS_BY_CLINICA = {
+      'OdontoPremium':    ['Panorâmica', 'CBCT (3D)'],
+      'Sorriso Perfeito': ['Panorâmica', 'Cefalométrica'],
+      'DentalVip':        ['Periapical', 'Bite-wing'],
+      'OrthoCenter':      ['Cefalométrica', 'Panorâmica'],
+      'Clínica Raíz':     ['Periapical', 'Oclusal'],
+      'BocaSana':         ['Panorâmica', 'Periapical'],
+      'Implanto RN':      ['CBCT (3D)', 'Panorâmica'],
+      'SorriRN':          ['Periapical', 'Bite-wing'],
+      'Estética Oral':    ['Oclusal', 'Periapical'],
+      'Clínica Central':  ['Panorâmica', 'Bite-wing'],
+      'Nova Odonto':      ['Panorâmica', 'Periapical'],
+    };
+
+    function buildHierRows(tree, totalFaturamento) {
+      let html = '';
+
+      tree.forEach(radio => {
+        const radioVariacao = MOCK_POR_RADIOLOGIA.find(r => r.id === radio.id)?.variacao ?? 0;
+        const radioTags = EXAM_TAGS_BY_RADIO[radio.id] || ['Panorâmica', 'Periapical'];
+        const radioTicket = radio.exames > 0 ? Math.round(radio.faturamento / radio.exames) : 0;
+        const radioPct = totalFaturamento > 0 ? (radio.faturamento / totalFaturamento * 100) : 0;
+
+        // Nível 1 — Radiologia
+        html += `
+          <div class="hier-row hier-row--level-1"
+            role="row"
+            data-hier-row="${radio.id}">
+            <div class="hier-row__name-cell">
+              <button type="button" class="hier-row__toggle" data-hier-toggle="${radio.id}" aria-expanded="false">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <span class="hier-row__name">${radio.nome}</span>
+              <span class="hier-row__badge">${radio.clinicas.length} clínicas</span>
+            </div>
+            <div class="hier-row__cell hier-row__cell--num">${H.number(radio.exames)}</div>
+            <div class="hier-row__cell hier-row__cell--num">
+              <div class="hier-fat-wrap">
+                <span>${H.currency(radio.faturamento)}</span>
+                ${H.changeBadge(radioVariacao)}
+              </div>
+            </div>
+            <div class="hier-row__cell hier-row__cell--num">
+              <div class="hier-pct-wrap">
+                <span class="hier-pct-wrap__value">${H.percent(radioPct)}</span>
+                <div class="hier-pct-bar"><div class="hier-pct-bar__fill" style="width:${radioPct}%"></div></div>
+              </div>
+            </div>
+            <div class="hier-row__cell hier-row__cell--num">${H.currency(radioTicket)}</div>
+            <div class="hier-row__cell hier-row__cell--tags">
+              ${radioTags.map(t => `<span class="exam-tag">${t}</span>`).join('')}
+            </div>
+          </div>`;
+
+        // Grupo de clínicas (colapsado por padrão)
+        html += `<div class="hier-group is-collapsed" id="hier-grp-${radio.id}"><div class="hier-group__inner">`;
+
+        radio.clinicas.forEach(cli => {
+          const cliTags = EXAM_TAGS_BY_CLINICA[cli.nome] || ['Panorâmica'];
+          const cliTicket = cli.exames > 0 ? Math.round(cli.faturamento / cli.exames) : 0;
+          const cliPct = totalFaturamento > 0 ? (cli.faturamento / totalFaturamento * 100) : 0;
+
+          // Nível 2 — Clínica
+          html += `
+            <div class="hier-row hier-row--level-2"
+              role="row"
+              data-hier-row="${cli.id}">
+              <div class="hier-row__name-cell">
+                <button type="button" class="hier-row__toggle" data-hier-toggle="${cli.id}" aria-expanded="false">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <span class="hier-row__name">${cli.nome}</span>
+                <span class="hier-row__badge">${cli.medicos.length} médicos</span>
+              </div>
+              <div class="hier-row__cell hier-row__cell--num">${H.number(cli.exames)}</div>
+              <div class="hier-row__cell hier-row__cell--num">
+                <div class="hier-fat-wrap">
+                  <span>${H.currency(cli.faturamento)}</span>
+                </div>
+              </div>
+              <div class="hier-row__cell hier-row__cell--num">
+                <div class="hier-pct-wrap">
+                  <span class="hier-pct-wrap__value">${H.percent(cliPct)}</span>
+                  <div class="hier-pct-bar"><div class="hier-pct-bar__fill" style="width:${Math.min(cliPct * 3, 100)}%"></div></div>
+                </div>
+              </div>
+              <div class="hier-row__cell hier-row__cell--num">${H.currency(cliTicket)}</div>
+              <div class="hier-row__cell hier-row__cell--tags">
+                ${cliTags.map(t => `<span class="exam-tag">${t}</span>`).join('')}
+              </div>
+            </div>`;
+
+          // Grupo de médicos
+          html += `<div class="hier-group is-collapsed" id="hier-grp-${cli.id}"><div class="hier-group__inner">`;
+
+          cli.medicos.forEach(med => {
+            const medTicket = med.exames > 0 ? Math.round(med.faturamento / med.exames) : 0;
+            const medPct = totalFaturamento > 0 ? (med.faturamento / totalFaturamento * 100) : 0;
+            // Tags do médico: herda da clínica (mock simplificado)
+            const medTags = (EXAM_TAGS_BY_CLINICA[med.clinicaNome || cli.nome] || ['Panorâmica']).slice(0, 1);
+
+            html += `
+              <div class="hier-row hier-row--level-3" role="row">
+                <div class="hier-row__name-cell">
+                  <span class="hier-row__toggle-spacer"></span>
+                  <span class="hier-row__name">${med.nome}</span>
+                </div>
+                <div class="hier-row__cell hier-row__cell--num">${H.number(med.exames)}</div>
+                <div class="hier-row__cell hier-row__cell--num">
+                  <div class="hier-fat-wrap">
+                    <span>${H.currency(med.faturamento)}</span>
+                  </div>
+                </div>
+                <div class="hier-row__cell hier-row__cell--num">
+                  <div class="hier-pct-wrap">
+                    <span class="hier-pct-wrap__value">${H.percent(medPct)}</span>
+                    <div class="hier-pct-bar"><div class="hier-pct-bar__fill" style="width:${Math.min(medPct * 6, 100)}%"></div></div>
+                  </div>
+                </div>
+                <div class="hier-row__cell hier-row__cell--num">${H.currency(medTicket)}</div>
+                <div class="hier-row__cell hier-row__cell--tags">
+                  ${medTags.map(t => `<span class="exam-tag">${t}</span>`).join('')}
+                </div>
+              </div>`;
+          });
+
+          html += `</div></div>`; // fecha hier-group__inner + hier-grp clínica
+        });
+
+        html += `</div></div>`; // fecha hier-group__inner + hier-grp radiologia
+      });
+
+      return html;
+    }
+
+    function renderHierTable() {
+      const body = document.getElementById('hierTableBody');
+      if (!body) return;
+
+      // Monta estrutura com dados de MOCK_COMISSOES_TREE enriquecida com faturamento
+      // (reutiliza a tree de comissões que já tem a hierarquia completa)
+      const tree = H.filteredCommTree().map(radio => ({
+        ...radio,
+        clinicas: radio.clinicas.map(cli => ({
+          ...cli,
+          medicos: cli.medicos.map(med => ({
+            ...med,
+            clinicaNome: cli.nome,
+          })),
+        })),
+      }));
+
+      const totalFaturamento = tree.reduce((s, r) => s + r.faturamento, 0);
+
+      body.innerHTML = buildHierRows(tree, totalFaturamento);
+      bindHierEvents();
+    }
+
+    function bindHierEvents() {
+      function setExpandedState(id, expanded){
+
+        const group = document.getElementById(`hier-grp-${id}`);
+        const button = document.querySelector(`[data-hier-toggle="${id}"]`);
+        const row = document.querySelector(`[data-hier-row="${id}"]`);
+
+        if(!group) return;
+
+        group.classList.toggle("is-collapsed", !expanded);
+
+        if(button){
+          button.classList.toggle("is-open", expanded);
+          button.setAttribute("aria-expanded", expanded);
+        }
+
+        if(row){
+          row.classList.toggle("is-expanded", expanded);
+        }
+
+      }
+
+      function closeOtherRadiologies(currentId){
+
+        document
+          .querySelectorAll(".hier-row--level-1[data-hier-row]")
+
+          .forEach(row=>{
+            if(row.dataset.hierRow===currentId) return;
+            setExpandedState(row.dataset.hierRow,false);
+          });
+
+      }
+
+      function toggleHierarchy(id){
+
+        const group=document.getElementById(`hier-grp-${id}`);
+
+        if(!group) return;
+
+        const isOpen=!group.classList.contains("is-collapsed");
+        const row=document.querySelector(`[data-hier-row="${id}"]`);
+        const isRadiology=row?.classList.contains("hier-row--level-1");
+
+        if(isRadiology && !isOpen){
+          closeOtherRadiologies(id);
+        }
+
+        setExpandedState(id,!isOpen);
+      }
+
+      /* ===========================
+          Clique na SETA
+      ============================ */
+
+      document
+        .querySelectorAll("[data-hier-toggle]")
+        .forEach(btn=>{
+
+          btn.addEventListener("click",(e)=>{
+            e.stopPropagation();
+            toggleHierarchy(btn.dataset.hierToggle);
+          });
+
+        });
+
+      /* ===========================
+          Clique na LINHA
+      ============================ */
+
+      document
+        .querySelectorAll("[data-hier-row]")
+        .forEach(row=>{
+
+          row.style.cursor="pointer";
+
+          row.addEventListener("click",()=>{
+            toggleHierarchy(row.dataset.hierRow);
+          });
+
+        });
+
+      /* ===========================
+          Expandir tudo
+      ============================ */
+
+      document
+        .getElementById("hierExpandAll")
+        ?.addEventListener("click",()=>{
+
+          document
+            .querySelectorAll(".hier-group")
+
+            .forEach(group=>{
+              group.classList.remove("is-collapsed");
+            });
+
+          document
+            .querySelectorAll("[data-hier-toggle]")
+
+            .forEach(btn=>{
+              btn.classList.add("is-open");
+              btn.setAttribute("aria-expanded","true");
+            });
+
+          document
+            .querySelectorAll("[data-hier-row]")
+
+            .forEach(row=>{
+              row.classList.add("is-expanded");
+            });
+
+        });
+
+      /* ===========================
+          Recolher tudo
+      ============================ */
+
+      document
+        .getElementById("hierCollapseAll")
+        ?.addEventListener("click",()=>{
+
+          document
+            .querySelectorAll(".hier-group")
+
+            .forEach(group=>{
+              group.classList.add("is-collapsed");
+            });
+
+          document
+            .querySelectorAll("[data-hier-toggle]")
+
+            .forEach(btn=>{
+              btn.classList.remove("is-open");
+              btn.setAttribute("aria-expanded","false");
+            });
+
+          document
+            .querySelectorAll("[data-hier-row]")
+
+            .forEach(row=>{
+              row.classList.remove("is-expanded");
+            });
+
+        });
+
+      /* ===========================
+          Exportar
+      ============================ */
+
+      document
+        .getElementById("btnExportHier")
+
+        ?.addEventListener("click",()=>{
+          H.toast("Exportando tabela hierárquica...","info")
+
+          setTimeout(()=>{
+            H.toast("Exportado com sucesso!","success");
+          },1400);
+
+        });
+
     }
 
 
@@ -2358,751 +2742,69 @@
       renderExamTypesChart();
       renderAvgTicketChart();
       renderResumoTable();
-      renderTopMedicosTable();
+      renderHierTable();
     }
 
     return { render };
   })();
 
 
+  
   /* ===========================================================
-     9. MODULE: COMISSÕES
-  =========================================================== */
-  const Comissoes = (() => {
-
-    /* ----- KPIs ----- */
-    function renderKPIs() {
-      const k = H.getFilteredData().comissoesKpis; // [API] GET /comissoes/kpis
-
-      const kpiTotal = document.getElementById('kpiCommTotal');
-      if (kpiTotal) kpiTotal.querySelector('[data-field="value"]').textContent = H.currency(k.totalDevido.value);
-
-      const kpiPaid = document.getElementById('kpiCommPaid');
-      if (kpiPaid) {
-        kpiPaid.querySelector('[data-field="value"]').textContent   = H.currency(k.totalPago.value);
-        kpiPaid.querySelector('[data-field="context"]').textContent = `${H.percent(k.totalPago.percentual)} do total devido`;
-      }
-
-      const kpiPend = document.getElementById('kpiCommPending');
-      if (kpiPend) {
-        kpiPend.querySelector('[data-field="value"]').textContent   = H.currency(k.pendente.value);
-        kpiPend.querySelector('[data-field="context"]').textContent = `${k.pendente.medicos} médicos aguardando`;
-      }
-
-      const kpiPct = document.getElementById('kpiCommPercent');
-      if (kpiPct) {
-        kpiPct.querySelector('[data-field="value"]').textContent = H.percent(k.percentPago.value);
-        const fill = document.getElementById('commProgressFill');
-        if (fill) fill.style.width = `${k.percentPago.value}%`;
-      }
-
-      const kpiAvg = document.getElementById('kpiCommAvg');
-      if (kpiAvg) kpiAvg.querySelector('[data-field="value"]').textContent = H.currency(k.mediaPorMedico.value);
-    }
-
-    /* ----- Tree Table ----- */
-    function buildTreeRows(tree) {
-      let html = '';
-      tree.forEach(radio => {
-        // Linha nível 1: Radiologia
-        html += buildLevel1Row(radio);
-        // Grupos de clínicas (colapso por padrão)
-        html += `<div class="tree-group is-collapsed" id="grp-${radio.id}">`;
-        radio.clinicas.forEach(cli => {
-          html += buildLevel2Row(cli, radio.id);
-          html += `<div class="tree-group is-collapsed" id="grp-${cli.id}">`;
-          cli.medicos.forEach(med => {
-            html += buildLevel3Row(med, cli.id);
-          });
-          html += `</div>`;
-        });
-        html += `</div>`;
-      });
-      return html;
-    }
-
-    function buildLevel1Row(radio) {
-      const pendCls = radio.pendente > 0 ? '' : 'is-zero';
-      return `
-        <div class="tree-row tree-row--level-1 tree-row--comm" data-id="${radio.id}" role="row">
-          <div class="tree-row__select"></div>
-          <div class="tree-row__name-cell">
-            <button type="button" class="tree-row__toggle" data-toggle="${radio.id}" aria-expanded="false" aria-label="Expandir ${radio.nome}">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
-            <span class="tree-row__name">${radio.nome}</span>
-            <span class="tree-row__badge">${radio.clinicas.length} clínicas</span>
-          </div>
-          <div class="tree-row__num" data-label="Exames">${H.number(radio.exames)}</div>
-          <div class="tree-row__num" data-label="Faturamento">${H.currency(radio.faturamento)}</div>
-          <div class="tree-row__num" data-label="% Comissão">—</div>
-          <div class="tree-row__num" data-label="Total Devido">${H.currency(radio.comissaoDevida)}</div>
-          <div class="tree-row__num" data-label="Já Pago">${H.currency(radio.pago)}</div>
-          <div class="tree-row__num tree-row__num--comm-pending ${pendCls}" data-label="Pendente">${radio.pendente > 0 ? H.currency(radio.pendente) : '—'}</div>
-          <div class="tree-row__action">—</div>
-          <div class="tree-row__action"></div>
-        </div>`;
-    }
-
-    function buildLevel2Row(cli, radioId) {
-      const pendCls = cli.pendente > 0 ? '' : 'is-zero';
-      return `
-        <div class="tree-row tree-row--level-2 tree-row--comm" data-id="${cli.id}" data-parent="${radioId}" role="row">
-          <div class="tree-row__select"></div>
-          <div class="tree-row__name-cell">
-            <button type="button" class="tree-row__toggle" data-toggle="${cli.id}" aria-expanded="false" aria-label="Expandir ${cli.nome}">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
-            <span class="tree-row__name">${cli.nome}</span>
-            <span class="tree-row__badge">${cli.medicos.length} médicos</span>
-          </div>
-          <div class="tree-row__num" data-label="Exames">${H.number(cli.exames)}</div>
-          <div class="tree-row__num" data-label="Faturamento">${H.currency(cli.faturamento)}</div>
-          <div class="tree-row__num" data-label="% Comissão">—</div>
-          <div class="tree-row__num" data-label="Total Devido">${H.currency(cli.comissaoDevida)}</div>
-          <div class="tree-row__num" data-label="Já Pago">${H.currency(cli.pago)}</div>
-          <div class="tree-row__num tree-row__num--comm-pending ${pendCls}" data-label="Pendente">${cli.pendente > 0 ? H.currency(cli.pendente) : '—'}</div>
-          <div class="tree-row__action">—</div>
-          <div class="tree-row__action"></div>
-        </div>`;
-    }
-
-    function buildLevel3Row(med) {
-      const pendCls = med.pendente > 0 ? '' : 'is-zero';
-      return `
-        <div class="tree-row tree-row--level-3 tree-row--comm" data-id="${med.id}" role="row">
-          <div class="tree-row__select">
-            ${med.pendente > 0 ? `<input type="checkbox" class="tree-row__checkbox comm-select-check" data-med-id="${med.id}" aria-label="Selecionar ${med.nome}">` : ''}
-          </div>
-          <div class="tree-row__name-cell">
-            <span class="tree-row__toggle-spacer"></span>
-            <span class="tree-row__name">${med.nome}</span>
-          </div>
-          <div class="tree-row__num" data-label="Exames">${H.number(med.exames)}</div>
-          <div class="tree-row__num" data-label="Faturamento">${H.currency(med.faturamento)}</div>
-          <div class="tree-row__num" data-label="% Comissão">${H.percent(med.percComissao)}</div>
-          <div class="tree-row__num" data-label="Total Devido">${H.currency(med.comissaoDevida)}</div>
-          <div class="tree-row__num" data-label="Já Pago">${H.currency(med.pago)}</div>
-          <div class="tree-row__num tree-row__num--comm-pending ${pendCls}" data-label="Pendente">${med.pendente > 0 ? H.currency(med.pendente) : '—'}</div>
-          <div class="tree-row__action">${H.statusBadge(med.status)}</div>
-          <div class="tree-row__action">
-            ${med.pendente > 0 ? `
-              <button type="button" class="row-action-btn btn-pay-doctor"
-                data-med-id="${med.id}"
-                data-med-nome="${med.nome}"
-                data-cli-nome="${med.clinica || ''}"
-                data-total-due="${med.comissaoDevida}"
-                data-already-paid="${med.pago}"
-                data-pending="${med.pendente}"
-                aria-label="Registrar pagamento para ${med.nome}">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>` : `
-              <button type="button" class="row-action-btn btn-view-doctor"
-                data-med-id="${med.id}"
-                aria-label="Ver detalhes de ${med.nome}">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
-              </button>`}
-          </div>
-        </div>`;
-    }
-
-    function renderTree() {
-      const body = document.getElementById('commTreeBody');
-      if (!body) return;
-
-      const tree = H.filteredCommTree();
-      let filtered = tree;
-
-      // Filtro de status
-      if (State.commStatusFilter !== 'todas') {
-        filtered = tree.map(radio => ({
-          ...radio,
-          clinicas: radio.clinicas.map(cli => ({
-            ...cli,
-            medicos: cli.medicos.filter(med => {
-              if (State.commStatusFilter === 'pendentes') return med.status === 'pending';
-              if (State.commStatusFilter === 'pagas')     return med.status === 'paid';
-              if (State.commStatusFilter === 'parciais')  return med.status === 'partial';
-              return true;
-            }),
-          })).filter(cli => cli.medicos.length > 0),
-        })).filter(radio => radio.clinicas.length > 0);
-      }
-
-      // Filtro de busca
-      if (State.commSearch.trim()) {
-        const q = State.commSearch.trim().toLowerCase();
-        filtered = filtered.map(radio => ({
-          ...radio,
-          clinicas: radio.clinicas.map(cli => ({
-            ...cli,
-            medicos: cli.medicos.filter(med => med.nome.toLowerCase().includes(q) || (med.clinica || '').toLowerCase().includes(q)),
-          })).filter(cli => cli.medicos.length > 0 || cli.nome.toLowerCase().includes(q)),
-        })).filter(radio => radio.clinicas.length > 0 || radio.nome.toLowerCase().includes(q));
-      }
-
-      if (!filtered.length) {
-        body.innerHTML = `<div class="empty-state">Nenhum resultado para o filtro selecionado.</div>`;
-        return;
-      }
-
-      body.innerHTML = buildTreeRows(filtered);
-      bindTreeEvents();
-    }
-
-    function bindTreeEvents() {
-      // Toggles de collapse
-      document.querySelectorAll('[data-toggle]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const id  = btn.dataset.toggle;
-          const grp = document.getElementById(`grp-${id}`);
-          if (!grp) return;
-          const collapsed = grp.classList.toggle('is-collapsed');
-          btn.setAttribute('aria-expanded', !collapsed);
-          const row = btn.closest('.tree-row');
-          if (row) row.classList.toggle('is-collapsed', collapsed);
-        });
-      });
-
-      // Botões de pagamento
-      document.querySelectorAll('.btn-pay-doctor').forEach(btn => {
-        btn.addEventListener('click', () => {
-          Modais.openPayment({
-            medId:       btn.dataset.medId,
-            medNome:     btn.dataset.medNome,
-            cliNome:     btn.dataset.cliNome,
-            totalDue:    parseFloat(btn.dataset.totalDue),
-            alreadyPaid: parseFloat(btn.dataset.alreadyPaid),
-            pending:     parseFloat(btn.dataset.pending),
-          });
-        });
-      });
-
-      // Checkboxes de seleção múltipla
-      document.querySelectorAll('.comm-select-check').forEach(cb => {
-        cb.addEventListener('change', () => {
-          const id = cb.dataset.medId;
-          if (cb.checked) {
-            if (!State.selectedForPayment.includes(id)) State.selectedForPayment.push(id);
-          } else {
-            State.selectedForPayment = State.selectedForPayment.filter(i => i !== id);
-          }
-          updateBatchPayBtn();
-        });
-      });
-
-      // Botões de detalhe na tree table
-      document.querySelectorAll('#commTreeBody .btn-view-doctor').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const medId = btn.dataset.medId;
-          const med = MOCK_COMISSOES_TREE
-            .flatMap(r => r.clinicas.flatMap(c =>
-              c.medicos.map(m => ({ ...m, clinicaNome: c.nome, radioNome: r.nome }))
-            ))
-            .find(m => m.id === medId);
-          if (med) Modais.openDoctorDetail(med);
-        });
-      });
-    }
-
-    function updateBatchPayBtn() {
-      const btn = document.getElementById('btnPaySelected');
-      if (!btn) return;
-      const n = State.selectedForPayment.length;
-      btn.disabled = n === 0;
-      btn.textContent = n > 0 ? `Pagar Selecionados (${n})` : 'Pagar Selecionados';
-    }
-
-    /* ----- Gráficos de suporte ----- */
-    function renderSupportCharts() {
-      // Distribuição por radiologia
-      const ctx2 = document.getElementById('commByRadiologyChart');
-      if (ctx2) {
-        const isAll = State.radiologia === 'all';
-        let labels2, values2;
-
-        if (isAll) {
-          labels2 = MOCK_COMISSOES_TREE.map(r => r.nome);
-          values2 = MOCK_COMISSOES_TREE.map(r => r.comissaoDevida);
-        } else {
-          const radioTree = MOCK_COMISSOES_TREE.find(r => r.id === `radio-${State.radiologia}`);
-          const clinicas = radioTree ? radioTree.clinicas : [];
-          labels2 = clinicas.map(c => c.nome);
-          values2 = clinicas.map(c => c.comissaoDevida);
-        }
-
-        ChartFactory.doughnut(ctx2,
-          labels2,
-          values2,
-          labels2.map((_, i) => SERIES_COLORS[i % SERIES_COLORS.length]),
-          { legendPosition: 'bottom' }
-        );
-      }
-
-      // Evolução pagas vs pendentes (+ total)
-      const ctx3 = document.getElementById('commEvolutionChart');
-      if (ctx3) {
-          const d = MOCK_COMM_EVOLUCAO_BY_RADIO[State.radiologia] || MOCK_COMM_EVOLUCAO;
-          const radioLabel = State.radiologia === 'all'
-              ? 'todas as radiologias'
-              : CFG.radiologies.find(r => r.id === State.radiologia)?.label || '';
-
-          // Calcula total por mês
-          const totais = d.pagas.map((p, i) => p + d.pendentes[i]);
-
-          // Atualiza título e subtítulo do card
-          const commEvCard = ctx3.closest('.chart-card');
-          if (commEvCard) {
-              const titleEl = commEvCard.querySelector('.chart-card__title');
-              const subEl   = commEvCard.querySelector('.chart-card__subtitle');
-              if (titleEl) titleEl.textContent = State.radiologia === 'all'
-                  ? 'Evolução de Comissões — Todas as Radiologias'
-                  : `Evolução de Comissões — ${radioLabel}`;
-              if (subEl) subEl.textContent = 'Pagas vs. pendentes vs. total · últimos 6 meses';
-          }
-
-          H.destroyChart(ctx3.id);
-          State.charts[ctx3.id] = new Chart(ctx3, {
-              type: 'line',
-              data: {
-                  labels: d.labels,
-                  datasets: [
-                      {
-                          label: 'Total do Mês',
-                          data: totais,
-                          borderColor: CFG.colors.textSubtle,
-                          borderDash: [5, 4],
-                          borderWidth: 1.8,
-                          pointRadius: 0,
-                          tension: 0.4,
-                          fill: false,
-                          order: 0,
-                      },
-                      {
-                          label: 'Pagas',
-                          data: d.pagas,
-                          borderColor: CFG.colors.positive,
-                          backgroundColor: CFG.colors.positive + '15',
-                          fill: true,
-                          tension: 0.4,
-                          borderWidth: 2.5,
-                          pointRadius: 4,
-                          pointHoverRadius: 7,
-                          pointBackgroundColor: CFG.colors.positive,
-                          pointBorderColor: CFG.colors.surface,
-                          pointBorderWidth: 2,
-                          order: 1,
-                      },
-                      {
-                          label: 'Pendentes',
-                          data: d.pendentes,
-                          borderColor: CFG.colors.warning,
-                          backgroundColor: CFG.colors.warning + '15',
-                          fill: true,
-                          tension: 0.4,
-                          borderWidth: 2.5,
-                          pointRadius: 4,
-                          pointHoverRadius: 7,
-                          pointBackgroundColor: CFG.colors.warning,
-                          pointBorderColor: CFG.colors.surface,
-                          pointBorderWidth: 2,
-                          order: 2,
-                      },
-                  ],
-              },
-              options: {
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  interaction: { mode: 'index', intersect: false },
-                  plugins: {
-                      legend: {
-                          display: true,
-                          position: 'top',
-                          labels: {
-                              font: { size: 11 },
-                              boxWidth: 10,
-                              boxHeight: 10,
-                              usePointStyle: true,
-                              pointStyle: 'circle',
-                              padding: 16,
-                              color: CFG.colors.textMuted,
-                          },
-                      },
-                      tooltip: { enabled: false, external: ChartFactory.externalTooltip },
-                  },
-                  scales: {
-                      x: {
-                          grid: { display: false },
-                          ticks: { font: { size: 11 }, maxRotation: 0 },
-                      },
-                      y: {
-                          grid: { color: CFG.colors.border },
-                          ticks: {
-                              font: { family: CFG.chartDefaults.monoFamily, size: 11 },
-                              callback: v => 'R$ ' + H.number(v / 1000, 0) + 'k',
-                          },
-                          beginAtZero: true,
-                      },
-                  },
-              },
-          });
-      }
-
-      /* ---- NOVOS: vindos do Dashboard ---- */
-
-      // Top 10 Clínicas (all) ou Top 10 Médicos (radiologia específica) — barras horizontais
-      const ctx4 = document.getElementById('commTopDoctorsChart');
-      if (ctx4) {
-        H.destroyChart(ctx4.id);
-        const isAll = State.radiologia === 'all';
-
-        let labels4, values4, chartTitle4, chartSubtitle4;
-
-        if (isAll) {
-          // Agrega comissão por clínica em todas as radiologias
-          const clinicaMap = {};
-          MOCK_COMISSOES_TREE.forEach(radio => {
-            radio.clinicas.forEach(cli => {
-              if (!clinicaMap[cli.nome]) {
-                clinicaMap[cli.nome] = {
-                  nome: cli.nome,
-                  comissaoDevida: 0,
-                  pago: 0,
-                  pendente: 0,
-                  exames: 0,
-                  faturamento: 0,
-                  nMedicos: 0,
-                };
-              }
-              clinicaMap[cli.nome].comissaoDevida += cli.comissaoDevida;
-              clinicaMap[cli.nome].pago           += cli.pago;
-              clinicaMap[cli.nome].pendente       += cli.pendente;
-              clinicaMap[cli.nome].exames         += cli.exames;
-              clinicaMap[cli.nome].faturamento    += cli.faturamento;
-              clinicaMap[cli.nome].nMedicos       += cli.medicos.length;
-            });
-          });
-          const top10Clinicas = Object.values(clinicaMap)
-            .sort((a, b) => b.comissaoDevida - a.comissaoDevida)
-            .slice(0, 10);
-
-          // Guarda no State para o tooltip acessar
-          State._commTopClinicas = top10Clinicas;
-
-          labels4  = top10Clinicas.map(c => c.nome);
-          values4  = top10Clinicas.map(c => c.comissaoDevida);
-          chartTitle4    = 'Top 10 Clínicas por Comissão';
-          chartSubtitle4 = 'Maiores comissões do período — todas as radiologias';
-        } else {
-          const allDoctors = H.filteredCommTree()
-            .flatMap(r => r.clinicas.flatMap(c => c.medicos));
-          const top10Medicos = [...allDoctors]
-            .sort((a, b) => b.comissaoDevida - a.comissaoDevida)
-            .slice(0, 10);
-
-          State._commTopClinicas = null; // limpa modo clínica
-
-          labels4  = top10Medicos.map(m => m.nome.replace(/^Dr[a]?\. /, ''));
-          values4  = top10Medicos.map(m => m.comissaoDevida);
-          chartTitle4    = 'Top 10 Médicos por Comissão';
-          chartSubtitle4 = `Maiores comissões · ${CFG.radiologies.find(r => r.id === State.radiologia)?.label || ''}`;
-        }
-
-        // Atualiza título e subtítulo do card
-        const card4 = ctx4.closest('.chart-card');
-        if (card4) {
-          const titleEl = card4.querySelector('.chart-card__title');
-          const subEl   = card4.querySelector('.chart-card__subtitle');
-          if (titleEl) titleEl.textContent = chartTitle4;
-          if (subEl)   subEl.textContent   = chartSubtitle4;
-        }
-
-        State.charts[ctx4.id] = new Chart(ctx4, {
-          type: 'bar',
-          data: {
-            labels: labels4,
-            datasets: [{
-              label: isAll ? 'Comissão por Clínica' : 'Comissão Devida',
-              data: values4,
-              backgroundColor: isAll ? CFG.colors.primaryLight : CFG.colors.primary,
-              hoverBackgroundColor: isAll ? CFG.colors.primary : CFG.colors.primaryLight,
-              borderRadius: 4,
-              maxBarThickness: 20,
-            }],
-          },
-          options: {
-            indexAxis: 'y',
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: { enabled: false, external: ChartFactory.externalTooltip },
-            },
-            scales: {
-              x: {
-                grid: { color: CFG.colors.border },
-                ticks: { font: { size: 11 }, callback: v => `R$ ${(v/1000).toFixed(1).replace('.0','')} mil` },
-              },
-              y: { grid: { display: false }, ticks: { font: { size: 11 } } },
-            },
-          },
-        });
-      }
-
-      // Pizza de distribuição — commDistributionChart (vinha do Dashboard)
-      const ctx5 = document.getElementById('commDistributionChart');
-      if (ctx5) {
-        H.destroyChart(ctx5.id);
-        const isAll = State.radiologia === 'all';
-        const tree = H.filteredCommTree();
-        let labels5, values5;
-
-        if (isAll) {
-          labels5 = tree.map(r => r.nome);
-          values5 = tree.map(r => r.comissaoDevida);
-        } else {
-          const radioTree = tree[0];
-          labels5 = radioTree ? radioTree.clinicas.map(c => c.nome) : [];
-          values5 = radioTree ? radioTree.clinicas.map(c => c.comissaoDevida) : [];
-        }
-
-        const subEl5 = document.getElementById('commDistributionSubtitle');
-        if (subEl5) subEl5.textContent = isAll ? 'Por radiologia' : 'Por clínica referenciadora';
-
-        State.charts[ctx5.id] = new Chart(ctx5, {
-          type: 'pie',
-          data: {
-            labels: labels5,
-            datasets: [{
-              data: values5,
-              backgroundColor: SERIES_COLORS,
-              borderColor: '#FFFFFF',
-              borderWidth: 2,
-            }],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                position: 'bottom',
-                labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'circle', padding: 14, font: { size: 11 } },
-              },
-              tooltip: { enabled: false, external: ChartFactory.externalTooltip },
-            },
-          },
-        });
-      }
-
-      // Barras empilhadas pago vs pendente por entidade — commByEntityChart (vinha do Dashboard)
-      const ctx6 = document.getElementById('commByEntityChart');
-      if (ctx6) {
-        H.destroyChart(ctx6.id);
-        const isAll = State.radiologia === 'all';
-        const tree  = H.filteredCommTree();
-        let labels6, pagos6, pendentes6;
-
-        if (isAll) {
-          labels6    = tree.map(r => r.nome);
-          pagos6     = tree.map(r => r.pago);
-          pendentes6 = tree.map(r => r.pendente);
-        } else {
-          const radioTree = tree[0];
-          labels6    = radioTree ? radioTree.clinicas.map(c => c.nome)          : [];
-          pagos6     = radioTree ? radioTree.clinicas.map(c => c.pago)          : [];
-          pendentes6 = radioTree ? radioTree.clinicas.map(c => c.pendente)      : [];
-        }
-
-        const subEl6 = document.getElementById('commByEntitySubtitle');
-        if (subEl6) subEl6.textContent = isAll
-          ? 'Pago vs. pendente, por radiologia'
-          : 'Pago vs. pendente, por clínica referenciadora';
-
-        State.charts[ctx6.id] = new Chart(ctx6, {
-          type: 'bar',
-          data: {
-            labels: labels6,
-            datasets: [
-              { label: 'Pago',     data: pagos6,     backgroundColor: CFG.colors.primary,      borderRadius: 4, maxBarThickness: 46, stack: 'comissao' },
-              { label: 'Pendente', data: pendentes6, backgroundColor: CFG.colors.primaryLight, borderRadius: 4, maxBarThickness: 46, stack: 'comissao' },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: {
-              legend: {
-                display: true,
-                position: 'bottom',
-                labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'circle', padding: 14, font: { size: 11 } },
-              },
-              tooltip: { enabled: false, external: ChartFactory.externalTooltip },
-            },
-            scales: {
-              x: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 }, maxRotation: 18 } },
-              y: { stacked: true, grid: { color: CFG.colors.border }, ticks: { font: { size: 11 }, callback: v => `R$ ${(v/1000).toFixed(1).replace('.0','')} mil` } },
-            },
-          },
-        });
-      }
-    }
-
-    function bindControls() {
-      const expandAll = document.getElementById('commExpandAll');
-      if (expandAll) {
-        expandAll.addEventListener('click', () => {
-          document.querySelectorAll('#commTreeBody .tree-group').forEach(g => {
-            g.classList.remove('is-collapsed');
-          });
-          document.querySelectorAll('[data-toggle]').forEach(btn => btn.setAttribute('aria-expanded', 'true'));
-        });
-      }
-
-      const collapseAll = document.getElementById('commCollapseAll');
-      if (collapseAll) {
-        collapseAll.addEventListener('click', () => {
-          document.querySelectorAll('#commTreeBody .tree-group').forEach(g => {
-            g.classList.add('is-collapsed');
-          });
-          document.querySelectorAll('[data-toggle]').forEach(btn => btn.setAttribute('aria-expanded', 'false'));
-        });
-      }
-
-      const statusFilter = document.getElementById('commStatusFilter');
-      if (statusFilter) {
-        statusFilter.addEventListener('change', () => {
-          State.commStatusFilter = statusFilter.value;
-          renderTree();
-        });
-      }
-
-      const searchEl = document.getElementById('commSearch');
-      if (searchEl) {
-        let debounce;
-        searchEl.addEventListener('input', () => {
-          clearTimeout(debounce);
-          debounce = setTimeout(() => {
-            State.commSearch = searchEl.value;
-            renderTree();
-          }, 280);
-        });
-      }
-
-      const batchBtn = document.getElementById('btnPaySelected');
-      if (batchBtn) {
-        batchBtn.addEventListener('click', () => {
-          H.toast(`Iniciando pagamento em lote para ${State.selectedForPayment.length} médico(s)...`, 'info');
-          // [API] POST /comissoes/pagamento-lote { medicos: State.selectedForPayment, data, metodo }
-        });
-      }
-    }
-
-    /* --- Tabela Top Comissões (vinda do Dashboard) --- */
-    function renderTopTable() {
-      const tbody = document.getElementById('commTopTableBody');
-      if (!tbody) return;
-
-      const allDoctors = H.filteredCommTree()
-        .flatMap(r => r.clinicas.flatMap(c =>
-          c.medicos.map(m => ({
-            ...m,
-            clinicaNome:     c.nome,
-            radiologiaNome:  r.nome,
-          }))
-        ));
-
-      const top = [...allDoctors].sort((a, b) => b.comissaoDevida - a.comissaoDevida).slice(0, 8);
-
-      if (!top.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Nenhum médico encontrado.</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = top.map(d => {
-        const temPendencia = d.pendente > 0.01;
-        return `
-          <tr>
-            <td>
-              <span class="data-table__name-primary">${d.nome}</span>
-              <span class="data-table__name-secondary">${d.clinicaNome} &middot; ${d.radiologiaNome}</span>
-            </td>
-            <td class="data-table__num">${H.number(d.exames)}</td>
-            <td class="data-table__num">${H.currency(d.comissaoDevida)}</td>
-            <td class="data-table__num">
-              ${temPendencia
-                ? `<span class="pending-tag">${H.currency(d.pendente)}</span>`
-                : `<span class="pending-tag pending-tag--none">Quitado</span>`}
-            </td>
-            <td class="data-table__action">
-              ${temPendencia ? `
-                <button type="button" class="row-action-btn btn-pay-doctor"
-                  data-med-id="${d.id}"
-                  data-med-nome="${d.nome}"
-                  data-cli-nome="${d.clinicaNome}"
-                  data-total-due="${d.comissaoDevida}"
-                  data-already-paid="${d.pago}"
-                  data-pending="${d.pendente}"
-                  aria-label="Registrar pagamento para ${d.nome}" title="Registrar pagamento">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </button>` : `
-                <button type="button" class="row-action-btn btn-view-doctor"
-                  data-med-id="${d.id}"
-                  aria-label="Ver detalhes de ${d.nome}" title="Ver detalhes">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
-                </button>`}
-            </td>
-          </tr>`;
-      }).join('');
-
-      // Rebinda os botões de pagamento da tabela
-      tbody.querySelectorAll('.btn-pay-doctor').forEach(btn => {
-        btn.addEventListener('click', () => {
-          Modais.openPayment({
-            medId:       btn.dataset.medId,
-            medNome:     btn.dataset.medNome,
-            cliNome:     btn.dataset.cliNome,
-            totalDue:    parseFloat(btn.dataset.totalDue),
-            alreadyPaid: parseFloat(btn.dataset.alreadyPaid),
-            pending:     parseFloat(btn.dataset.pending),
-          });
-        });
-      });
-
-      tbody.querySelectorAll('.btn-view-doctor').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const medId = btn.dataset.medId;
-          const med = H.filteredCommTree()
-            .flatMap(r => r.clinicas.flatMap(c =>
-              c.medicos.map(m => ({ ...m, clinicaNome: c.nome, radioNome: r.nome }))
-            ))
-            .find(m => m.id === medId);
-          if (med) Modais.openDoctorDetail(med);
-        });
-      });
-    }
-
-    function render() {
-      renderKPIs();
-      renderTree();
-      renderSupportCharts();
-      renderTopTable();
-      bindControls();
-    }
-
-    return { render };
-  })();
-
-
-  /* ===========================================================
-     10. MODULE: METAS
+   10. MODULE: METAS
   =========================================================== */
   const Metas = (() => {
 
+    /* ---- Helpers de máscara monetária ---- */
+    function maskMoney(raw) {
+      // Remove tudo que não é dígito
+      const digits = String(raw).replace(/\D/g, '');
+      if (!digits) return '';
+      const num = parseInt(digits, 10) / 100;
+      return new Intl.NumberFormat('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(num);
+    }
+
+    function unmaskMoney(str) {
+      // "110.000,00" → 110000
+      const cleaned = String(str)
+        .replace(/\./g, '')
+        .replace(',', '.');
+      return parseFloat(cleaned) || 0;
+    }
+
+    function bindMoneyInput(input) {
+      input.addEventListener('input', () => {
+        const raw = input.value.replace(/\D/g, '');
+        const masked = maskMoney(raw);
+        input.value = masked;
+      });
+      input.addEventListener('blur', () => {
+        if (!input.value) return;
+        input.value = maskMoney(input.value.replace(/\D/g, ''));
+      });
+    }
+
+    function setMoneyInput(input, value) {
+      // Converte número puro para máscara
+      const digits = Math.round(value * 100).toString();
+      input.value = maskMoney(digits);
+    }
+
+    /* ---- Cor e classe de progresso ---- */
+    function progressColor(pct) {
+      if (pct >= 100) return { bar: 'linear-gradient(90deg,var(--color-positive),#2ec88a)', text: 'meta-row__pct--achieved' };
+      if (pct >= 75)  return { bar: 'var(--gradient-brand)', text: 'meta-row__pct--good' };
+      if (pct >= 50)  return { bar: 'linear-gradient(90deg,#B27A0E,#E0A020)', text: 'meta-row__pct--warning' };
+      return { bar: 'linear-gradient(90deg,var(--color-negative),#e05050)', text: 'meta-row__pct--danger' };
+    }
+
+    /* ---- KPI cards ---- */
     function renderKPIs() {
       const isAll = State.radiologia === 'all';
 
-      // Agrega dados conforme filtro ativo
       let metaMensal, realizadoMensal, metaAnual, realizadoAnual;
       if (isAll) {
         metaMensal      = MOCK_METAS.mensal.meta;
@@ -3110,147 +2812,134 @@
         metaAnual       = MOCK_METAS.anual.meta;
         realizadoAnual  = MOCK_METAS.anual.realizado;
       } else {
-        const radioMeta = MOCK_METAS.porRadiologia.find(r => r.id === State.radiologia);
-        metaMensal      = radioMeta ? radioMeta.meta         : 0;
-        realizadoMensal = radioMeta ? radioMeta.realizado    : 0;
-        metaAnual       = radioMeta ? radioMeta.anual        : 0;
-        realizadoAnual  = radioMeta ? radioMeta.anoRealizado : 0;
+        const r         = MOCK_METAS.porRadiologia.find(r => r.id === State.radiologia);
+        metaMensal      = r?.meta         || 0;
+        realizadoMensal = r?.realizado    || 0;
+        metaAnual       = r?.anual        || 0;
+        realizadoAnual  = r?.anoRealizado || 0;
       }
 
-      const radioLabel = isAll
-        ? 'todas as radiologias'
-        : CFG.radiologies.find(r => r.id === State.radiologia)?.label || '';
+      const pctMes = metaMensal  > 0 ? (realizadoMensal / metaMensal)  * 100 : 0;
+      const pctAno = metaAnual   > 0 ? (realizadoAnual  / metaAnual)   * 100 : 0;
+      const faltaMes = Math.max(metaMensal  - realizadoMensal, 0);
+      const faltaAno = Math.max(metaAnual   - realizadoAnual,  0);
 
-      // Meta mensal
+      // --- KPI Mensal ---
       const kpiM = document.getElementById('kpiGoalMonthly');
       if (kpiM) {
-        const pct = metaMensal > 0 ? (realizadoMensal / metaMensal) * 100 : 0;
-        const falta = Math.max(metaMensal - realizadoMensal, 0);
         kpiM.querySelector('[data-field="value"]').textContent   = H.currency(metaMensal);
-        kpiM.querySelector('[data-field="context"]').textContent = falta > 0
-          ? `${H.currency(realizadoMensal)} realizado · faltam ${H.currency(falta)}`
-          : `${H.currency(realizadoMensal)} realizado · meta batida!`;
-        const fill  = document.getElementById('goalMonthlyFill');
-        const lbl   = document.getElementById('goalMonthlyLabel');
-        if (fill) {
-          fill.style.width = `${Math.min(pct, 100)}%`;
-          fill.style.background = pct >= 100 ? CFG.colors.positive
-            : pct >= 75 ? '' /* usa gradient padrão */
-            : `linear-gradient(90deg, ${CFG.colors.warning}, #E0A020)`;
-        }
-        if (lbl) {
-          lbl.textContent = pct >= 100
-            ? `✓ ${H.percent(pct)} — meta atingida!`
-            : `${H.percent(pct)} atingido`;
-          lbl.style.color = pct >= 100 ? CFG.colors.positive
-            : pct >= 75 ? CFG.colors.primaryDark
-            : CFG.colors.warning;
+        kpiM.querySelector('[data-field="context"]').textContent = faltaMes > 0
+          ? `${H.currency(realizadoMensal)} realizado · faltam ${H.currency(faltaMes)}`
+          : `${H.currency(realizadoMensal)} realizado · meta batida! 🎯`;
+
+        const fill   = document.getElementById('goalMonthlyFill');
+        const lbl    = document.getElementById('goalMonthlyLabel');
+        const badge  = document.getElementById('goalMonthlyBadge');
+        const { bar } = progressColor(pctMes);
+
+        if (fill)  { fill.style.width = `${Math.min(pctMes, 100)}%`; fill.style.background = bar; }
+        if (lbl)   lbl.textContent = pctMes >= 100 ? '✓ Meta atingida!' : `${H.percent(pctMes)} atingido`;
+        if (badge) {
+          badge.textContent = H.percent(pctMes);
+          badge.classList.toggle('is-achieved', pctMes >= 100);
         }
       }
 
-      // Meta anual
+      // --- KPI Anual ---
       const kpiA = document.getElementById('kpiGoalYearly');
       if (kpiA) {
-        const pct   = metaAnual > 0 ? (realizadoAnual / metaAnual) * 100 : 0;
-        const falta = Math.max(metaAnual - realizadoAnual, 0);
         kpiA.querySelector('[data-field="value"]').textContent   = H.currency(metaAnual);
-        kpiA.querySelector('[data-field="context"]').textContent = falta > 0
-          ? `${H.currency(realizadoAnual)} no ano · faltam ${H.currency(falta)}`
-          : `${H.currency(realizadoAnual)} no ano · meta batida!`;
-        const fill = document.getElementById('goalYearlyFill');
-        const lbl  = document.getElementById('goalYearlyLabel');
-        if (fill) {
-          fill.style.width = `${Math.min(pct, 100)}%`;
-          fill.style.background = pct >= 100 ? CFG.colors.positive : '';
-        }
-        if (lbl) {
-          lbl.textContent = pct >= 100
-            ? `✓ ${H.percent(pct)} — meta anual atingida!`
-            : `${H.percent(pct)} atingido`;
-          lbl.style.color = pct >= 100 ? CFG.colors.positive
-            : pct >= 75 ? CFG.colors.primaryDark
-            : CFG.colors.warning;
-        }
+        kpiA.querySelector('[data-field="context"]').textContent = faltaAno > 0
+          ? `${H.currency(realizadoAnual)} no ano · faltam ${H.currency(faltaAno)}`
+          : `${H.currency(realizadoAnual)} no ano · meta batida! 🎯`;
+
+        const fill  = document.getElementById('goalYearlyFill');
+        const lbl   = document.getElementById('goalYearlyLabel');
+        const badge = document.getElementById('goalYearlyBadge');
+
+        if (fill)  { fill.style.width = `${Math.min(pctAno, 100)}%`; }
+        if (lbl)   lbl.textContent = pctAno >= 100 ? '✓ Meta anual atingida!' : `${H.percent(pctAno)} atingido`;
+        if (badge) badge.textContent = H.percent(pctAno);
       }
 
-      // Guarda no State para o gráfico acessar
-      State._goalData = { metaMensal, realizadoMensal, metaAnual, realizadoAnual, radioLabel };
+      // --- KPI Status por Unidade ---
+      const listEl = document.getElementById('metaUnitsList');
+      if (listEl) {
+        const UNIT_COLORS = [
+          CFG.colors.primary,
+          '#7B68EE',
+          '#F5A623',
+          '#E05C5C',
+        ];
+        listEl.innerHTML = MOCK_METAS.porRadiologia.map((r, i) => {
+          const pct = r.meta > 0 ? Math.min((r.realizado / r.meta) * 100, 100) : 0;
+          const color = pct >= 100 ? CFG.colors.positive
+                      : pct >= 75  ? UNIT_COLORS[i % UNIT_COLORS.length]
+                      : pct >= 50  ? CFG.colors.warning
+                      : CFG.colors.negative;
+          return `
+            <div class="meta-unit-row">
+              <span class="meta-unit-row__name">${r.nome}</span>
+              <div class="meta-unit-row__bar-wrap">
+                <div class="meta-unit-row__bar-fill" style="width:${pct}%;background:${color}"></div>
+              </div>
+              <span class="meta-unit-row__pct" style="color:${color}">${H.percent(pct, 0)}</span>
+            </div>`;
+        }).join('');
+      }
+
+      // Guarda no State para o gráfico
+      State._goalData = { metaMensal, realizadoMensal, metaAnual, realizadoAnual };
     }
 
+    /* ---- Gráfico Meta vs Realizado (full-width) ---- */
     function renderGoalVsActualChart() {
       const ctx = document.getElementById('goalVsActualChart');
       if (!ctx) return;
 
       const isAll = State.radiologia === 'all';
-
-      let labels, dataMeta, dataRealizado, maxVal, chartTitle, chartSubtitle;
+      let labels, dataMeta, dataRealizado;
 
       if (isAll) {
-        // Todas as radiologias — barras agrupadas: meta vs realizado por unidade
-        const radios = MOCK_METAS.porRadiologia;
+        const radios  = MOCK_METAS.porRadiologia;
         labels        = radios.map(r => r.nome);
-        dataMeta      = radios.map(r => r.meta);
+        dataMeta      = radios.map(r => {
+          const edit = State.goalEdits[r.id];
+          return edit?.meta !== undefined ? edit.meta : r.meta;
+        });
         dataRealizado = radios.map(r => r.realizado);
-        maxVal        = Math.max(...dataMeta) * 1.18;
-        chartTitle    = 'Meta vs. Realizado por Radiologia';
-        chartSubtitle = 'Mês atual · comparativo de todas as unidades';
       } else {
-        // Radiologia específica — evolução mensal (meta fixa vs realizado mês a mês)
-        // Usa os dados de evolução de faturamento como proxy do realizado mensal
         const radioMeta = MOCK_METAS.porRadiologia.find(r => r.id === State.radiologia);
-        const evoAll    = MOCK_EVOLUCAO; // shape: { labels, faturamento }
-
-        // Distribui o realizado anual proporcionalmente entre os 12 meses
-        // (mock: usa faturamento da evolução geral escalado para o peso da radio)
-        const pesoRadio = radioMeta
-          ? (radioMeta.realizado / MOCK_METAS.mensal.realizado)
-          : 1;
-
+        const pesoRadio = radioMeta ? (radioMeta.realizado / MOCK_METAS.mensal.realizado) : 1;
         labels        = MOCK_EVOLUCAO.labels;
-        dataMeta      = labels.map(() => radioMeta ? radioMeta.meta : 0);
+        const metaVal = State.goalEdits[State.radiologia]?.meta ?? (radioMeta?.meta || 0);
+        dataMeta      = labels.map(() => metaVal);
         dataRealizado = MOCK_EVOLUCAO.faturamento.map(v => Math.round(v * pesoRadio));
-        maxVal        = Math.max(...dataMeta) * 1.18;
-        chartTitle    = `Meta vs. Realizado — ${CFG.radiologies.find(r => r.id === State.radiologia)?.label || ''}`;
-        chartSubtitle = 'Últimos 12 meses · meta mensal vs. faturamento realizado';
       }
 
-      // Cores por barra: verde se bateu meta, amarelo se >75%, vermelho se abaixo
       const realizadoColors = dataRealizado.map((v, i) => {
         const pct = dataMeta[i] > 0 ? v / dataMeta[i] * 100 : 0;
         return pct >= 100 ? CFG.colors.positive + 'CC'
-             : pct >= 75  ? CFG.colors.primary  + 'CC'
-             : CFG.colors.warning + 'CC';
+            : pct >= 75  ? CFG.colors.primary  + 'CC'
+            : CFG.colors.warning + 'CC';
       });
       const realizadoBorders = dataRealizado.map((v, i) => {
         const pct = dataMeta[i] > 0 ? v / dataMeta[i] * 100 : 0;
         return pct >= 100 ? CFG.colors.positive
-             : pct >= 75  ? CFG.colors.primary
-             : CFG.colors.warning;
+            : pct >= 75  ? CFG.colors.primary
+            : CFG.colors.warning;
       });
 
-      // Guarda no State para o tooltip acessar
       State._goalChartData = {
-        isAll,
-        labels,
-        dataMeta,
-        dataRealizado,
+        isAll, labels, dataMeta, dataRealizado,
         radioLabel: CFG.radiologies.find(r => r.id === State.radiologia)?.label || 'Todas',
       };
 
-      // Atualiza título/subtítulo do card
-      const card = ctx.closest('.kpi-card--goal');
-      if (card) {
-        const titleEl = card.querySelector('.kpi-card__label');
-        if (titleEl) titleEl.textContent = chartTitle;
-        // subtítulo (insere abaixo do label se não existir)
-        let subEl = card.querySelector('.kpi-card__goal-sub');
-        if (!subEl) {
-          subEl = document.createElement('span');
-          subEl.className = 'kpi-card__goal-sub';
-          titleEl.insertAdjacentElement('afterend', subEl);
-        }
-        subEl.textContent = chartSubtitle;
-      }
+      // Título dinâmico
+      const titleEl    = document.getElementById('goalChartTitle');
+      const subtitleEl = document.getElementById('goalChartSubtitle');
+      if (titleEl)    titleEl.textContent    = isAll ? 'Meta vs. Realizado por Radiologia' : `Meta vs. Realizado — ${CFG.radiologies.find(r=>r.id===State.radiologia)?.label||''}`;
+      if (subtitleEl) subtitleEl.textContent = isAll ? 'Mês atual · comparativo de todas as unidades' : 'Últimos 12 meses · meta mensal vs. faturamento realizado';
 
       H.destroyChart(ctx.id);
       State.charts[ctx.id] = new Chart(ctx, {
@@ -3264,7 +2953,7 @@
               backgroundColor: CFG.colors.border,
               borderColor: CFG.colors.textSubtle,
               borderWidth: 1.5,
-              borderRadius: 5,
+              borderRadius: 6,
               borderSkipped: false,
               order: 2,
             },
@@ -3274,7 +2963,7 @@
               backgroundColor: realizadoColors,
               borderColor: realizadoBorders,
               borderWidth: 1.5,
-              borderRadius: 5,
+              borderRadius: 6,
               borderSkipped: false,
               order: 1,
             },
@@ -3283,33 +2972,15 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          // mode: 'index' para tooltip unificado por posição X, mas queremos
-          // tooltip individual por barra — usamos 'nearest' + intersect: true
           interaction: { mode: 'nearest', intersect: true },
           plugins: {
-            legend: {
-              display: true,
-              position: 'top',
-              labels: {
-                font: { size: 11 },
-                boxWidth: 10,
-                boxHeight: 10,
-                usePointStyle: true,
-                pointStyle: 'circle',
-                padding: 14,
-                color: CFG.colors.textMuted,
-                filter: item => item.text !== '_ref',
-              },
-            },
+            legend: { display: false },
             tooltip: { enabled: false, external: ChartFactory.externalTooltip },
           },
           scales: {
             x: {
               grid: { display: false },
-              ticks: {
-                font: { size: isAll ? 12 : 11 },
-                maxRotation: isAll ? 0 : 40,
-              },
+              ticks: { font: { size: isAll ? 12 : 11 }, maxRotation: isAll ? 0 : 40 },
             },
             y: {
               grid: { color: CFG.colors.border },
@@ -3318,62 +2989,145 @@
                 callback: v => 'R$ ' + H.number(v / 1000, 0) + 'k',
               },
               beginAtZero: true,
-              suggestedMax: maxVal,
             },
           },
         },
       });
     }
 
+    /* ---- Tabela de Metas por Radiologia ---- */
     function renderMetasByRadiologiaTable() {
-      const tbody = document.getElementById('metasByRadiologiaBody');
-      if (!tbody) return;
+      const body = document.getElementById('metasByRadiologiaBody');
+      if (!body) return;
 
-      tbody.innerHTML = MOCK_METAS.porRadiologia.map(r => {
-        const pctMes = (r.realizado / r.meta) * 100;
-        const pctAno = (r.anoRealizado / r.anual) * 100;
-        const savedGoalEdit = State.goalEdits[r.id] || {};
+      body.innerHTML = MOCK_METAS.porRadiologia.map(r => {
+        const savedEdit  = State.goalEdits[r.id] || {};
+        const metaVal    = savedEdit.meta  !== undefined ? savedEdit.meta  : r.meta;
+        const anualVal   = savedEdit.anual !== undefined ? savedEdit.anual : r.anual;
+        const pct        = metaVal > 0 ? Math.min((r.realizado / metaVal) * 100, 100) : 0;
+        const { bar, text } = progressColor(pct);
+
+        // Máscara para exibição inicial
+        function toMask(v) { return maskMoney(Math.round(v * 100).toString()); }
+
         return `
-          <tr>
-            <td><span class="data-table__name-primary">${r.nome}</span></td>
-            <td class="data-table__num">
-              <input type="number" class="goal-field" data-radio-id="${r.id}" data-field="meta"
-                value="${savedGoalEdit.meta !== undefined ? savedGoalEdit.meta : r.meta}"
-                aria-label="Meta mensal de ${r.nome}">
-            </td>
-            <td class="data-table__num">${H.currency(r.realizado)}</td>
-            <td class="data-table__num">${H.percent(pctMes)}</td>
-            <td>${H.inlineProgress(pctMes)}</td>
-            <td class="data-table__num">
-              <input type="number" class="goal-field" data-radio-id="${r.id}" data-field="anual"
-                value="${savedGoalEdit.anual !== undefined ? savedGoalEdit.anual : r.anual}"
-                aria-label="Meta anual de ${r.nome}">
-            </td>
-            <td class="data-table__action">
-              <button type="button" class="row-action-btn btn-edit-goal"
+          <div class="meta-row" data-radio-id="${r.id}">
+
+            <!-- Nome -->
+            <div class="meta-row__cell meta-row__cell--name">
+              <span class="meta-row__name">${r.nome}</span>
+              <span class="meta-row__id">${r.id.charAt(0).toUpperCase() + r.id.slice(1)}</span>
+            </div>
+
+            <!-- Meta Mensal editável -->
+            <div class="meta-row__cell">
+              <div class="meta-input-wrap">
+                <span class="meta-input-prefix">R$</span>
+                <input
+                  type="text"
+                  class="meta-input${savedEdit.meta !== undefined ? ' is-modified' : ''}"
+                  data-radio-id="${r.id}"
+                  data-field="meta"
+                  data-realizado="${r.realizado}"
+                  value="${toMask(metaVal)}"
+                  inputmode="numeric"
+                  aria-label="Meta mensal ${r.nome}">
+              </div>
+            </div>
+
+            <!-- Realizado -->
+            <div class="meta-row__cell meta-row__realized">${H.currency(r.realizado)}</div>
+
+            <!-- % Atingido -->
+            <div class="meta-row__cell meta-row__pct ${text}" data-pct-cell="${r.id}">
+              ${H.percent(pct)}
+            </div>
+
+            <!-- Progresso -->
+            <div class="meta-row__cell">
+              <div class="meta-row__progress-wrap">
+                <div class="meta-row__progress-bar">
+                  <div class="meta-row__progress-fill"
+                    data-fill-cell="${r.id}"
+                    style="width:${pct}%;background:${bar}">
+                  </div>
+                </div>
+                <span class="meta-kpi-progress__label"
+                  style="font-size:11px;white-space:nowrap;"
+                  data-label-cell="${r.id}">${H.percent(pct)}</span>
+              </div>
+            </div>
+
+            <!-- Meta Anual editável -->
+            <div class="meta-row__cell">
+              <div class="meta-input-wrap">
+                <span class="meta-input-prefix">R$</span>
+                <input
+                  type="text"
+                  class="meta-input${savedEdit.anual !== undefined ? ' is-modified' : ''}"
+                  data-radio-id="${r.id}"
+                  data-field="anual"
+                  value="${toMask(anualVal)}"
+                  inputmode="numeric"
+                  aria-label="Meta anual ${r.nome}">
+              </div>
+            </div>
+
+            <!-- Botão editar -->
+            <div class="meta-row__cell">
+              <button type="button"
+                class="meta-row__edit-btn btn-edit-goal"
                 data-radio-id="${r.id}"
                 data-radio-nome="${r.nome}"
-                data-meta="${r.meta}"
-                data-anual="${r.anual}"
+                data-meta="${metaVal}"
+                data-anual="${anualVal}"
                 aria-label="Editar meta de ${r.nome}">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
               </button>
-            </td>
-          </tr>`;
+            </div>
+
+          </div>`;
       }).join('');
 
-      // Bind inputs inline
-      tbody.querySelectorAll('.goal-field').forEach(inp => {
-        inp.addEventListener('change', () => {
-          const rId = inp.dataset.radioId;
+      // Bind inputs da tabela
+      body.querySelectorAll('.meta-input').forEach(inp => {
+        // Aplica máscara ao digitar
+        bindMoneyInput(inp);
+
+        inp.addEventListener('input', () => {
+          const rId  = inp.dataset.radioId;
           const field = inp.dataset.field;
+          const val  = unmaskMoney(inp.value);
+
           if (!State.goalEdits[rId]) State.goalEdits[rId] = {};
-          State.goalEdits[rId][field] = parseFloat(inp.value) || 0;
+          State.goalEdits[rId][field] = val;
+          inp.classList.add('is-modified');
+
+          // Recalcula % e barra apenas quando o campo é "meta"
+          if (field === 'meta') {
+            const realizado = parseFloat(inp.dataset.realizado) || 0;
+            const pct = val > 0 ? Math.min((realizado / val) * 100, 100) : 0;
+            const { bar, text } = progressColor(pct);
+
+            const pctCell  = document.querySelector(`[data-pct-cell="${rId}"]`);
+            const fillCell = document.querySelector(`[data-fill-cell="${rId}"]`);
+            const lblCell  = document.querySelector(`[data-label-cell="${rId}"]`);
+
+            if (pctCell)  {
+              pctCell.textContent = H.percent(pct);
+              pctCell.className = `meta-row__cell meta-row__pct ${text}`;
+            }
+            if (fillCell) { fillCell.style.width = `${pct}%`; fillCell.style.background = bar; }
+            if (lblCell)  lblCell.textContent = H.percent(pct);
+          }
         });
       });
 
-      // Bind botão editar meta (abre modal)
-      tbody.querySelectorAll('.btn-edit-goal').forEach(btn => {
+      // Bind botão editar (abre modal)
+      body.querySelectorAll('.btn-edit-goal').forEach(btn => {
         btn.addEventListener('click', () => {
           Modais.openGoal({
             radioId:   btn.dataset.radioId,
@@ -3385,54 +3139,17 @@
       });
     }
 
-    function renderCommRatesTable() {
-      const tbody = document.getElementById('commRatesBody');
-      if (!tbody) return;
-
-      tbody.innerHTML = MOCK_TOP_MEDICOS.map(m => {
-        const editedRate = State.commRateEdits[m.nome];
-        const rate = editedRate !== undefined ? editedRate : m.comissao;
-        const estimated = Math.round(m.faturamento * rate / 100);
-        return `
-          <tr>
-            <td><span class="data-table__name-primary">${m.nome}</span></td>
-            <td>${m.clinica}</td>
-            <td class="data-table__num">${H.percent(m.comissao)}</td>
-            <td class="data-table__num">
-              <input type="number" class="comm-rate-field${editedRate !== undefined ? ' is-modified' : ''}"
-                data-med-nome="${m.nome}"
-                data-fat="${m.faturamento}"
-                value="${rate}" min="0" max="100" step="0.5"
-                aria-label="Nova taxa de comissão para ${m.nome}">
-            </td>
-            <td class="data-table__num">${H.currency(m.faturamento)}</td>
-            <td class="data-table__num comm-estimated-${m.nome.replace(/\s/g,'_')}">${H.currency(estimated)}</td>
-          </tr>`;
-      }).join('');
-
-      tbody.querySelectorAll('.comm-rate-field').forEach(inp => {
-        inp.addEventListener('input', () => {
-          const nome = inp.dataset.medNome;
-          const fat  = parseFloat(inp.dataset.fat);
-          const rate = parseFloat(inp.value) || 0;
-          State.commRateEdits[nome] = rate;
-          inp.classList.add('is-modified');
-          const estimated = Math.round(fat * rate / 100);
-          const cell = tbody.querySelector(`.comm-estimated-${nome.replace(/\s/g,'_')}`);
-          if (cell) cell.textContent = H.currency(estimated);
-          updateImpactSimulator();
-        });
-      });
-    }
-
+    /* ---- Histórico de ajustes ---- */
     function renderAdjustmentHistory() {
       const tbody = document.getElementById('adjustmentHistoryBody');
       if (!tbody) return;
 
-      tbody.innerHTML = MOCK_HISTORICO_AJUSTES.map(a => `
+      const metasOnly = MOCK_HISTORICO_AJUSTES.filter(a => a.tipo === 'Meta');
+
+      tbody.innerHTML = metasOnly.map(a => `
         <tr>
           <td>${H.formatDate(a.data)}</td>
-          <td><span class="badge ${a.tipo === 'Meta' ? 'badge--info' : 'badge--partial'}">${a.tipo}</span></td>
+          <td><span class="badge badge--info">${a.tipo}</span></td>
           <td>${a.descricao}</td>
           <td class="data-table__num">${a.anterior}</td>
           <td class="data-table__num"><strong>${a.novo}</strong></td>
@@ -3440,60 +3157,15 @@
         </tr>`).join('');
     }
 
-    function updateImpactSimulator() {
-      const rateInput = document.getElementById('defaultCommRate');
-      const impactVal = document.getElementById('impactValue');
-      const impactRate = document.getElementById('impactRate');
-      if (!rateInput || !impactVal) return;
-
-      const newRate = parseFloat(rateInput.value) || 15;
-      const currentRate = 15; // [API] puxar taxa atual do backend
-      const totalFat = MOCK_KPIS.faturamentoTotal.value;
-      const diff = ((newRate - currentRate) / 100) * totalFat;
-
-      if (impactRate) impactRate.textContent = `${newRate}%`;
-      impactVal.textContent = `${diff >= 0 ? '+' : ''}${H.currency(Math.abs(diff))} / mês`;
-      impactVal.style.color = diff > 0 ? CFG.colors.warning : diff < 0 ? CFG.colors.positive : CFG.colors.textMuted;
-    }
-
+    /* ---- Controles da aba ---- */
     function bindControls() {
-      const rateInput = document.getElementById('defaultCommRate');
-      if (rateInput) rateInput.addEventListener('input', updateImpactSimulator);
-
-      const applyAll = document.getElementById('btnApplyAllComm');
-      if (applyAll) {
-        applyAll.addEventListener('click', () => {
-          const rate = parseFloat(document.getElementById('defaultCommRate')?.value) || 15;
-          document.querySelectorAll('.comm-rate-field').forEach(inp => {
-            inp.value = rate;
-            inp.classList.add('is-modified');
-            const fat  = parseFloat(inp.dataset.fat) || 0;
-            const nome = inp.dataset.medNome;
-            State.commRateEdits[nome] = rate;
-            const estimated = Math.round(fat * rate / 100);
-            const cell = document.querySelector(`.comm-estimated-${nome.replace(/\s/g,'_')}`);
-            if (cell) cell.textContent = H.currency(estimated);
-          });
-          H.toast('Taxa padrão aplicada para todos os médicos.', 'success');
-        });
-      }
-
-      const saveRates = document.getElementById('btnSaveCommRates');
-      if (saveRates) {
-        saveRates.addEventListener('click', () => {
-          // [API] POST /comissoes/taxas { taxas: State.commRateEdits }
-          H.toast('Taxas de comissão salvas com sucesso!', 'success');
-          State.commRateEdits = {};
-          document.querySelectorAll('.comm-rate-field').forEach(inp => inp.classList.remove('is-modified'));
-        });
-      }
-
       const saveMetas = document.getElementById('btnSaveMetas');
       if (saveMetas) {
         saveMetas.addEventListener('click', () => {
           // [API] POST /metas { metas: State.goalEdits }
           H.toast('Metas salvas com sucesso!', 'success');
           State.goalEdits = {};
+          document.querySelectorAll('.meta-input').forEach(inp => inp.classList.remove('is-modified'));
         });
       }
     }
@@ -3502,9 +3174,7 @@
       renderKPIs();
       renderGoalVsActualChart();
       renderMetasByRadiologiaTable();
-      renderCommRatesTable();
       renderAdjustmentHistory();
-      updateImpactSimulator();
       bindControls();
     }
 
@@ -3556,13 +3226,17 @@
       const colCont = document.getElementById('customReportColumns');
       if (colCont) {
         colCont.innerHTML = CFG.reportColumns.map(col => `
-          <label class="custom-check is-checked">
-            <input type="checkbox" checked value="${col}">
+          <label class="custom-check">
+            <input type="checkbox" value="${col}">
             ${col}
           </label>`).join('');
 
         colCont.querySelectorAll('.custom-check').forEach(lbl => {
-          lbl.addEventListener('click', () => lbl.classList.toggle('is-checked', lbl.querySelector('input').checked));
+          const input = lbl.querySelector('input');
+
+          input.addEventListener('change', () => {
+            lbl.classList.toggle('is-checked', input.checked);
+          });
         });
       }
     }
@@ -3606,72 +3280,6 @@
   =========================================================== */
   const Modais = (() => {
 
-    /* ----- Modal de Pagamento ----- */
-    function openPayment(data) {
-      const backdrop = document.getElementById('modalPaymentBackdrop');
-      if (!backdrop) return;
-
-      document.getElementById('modalDoctorName').textContent  = data.medNome;
-      document.getElementById('modalClinicName').textContent  = data.cliNome || '—';
-      document.getElementById('modalTotalDue').textContent    = H.currency(data.totalDue);
-      document.getElementById('modalAlreadyPaid').textContent = H.currency(data.alreadyPaid);
-      document.getElementById('modalPending').textContent     = H.currency(data.pending);
-
-      const amtInput = document.getElementById('paymentAmount');
-      if (amtInput) amtInput.value = data.pending;
-
-      const dateInput = document.getElementById('paymentDate');
-      if (dateInput) dateInput.value = H.today();
-
-      // Guarda referência para o confirm
-      backdrop._currentMedId = data.medId;
-      backdrop._currentPending = data.pending;
-
-      backdrop.hidden = false;
-      backdrop.removeAttribute('aria-hidden');
-      document.getElementById('paymentAmount')?.focus();
-    }
-
-    function closePayment() {
-      const backdrop = document.getElementById('modalPaymentBackdrop');
-      if (backdrop) { backdrop.hidden = true; backdrop.setAttribute('aria-hidden','true'); }
-    }
-
-    function bindPaymentModal() {
-      const backdrop = document.getElementById('modalPaymentBackdrop');
-      const closeBtn = document.getElementById('modalPaymentClose');
-      const cancelBtn = document.getElementById('modalPaymentCancel');
-      const confirmBtn = document.getElementById('modalPaymentConfirm');
-
-      if (closeBtn)  closeBtn.addEventListener('click', closePayment);
-      if (cancelBtn) cancelBtn.addEventListener('click', closePayment);
-      if (backdrop)  backdrop.addEventListener('click', e => { if (e.target === backdrop) closePayment(); });
-
-      if (confirmBtn) {
-        confirmBtn.addEventListener('click', () => {
-          const amount = parseFloat(document.getElementById('paymentAmount')?.value) || 0;
-          const date   = document.getElementById('paymentDate')?.value || H.today();
-          const method = document.getElementById('paymentMethod')?.value || 'pix';
-          const notes  = document.getElementById('paymentNotes')?.value || '';
-
-          if (amount <= 0) { H.toast('Informe um valor válido para pagar.', 'error'); return; }
-
-          // [API] POST /comissoes/pagamento { medId, amount, date, method, notes }
-          H.toast(`Pagamento de ${H.currency(amount)} registrado com sucesso!`, 'success');
-          closePayment();
-        });
-      }
-
-      // Escape key
-      document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') {
-          if (!document.getElementById('modalPaymentBackdrop')?.hidden)      closePayment();
-          if (!document.getElementById('modalGoalBackdrop')?.hidden)         closeGoal();
-          if (!document.getElementById('modalDoctorDetailBackdrop')?.hidden) closeDoctorDetail();
-        }
-      });
-    }
-
     /* ----- Modal de Meta ----- */
     function openGoal(data) {
       const backdrop = document.getElementById('modalGoalBackdrop');
@@ -3679,17 +3287,56 @@
 
       State.goalEditing = data.radioId;
 
-      const nameEl = document.getElementById('modalGoalRadiologia');
-      if (nameEl) nameEl.textContent = `Radiologia ${data.radioNome}`;
+      // Avatar com iniciais
+      const avatar = document.getElementById('modalGoalAvatar');
+      if (avatar) avatar.textContent = data.radioNome.charAt(0).toUpperCase();
 
-      const monthInput = document.getElementById('goalMonthlyInput');
-      const yearInput  = document.getElementById('goalYearlyInput');
-      if (monthInput) monthInput.value = State.goalEdits[data.radioId]?.meta  ?? data.meta;
-      if (yearInput)  yearInput.value  = State.goalEdits[data.radioId]?.anual ?? data.anual;
+      // Subtítulo
+      const sub = document.getElementById('modalGoalRadiologia');
+      if (sub) sub.textContent = `Radiologia ${data.radioNome}`;
+
+      // Snapshot do estado atual
+      const radioMeta  = MOCK_METAS.porRadiologia.find(r => r.id === data.radioId);
+      const pctAtual   = radioMeta && data.meta > 0 ? (radioMeta.realizado / data.meta * 100) : 0;
+      const snap = document.getElementById('modalGoalSnapshot');
+      if (snap && radioMeta) {
+        const { text } = Metas._progressColor ? Metas._progressColor(pctAtual) : { text: '' };
+        snap.innerHTML = `
+          <div class="modal-snapshot-item">
+            <span class="modal-snapshot-item__label">Meta Atual</span>
+            <span class="modal-snapshot-item__value modal-snapshot-item__value--primary">${H.currency(data.meta)}</span>
+          </div>
+          <div class="modal-snapshot-item">
+            <span class="modal-snapshot-item__label">Realizado</span>
+            <span class="modal-snapshot-item__value">${H.currency(radioMeta.realizado)}</span>
+          </div>
+          <div class="modal-snapshot-item">
+            <span class="modal-snapshot-item__label">% Atingido</span>
+            <span class="modal-snapshot-item__value ${pctAtual >= 100 ? 'modal-snapshot-item__value--positive' : pctAtual >= 50 ? 'modal-snapshot-item__value--primary' : 'modal-snapshot-item__value--warning'}">${H.percent(pctAtual)}</span>
+          </div>`;
+      }
+
+      // Preenche inputs com máscara
+      function setMasked(input, val) {
+        if (!input) return;
+        const digits = Math.round(val * 100).toString();
+        const num    = parseInt(digits, 10) / 100;
+        input.value  = new Intl.NumberFormat('pt-BR', {
+          minimumFractionDigits: 2, maximumFractionDigits: 2,
+        }).format(num);
+      }
+
+      const savedEdit = State.goalEdits[data.radioId] || {};
+      setMasked(document.getElementById('goalMonthlyInput'), savedEdit.meta  ?? data.meta);
+      setMasked(document.getElementById('goalYearlyInput'),  savedEdit.anual ?? data.anual);
+
+      // Limpa preview
+      const preview = document.getElementById('modalGoalPreview');
+      if (preview) preview.innerHTML = '';
 
       backdrop.hidden = false;
       backdrop.removeAttribute('aria-hidden');
-      monthInput?.focus();
+      document.getElementById('goalMonthlyInput')?.focus();
     }
 
     function closeGoal() {
@@ -3703,17 +3350,66 @@
       const closeBtn   = document.getElementById('modalGoalClose');
       const cancelBtn  = document.getElementById('modalGoalCancel');
       const confirmBtn = document.getElementById('modalGoalConfirm');
+      const monthInput = document.getElementById('goalMonthlyInput');
+      const yearInput  = document.getElementById('goalYearlyInput');
 
       if (closeBtn)  closeBtn.addEventListener('click', closeGoal);
       if (cancelBtn) cancelBtn.addEventListener('click', closeGoal);
       if (backdrop)  backdrop.addEventListener('click', e => { if (e.target === backdrop) closeGoal(); });
 
+      // Aplica máscara nos inputs do modal
+      function bindMoneyMask(input) {
+        input.addEventListener('input', () => {
+          const raw    = input.value.replace(/\D/g, '');
+          const digits = raw || '0';
+          const num    = parseInt(digits, 10) / 100;
+          input.value  = num === 0 ? '' : new Intl.NumberFormat('pt-BR', {
+            minimumFractionDigits: 2, maximumFractionDigits: 2,
+          }).format(num);
+          updatePreview();
+        });
+      }
+
+      if (monthInput) bindMoneyMask(monthInput);
+      if (yearInput)  bindMoneyMask(yearInput);
+
+      function unmask(str) {
+        return parseFloat(String(str).replace(/\./g,'').replace(',','.')) || 0;
+      }
+
+      function updatePreview() {
+        const preview = document.getElementById('modalGoalPreview');
+        if (!preview || !State.goalEditing) return;
+
+        const radioMeta = MOCK_METAS.porRadiologia.find(r => r.id === State.goalEditing);
+        if (!radioMeta) return;
+
+        const newMeta = unmask(monthInput?.value || '0');
+        if (!newMeta) { preview.innerHTML = ''; return; }
+
+        const pct        = (radioMeta.realizado / newMeta) * 100;
+        const falta      = Math.max(newMeta - radioMeta.realizado, 0);
+        const statusIcon = pct >= 100 ? '🎯' : pct >= 75 ? '📈' : pct >= 50 ? '⚠️' : '🔴';
+        const statusText = pct >= 100 ? 'Meta já atingida com esse valor!'
+                        : pct >= 75  ? `Quase lá — faltam ${H.currency(falta)}`
+                        : pct >= 50  ? `Metade do caminho — faltam ${H.currency(falta)}`
+                        : `Abaixo do esperado — faltam ${H.currency(falta)}`;
+
+        preview.innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/>
+            <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+          <span>${statusIcon} ${statusText} · <strong>${H.percent(pct)}</strong> atingido</span>`;
+      }
+
       if (confirmBtn) {
         confirmBtn.addEventListener('click', () => {
           const radioId = State.goalEditing;
           if (!radioId) return;
-          const meta  = parseFloat(document.getElementById('goalMonthlyInput')?.value) || 0;
-          const anual = parseFloat(document.getElementById('goalYearlyInput')?.value)  || 0;
+
+          const meta  = unmask(monthInput?.value || '0');
+          const anual = unmask(yearInput?.value  || '0');
 
           if (!State.goalEdits[radioId]) State.goalEdits[radioId] = {};
           State.goalEdits[radioId].meta  = meta;
@@ -3722,7 +3418,7 @@
           // [API] PUT /metas/:radioId { meta, anual }
           H.toast('Meta atualizada! Clique em "Salvar Metas" para confirmar.', 'success');
           closeGoal();
-          renderMetasByRadiologiaTable(); // re-render inline
+          Metas.render();
         });
       }
     }
@@ -3733,118 +3429,17 @@
     }
 
     /* ----- Modal de Detalhe do Médico ----- */
-    function openDoctorDetail(med) {
-      const backdrop = document.getElementById('modalDoctorDetailBackdrop');
-      if (!backdrop) return;
-
-      // Avatar com iniciais
-      const initials = med.nome.split(' ').filter(w => w.match(/^[A-ZÀ-Ú]/)).slice(0,2).map(w => w[0]).join('');
-      document.getElementById('modalDoctorAvatar').textContent      = initials || 'MD';
-      document.getElementById('modalDoctorDetailTitle').textContent = med.nome;
-      document.getElementById('modalDoctorClinic').textContent      = med.clinicaNome || med.clinica || '—';
-
-      // Status
-      document.getElementById('modalDoctorStatusRow').innerHTML = `
-        ${H.statusBadge(med.status)}
-        <span class="badge badge--info">${H.percent(med.percComissao || med.comissao || 0)} comissão</span>
-        <span class="badge badge--info">${med.exames} exames</span>
-      `;
-
-      // KPIs
-      const pctPago = med.comissaoDevida > 0 ? (med.pago / med.comissaoDevida * 100) : 0;
-      document.getElementById('modalDoctorKpis').innerHTML = `
-        <div class="doctor-detail__kpi">
-          <span class="doctor-detail__kpi-label">Faturamento Gerado</span>
-          <span class="doctor-detail__kpi-value">${H.currency(med.faturamento)}</span>
-        </div>
-        <div class="doctor-detail__kpi">
-          <span class="doctor-detail__kpi-label">Total Devido</span>
-          <span class="doctor-detail__kpi-value">${H.currency(med.comissaoDevida)}</span>
-        </div>
-        <div class="doctor-detail__kpi">
-          <span class="doctor-detail__kpi-label">Ticket Médio</span>
-          <span class="doctor-detail__kpi-value">${H.currency(Math.round(med.faturamento / Math.max(med.exames, 1)))}</span>
-        </div>
-      `;
-
-      // Progresso
-      const fillEl = document.getElementById('modalDoctorProgressFill');
-      const pctEl  = document.getElementById('modalDoctorProgressPct');
-      fillEl.style.width = `${Math.min(pctPago, 100)}%`;
-      fillEl.style.background = pctPago >= 100 ? CFG.colors.positive
-        : pctPago >= 50 ? '' : `linear-gradient(90deg, ${CFG.colors.warning}, #E0A020)`;
-      pctEl.textContent = H.percent(pctPago);
-      pctEl.style.color = pctPago >= 100 ? CFG.colors.positive
-        : pctPago >= 50 ? CFG.colors.primaryDark : CFG.colors.warning;
-
-      // Financeiro
-      document.getElementById('modalDoctorFinance').innerHTML = `
-        <div class="doctor-detail__finance-item">
-          <span class="doctor-detail__finance-label">Já Pago</span>
-          <span class="doctor-detail__finance-value" style="color:${CFG.colors.positive}">${H.currency(med.pago)}</span>
-        </div>
-        <div class="doctor-detail__finance-item">
-          <span class="doctor-detail__finance-label">Pendente</span>
-          <span class="doctor-detail__finance-value" style="color:${med.pendente > 0 ? CFG.colors.warning : CFG.colors.positive}">
-            ${med.pendente > 0 ? H.currency(med.pendente) : 'Quitado'}
-          </span>
-        </div>
-        <div class="doctor-detail__finance-item">
-          <span class="doctor-detail__finance-label">Radiologia</span>
-          <span class="doctor-detail__finance-value" style="font-family:var(--font-base);font-size:var(--fs-sm)">${med.radioNome || '—'}</span>
-        </div>
-        <div class="doctor-detail__finance-item">
-          <span class="doctor-detail__finance-label">% Quitado</span>
-          <span class="doctor-detail__finance-value" style="color:${pctPago >= 100 ? CFG.colors.positive : pctPago >= 50 ? CFG.colors.primaryDark : CFG.colors.warning}">
-            ${H.percent(pctPago)}
-          </span>
-        </div>
-      `;
-
-      // Botão pagar
-      const payBtn = document.getElementById('modalDoctorDetailPay');
-      if (payBtn) {
-        if (med.pendente > 0) {
-          payBtn.style.display = 'inline-flex';
-          payBtn.onclick = () => {
-            closeDoctorDetail();
-            openPayment({
-              medId:       med.id,
-              medNome:     med.nome,
-              cliNome:     med.clinicaNome || med.clinica,
-              totalDue:    med.comissaoDevida,
-              alreadyPaid: med.pago,
-              pending:     med.pendente,
-            });
-          };
-        } else {
-          payBtn.style.display = 'none';
-        }
-      }
-
-      backdrop.hidden = false;
-      backdrop.removeAttribute('aria-hidden');
-    }
-
-    function closeDoctorDetail() {
-      const backdrop = document.getElementById('modalDoctorDetailBackdrop');
-      if (backdrop) { backdrop.hidden = true; backdrop.setAttribute('aria-hidden', 'true'); }
-    }
-
-    function bindDoctorDetailModal() {
-      const backdrop = document.getElementById('modalDoctorDetailBackdrop');
-      document.getElementById('modalDoctorDetailClose')?.addEventListener('click', closeDoctorDetail);
-      document.getElementById('modalDoctorDetailClose2')?.addEventListener('click', closeDoctorDetail);
-      backdrop?.addEventListener('click', e => { if (e.target === backdrop) closeDoctorDetail(); });
-    }
-
+    
     function init() {
-      bindPaymentModal();
       bindGoalModal();
-      bindDoctorDetailModal();
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+          if (!document.getElementById('modalGoalBackdrop')?.hidden) closeGoal();
+        }
+      })
     }
 
-    return { init, openPayment, openGoal, openDoctorDetail };
+    return { init, openGoal, };
   })();
 
 
