@@ -24,7 +24,7 @@
     =========================================================== */
     const CONFIG = {
         // [API] Trocar pela URL real do backend
-        apiBase: 'https://api.iord.com.br/v1',
+        apiBase: 'https://unsanguineously-uninductive-kamdyn.ngrok-free.dev/v1',
 
         // Rota padrão após login
         defaultRedirect: 'dashboard.html',
@@ -358,30 +358,13 @@
             this.setLoading(true)
 
             try {
-                // [API] Substituir pelo fetch real:
-                // const response = await fetch(`${CONFIG.apiBase}/auth/login`, {
-                //     method: 'POST',
-                //     headers: { 'Content-Type': 'application/json' },
-                //     body: JSON.stringify({ email, password }),
-                // })
-                // const data = await response.json()
-                // if (!response.ok) throw new Error(data.message || 'Credenciais inválidas.')
-
-                // ---- MOCK: simula resposta do backend ----
-                await this.mockLogin(email, password)
-                // ------------------------------------------
-
-                const mockSession = {
-                    token: `mock_token_${Date.now()}`,
-                    user: {
-                        id: 'usr-001',
-                        name: 'Dr. Iago',
-                        email,
-                        role: 'Proprietário',
-                        level: 'admin',
-                        radiologia: 'todas',
-                    },
-                }
+                const response = await fetch(`${CONFIG.apiBase}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password }),
+                })
+                const data = await response.json()
+                if (!response.ok) throw new Error(data.message || 'Credenciais inválidas.')
 
                 // Salva e-mail para prefill futuro
                 if (remember) {
@@ -390,7 +373,7 @@
                     try { localStorage.removeItem('iord_last_email') } catch { /* ignore */ }
                 }
 
-                Auth.saveSession(mockSession, remember)
+                Auth.saveSession(data.data, remember)
                 Auth.redirectAfterLogin()
 
             } catch (err) {
@@ -403,27 +386,6 @@
             }
         },
 
-        /**
-         * MOCK de autenticação — remover quando o backend estiver pronto.
-         * Simula latência de rede e valida credenciais fixas.
-         */
-        mockLogin(email, password) {
-            return new Promise((resolve, reject) => {
-                setTimeout(() => {
-                    // Credenciais de teste (remover em produção)
-                    const validUsers = [
-                        { email: 'admin@iord.com.br', password: '123456' },
-                        { email: 'iago@iord.com.br', password: '123456' },
-                    ]
-                    const found = validUsers.find(u => u.email === email && u.password === password)
-                    if (found) {
-                        resolve({ ok: true })
-                    } else {
-                        reject(new Error('E-mail ou senha incorretos. Tente novamente.'))
-                    }
-                }, 900) // simula ~900ms de latência
-            })
-        },
     }
 
     /* ===========================================================
@@ -569,15 +531,13 @@
             }
 
             try {
-                // [API] Substituir pelo fetch real:
-                // await fetch(`${CONFIG.apiBase}/auth/forgot-password`, {
-                //     method: 'POST',
-                //     headers: { 'Content-Type': 'application/json' },
-                //     body: JSON.stringify({ email }),
-                // })
-
-                // MOCK: simula latência de rede
-                await new Promise(resolve => setTimeout(resolve, 800))
+                const response = await fetch(`${CONFIG.apiBase}/auth/forgot-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email }),
+                })
+                const data = await response.json()
+                if (!response.ok) throw new Error(data.message || 'Erro ao enviar o link.')
 
                 // Mostra estado de sucesso
                 State.forgotEmailSent = true

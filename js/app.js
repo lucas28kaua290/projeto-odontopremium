@@ -15,285 +15,6 @@
  * =================================================================
  */
 
-/* =================================================================
-   1. MOCK DATA
-   -----------------------------------------------------------------
-   Estrutura de negócio:
-     Radiologia (unidade própria do Dr. Iago)
-       └── Clínicas Referenciadoras
-             └── Médicos Referenciadores
-   Cada médico carrega exames/faturamento/comissão/pendente —
-   os totais de clínica e radiologia são somados a partir deles,
-   garantindo consistência entre a tabela hierárquica, os KPIs
-   e a seção de comissões.
-================================================================= */
-const MockData = (() => {
-
-  const TAXA_COMISSAO = 0.15; // 15% do faturamento — usado para simular comissão devida
-
-  /** Lista de radiologias próprias (as 4 unidades) */
-  const radiologias = [
-    { id: 'all', nome: 'Todas as Radiologias' },
-    { id: 'rad_centro', nome: 'Radiologia Centro' },
-    { id: 'rad_norte', nome: 'Radiologia Zona Norte' },
-    { id: 'rad_sul', nome: 'Radiologia Zona Sul' },
-    { id: 'rad_leste', nome: 'Radiologia Zona Leste' },
-  ];
-
-  /**
-   * Estrutura hierárquica completa: radiologia -> clínicas -> médicos.
-   * `pendentePercent` simula a fração da comissão ainda não paga.
-   */
-  const hierarchy = {
-    rad_centro: {
-      nome: 'Radiologia Centro',
-      clinicas: [
-        {
-          id: 'cl_1', nome: 'Clínica OdontoVida',
-          medicos: [
-            { id: 'md_1', nome: 'Dra. Beatriz Nunes', exames: 182, faturamento: 28400, pendentePercent: 0.10 },
-            { id: 'md_2', nome: 'Dr. Rafael Costa', exames: 130, faturamento: 19800, pendentePercent: 0.35 },
-          ],
-        },
-        {
-          id: 'cl_2', nome: 'Sorriso & Cia',
-          medicos: [
-            { id: 'md_3', nome: 'Dr. Marcelo Alves', exames: 201, faturamento: 31500, pendentePercent: 0.0 },
-          ],
-        },
-        {
-          id: 'cl_3', nome: 'Clínica Dental Plus',
-          medicos: [
-            { id: 'md_4', nome: 'Dra. Camila Rocha', exames: 158, faturamento: 22800, pendentePercent: 0.55 },
-          ],
-        },
-      ],
-    },
-    rad_norte: {
-      nome: 'Radiologia Zona Norte',
-      clinicas: [
-        {
-          id: 'cl_4', nome: 'Clínica Bem Estar Odonto',
-          medicos: [
-            { id: 'md_5', nome: 'Dr. Henrique Lima', exames: 260, faturamento: 39100, pendentePercent: 0.20 },
-          ],
-        },
-        {
-          id: 'cl_5', nome: 'Odonto Norte',
-          medicos: [
-            { id: 'md_6', nome: 'Dra. Patrícia Souza', exames: 112, faturamento: 16200, pendentePercent: 0.0 },
-            { id: 'md_7', nome: 'Dr. Diego Farias', exames: 77, faturamento: 11400, pendentePercent: 0.42 },
-          ],
-        },
-      ],
-    },
-    rad_sul: {
-      nome: 'Radiologia Zona Sul',
-      clinicas: [
-        {
-          id: 'cl_6', nome: 'Clínica Dental Sul',
-          medicos: [
-            { id: 'md_8', nome: 'Dra. Larissa Prado', exames: 224, faturamento: 33400, pendentePercent: 0.08 },
-          ],
-        },
-        {
-          id: 'cl_7', nome: 'OrtoSorriso',
-          medicos: [
-            { id: 'md_9', nome: 'Dr. Vinícius Teixeira', exames: 197, faturamento: 29800, pendentePercent: 0.15 },
-          ],
-        },
-        {
-          id: 'cl_8', nome: 'Clínica Vitallis',
-          medicos: [
-            { id: 'md_10', nome: 'Dra. Fernanda Dutra', exames: 121, faturamento: 18200, pendentePercent: 0.60 },
-          ],
-        },
-      ],
-    },
-    rad_leste: {
-      nome: 'Radiologia Zona Leste',
-      clinicas: [
-        {
-          id: 'cl_9', nome: 'Clínica Leste Odonto',
-          medicos: [
-            { id: 'md_11', nome: 'Dr. Thiago Martins', exames: 172, faturamento: 25700, pendentePercent: 0.25 },
-          ],
-        },
-        {
-          id: 'cl_10', nome: 'Sorridental',
-          medicos: [
-            { id: 'md_12', nome: 'Dra. Juliana Ramos', exames: 143, faturamento: 21300, pendentePercent: 0.05 },
-          ],
-        },
-      ],
-    },
-  };
-
-  /** Série temporal (12 pontos) por radiologia — para o gráfico de linha */
-  const serieTemporalPorRadiologia = {
-    rad_centro: [58000, 61200, 59800, 64500, 67200, 65800, 70100, 72400, 71000, 74800, 76200, 78500],
-    rad_norte:  [41000, 42500, 40800, 44200, 45900, 44700, 47300, 48600, 47900, 50100, 51400, 52700],
-    rad_sul:    [46200, 47800, 45300, 49100, 50600, 49200, 52800, 54100, 53400, 55900, 57200, 58600],
-    rad_leste:  [32100, 33400, 31800, 34600, 35900, 34700, 37200, 38100, 37600, 39400, 40300, 41200],
-  };
-
-  const labelsTempo = ['Ago', 'Set', 'Out', 'Nov', 'Dez', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul'];
-
-  const examesPorMesPorRadiologia = {
-    rad_centro: [612, 634, 601, 655, 671, 660, 690, 705, 698, 720, 734, 748],
-    rad_norte:  [420, 431, 408, 445, 452, 447, 468, 479, 471, 488, 496, 505],
-    rad_sul:    [468, 482, 455, 497, 508, 498, 519, 531, 524, 540, 552, 563],
-    rad_leste:  [325, 338, 318, 349, 358, 350, 368, 375, 369, 382, 390, 398],
-  };
-
-  const nomeRadiologiaPorId = radiologias.reduce((acc, r) => { acc[r.id] = r.nome; return acc; }, {});
-
-  /** Lista de clínicas de uma radiologia (compat. com gráfico de barras / tooltips) */
-  function clinicasDe(radId) {
-    return (hierarchy[radId]?.clinicas || []).map((c) => ({
-      id: c.id,
-      nome: c.nome,
-      faturamento: c.medicos.reduce((s, m) => s + m.faturamento, 0),
-      exames: c.medicos.reduce((s, m) => s + m.exames, 0),
-      medicos: c.medicos,
-    }));
-  }
-
-  const clinicasPorRadiologia = radiologias
-    .filter((r) => r.id !== 'all')
-    .reduce((acc, r) => { acc[r.id] = clinicasDe(r.id); return acc; }, {});
-
-  /** Calcula agregados (exames, faturamento, comissão, pendente) de uma lista de médicos */
-  function agregarMedicos(medicos) {
-    return medicos.reduce((acc, m) => {
-      const comissao = m.faturamento * TAXA_COMISSAO;
-      const pendente = comissao * m.pendentePercent;
-      acc.exames += m.exames;
-      acc.faturamento += m.faturamento;
-      acc.comissao += comissao;
-      acc.pendente += pendente;
-      return acc;
-    }, { exames: 0, faturamento: 0, comissao: 0, pendente: 0 });
-  }
-
-  /** Retorna a árvore completa (todas as radiologias) já com totais calculados por nível */
-  function getHierarchyTree() {
-    return radiologias.filter((r) => r.id !== 'all').map((rad) => {
-      const radData = hierarchy[rad.id];
-      const clinicasComTotais = radData.clinicas.map((clinica) => {
-        const totais = agregarMedicos(clinica.medicos);
-        const medicosComComissao = clinica.medicos.map((m) => {
-          const comissao = m.faturamento * TAXA_COMISSAO;
-          const pendente = comissao * m.pendentePercent;
-          return { ...m, comissao, pendente };
-        });
-        return { id: clinica.id, nome: clinica.nome, medicos: medicosComComissao, totais };
-      });
-      const totaisRadiologia = agregarMedicos(radData.clinicas.flatMap((c) => c.medicos));
-      return { id: rad.id, nome: radData.nome, clinicas: clinicasComTotais, totais: totaisRadiologia };
-    });
-  }
-
-  /** Retorna todos os médicos "achatados" (flat), com contexto de clínica/radiologia — usado em Comissões */
-  function getAllDoctorsFlat() {
-    const out = [];
-    radiologias.filter((r) => r.id !== 'all').forEach((rad) => {
-      hierarchy[rad.id].clinicas.forEach((clinica) => {
-        clinica.medicos.forEach((m) => {
-          const comissao = m.faturamento * TAXA_COMISSAO;
-          const pendente = comissao * m.pendentePercent;
-          out.push({
-            id: m.id, nome: m.nome, exames: m.exames, faturamento: m.faturamento,
-            comissao, pendente,
-            clinicaId: clinica.id, clinicaNome: clinica.nome,
-            radiologiaId: rad.id, radiologiaNome: hierarchy[rad.id].nome,
-          });
-        });
-      });
-    });
-    return out;
-  }
-
-  /** KPIs consolidados por radiologia (chave 'all' = soma agregada), derivados da hierarquia */
-  function buildKpis() {
-    const porRadiologia = {};
-    let totalFat = 0, totalExames = 0, totalComissao = 0, totalPendente = 0, totalClinicas = 0;
-
-    radiologias.filter((r) => r.id !== 'all').forEach((rad) => {
-      const radData = hierarchy[rad.id];
-      const totais = agregarMedicos(radData.clinicas.flatMap((c) => c.medicos));
-      const clinicasAtivas = radData.clinicas.length;
-
-      porRadiologia[rad.id] = {
-        faturamentoTotal: totais.faturamento,
-        faturamentoVariacao: 4 + Math.random() * 7,
-        totalExames: totais.exames,
-        examesVariacao: 2 + Math.random() * 6,
-        faturamentoMedioPorClinica: Math.round(totais.faturamento / clinicasAtivas),
-        ticketMedioExame: totais.faturamento / totais.exames,
-        clinicasAtivas,
-        previsibilidadeCaixa: Math.round(totais.faturamento * 0.38),
-        examesAgendados: Math.round(totais.exames * 0.08),
-        comissoesTotais: Math.round(totais.comissao),
-        comissoesPendentes: Math.round(totais.pendente),
-        comissoesPercentualFaturamento: TAXA_COMISSAO * 100,
-        comissoesVariacao: 1 + Math.random() * 4,
-      };
-
-      totalFat += totais.faturamento;
-      totalExames += totais.exames;
-      totalComissao += totais.comissao;
-      totalPendente += totais.pendente;
-      totalClinicas += clinicasAtivas;
-    });
-
-    porRadiologia.all = {
-      faturamentoTotal: totalFat,
-      faturamentoVariacao: 8.4,
-      totalExames: totalExames,
-      examesVariacao: 5.9,
-      faturamentoMedioPorClinica: Math.round(totalFat / totalClinicas),
-      ticketMedioExame: totalFat / totalExames,
-      clinicasAtivas: totalClinicas,
-      previsibilidadeCaixa: Math.round(totalFat * 0.38),
-      examesAgendados: Math.round(totalExames * 0.08),
-      comissoesTotais: Math.round(totalComissao),
-      comissoesPendentes: Math.round(totalPendente),
-      comissoesPercentualFaturamento: TAXA_COMISSAO * 100,
-      comissoesVariacao: 3.2,
-    };
-
-    return porRadiologia;
-  }
-
-  const kpisPorRadiologia = buildKpis();
-
-  function labelPeriodo(periodoId) {
-    const mapa = {
-      mes_atual: 'mês atual',
-      ultimos_30: 'últimos 30 dias',
-      trimestre: 'trimestre',
-      ano: 'ano',
-      custom: 'período personalizado',
-    };
-    return mapa[periodoId] || 'período selecionado';
-  }
-
-  return {
-    radiologias,
-    clinicasPorRadiologia,
-    serieTemporalPorRadiologia,
-    labelsTempo,
-    examesPorMesPorRadiologia,
-    kpisPorRadiologia,
-    nomeRadiologiaPorId,
-    labelPeriodo,
-    getHierarchyTree,
-    getAllDoctorsFlat,
-    TAXA_COMISSAO,
-  };
-})();
-
 
 /* =================================================================
    2. APP STATE
@@ -329,9 +50,10 @@ const AppState = (() => {
 const Filters = (() => {
   let pillsContainer, periodSelect, customRangeWrapper, customDateStart, customDateEnd;
 
-  function renderRadiologyPills() {
+  async function renderRadiologyPills() {
     pillsContainer.innerHTML = '';
-    MockData.radiologias.forEach((rad) => {
+    const radiologias = await Api.getRadiologias();
+    radiologias.data.forEach((rad) => {
       const isActive = rad.id === AppState.getState().radiologiaSelecionada;
       const pill = document.createElement('button');
       pill.type = 'button';
@@ -340,7 +62,7 @@ const Filters = (() => {
       pill.setAttribute('role', 'tab');
       pill.setAttribute('aria-selected', String(isActive));
       pill.dataset.radiologyId = rad.id;
-      pill.addEventListener('click', () => AppState.update({radiologiaSelecionada: rad.id, clinicaSelecionada:'all'}));
+      pill.addEventListener('click', () => AppState.update({ radiologiaSelecionada: rad.id, clinicaSelecionada: 'all' }));
       pillsContainer.appendChild(pill);
     });
   }
@@ -398,8 +120,6 @@ const Kpis = (() => {
     return { text: `${arrow} ${sign}${value.toFixed(1)}%`, isPositive };
   }
 
-  function getKpiData(radiologiaId) { return MockData.kpisPorRadiologia[radiologiaId]; }
-
   function renderChangeEl(el, changeValue) {
     if (!el) return;
     const { text, isPositive } = formatChange(changeValue);
@@ -408,8 +128,10 @@ const Kpis = (() => {
     el.classList.toggle('is-negative', !isPositive);
   }
 
-  function render(state) {
-    const data = getKpiData(state.radiologiaSelecionada);
+  async function render(state) {
+    const filtros = Api.filtrosDoState(state);
+    const res = await Api.getKPIs(filtros);
+    const data = res.data;
     if (!data) return;
 
     const kpiRevenue = document.getElementById('kpiRevenue');
@@ -430,14 +152,8 @@ const Kpis = (() => {
     kpiCash.querySelector('[data-field="context"]').textContent = `${data.examesAgendados} exames agendados`;
 
     const kpiTicket = document.getElementById('kpiTicketMedio');
-
-    kpiTicket.querySelector('[data-field="value"]').textContent =
-      formatCurrency(data.ticketMedioExame);
-
-    renderChangeEl(
-      kpiTicket.querySelector('[data-field="change"]'),
-      data.faturamentoVariacao
-    );
+    kpiTicket.querySelector('[data-field="value"]').textContent = formatCurrency(data.ticketMedioExame);
+    renderChangeEl(kpiTicket.querySelector('[data-field="change"]'), data.faturamentoVariacao);
   }
 
   function init() {
@@ -599,7 +315,7 @@ const Charts = (() => {
 
       // Posição bruta: à direita do caret
       let left = canvasRect.left + tooltip.caretX + OFFSET;
-      let top  = canvasRect.top  + tooltip.caretY - tooltipHeight / 2;
+      let top = canvasRect.top + tooltip.caretY - tooltipHeight / 2;
 
       // Vaza pela direita? → vai para a esquerda do caret
       if (left + tooltipWidth + MARGIN > window.innerWidth) {
@@ -620,7 +336,7 @@ const Charts = (() => {
 
       tooltipEl.style.opacity = 1;
       tooltipEl.style.left = left + 'px';
-      tooltipEl.style.top  = top  + 'px';
+      tooltipEl.style.top = top + 'px';
     };
   }
 
@@ -634,79 +350,46 @@ const Charts = (() => {
    *   com preenchimento sutil), acompanhada — quando fizer sentido — de linhas
    *   secundárias tracejadas e discretas das clínicas daquela radiologia.
    */
-  function buildLineDatasets(state) {
+  async function buildLineDatasets(state) {
     const { radiologiaSelecionada, visualizacao } = state;
-    const fonteDados = visualizacao === 'faturamento' ? MockData.serieTemporalPorRadiologia : MockData.examesPorMesPorRadiologia;
+    const filtros = Api.filtrosDoState(state);
 
-    if (radiologiaSelecionada === 'all') {
-      return MockData.radiologias.filter((r) => r.id !== 'all').map((rad, i) => ({
-        label: rad.nome,
-        data: fonteDados[rad.id],
-        borderColor: SERIES_COLORS[i % SERIES_COLORS.length],
-        backgroundColor: SERIES_COLORS[i % SERIES_COLORS.length] + '1F',
-        borderWidth: 2.5,
-        tension: 0.35,
-        pointRadius: 0,
-        pointHoverRadius: 5,
-        pointHoverBackgroundColor: SERIES_COLORS[i % SERIES_COLORS.length],
-        pointHoverBorderColor: '#FFFFFF',
-        pointHoverBorderWidth: 2,
-        fill: false,
-        _isPrimary: true,
-        _radId: rad.id,
-      }));
+    let labels, series;
+
+    if (visualizacao === 'faturamento') {
+      const res = await Api.getFaturamentoEvolucao(filtros);
+      labels = res.data.labels;
+      series = res.data.series;
+    } else {
+      const res = await Api.getExamesEvolucao(filtros);
+      labels = res.data.labels;
+      series = res.data.series;
     }
 
-    // Radiologia específica: apenas a linha dela, em destaque — nenhuma outra
-    // radiologia aparece no gráfico.
-    const clinicas = MockData.clinicasPorRadiologia[radiologiaSelecionada] || [];
-    const principal = fonteDados[radiologiaSelecionada];
-    const corPrincipal = SERIES_COLORS[0];
-
-    const datasets = [{
-      label: MockData.nomeRadiologiaPorId[radiologiaSelecionada],
-      data: principal,
-      borderColor: corPrincipal,
-      backgroundColor: corPrincipal + '26',
-      borderWidth: 3.25,
-      tension: 0.35,
-      pointRadius: 0,
-      pointHoverRadius: 6,
-      pointHoverBackgroundColor: corPrincipal,
-      pointHoverBorderColor: '#FFFFFF',
-      pointHoverBorderWidth: 2,
-      fill: true,
-      order: 0,
-      _isPrimary: true,
-      _radId: radiologiaSelecionada,
-    }];
-
-    // Linhas secundárias, discretas e tracejadas, mostrando a proporção de
-    // cada clínica referenciadora dentro da radiologia selecionada.
-    const totalClinicas = clinicas.reduce((s, c) => s + c.faturamento, 0) || 1;
-    clinicas.slice(0, 3).forEach((clinica, i) => {
-      const fator = clinica.faturamento / totalClinicas;
-      const cor = SERIES_COLORS[(i + 1) % SERIES_COLORS.length];
-      datasets.push({
-        label: clinica.nome,
-        data: principal.map((v) => Math.round(v * fator)),
+    const datasets = series.map((s, i) => {
+      const cor = SERIES_COLORS[i % SERIES_COLORS.length];
+      const isPrimary = radiologiaSelecionada === 'all' || s.radiologiaId === radiologiaSelecionada;
+      return {
+        label: s.nome,
+        data: s.dados,
         borderColor: cor,
-        borderWidth: 1.5,
-        borderDash: [5, 4],
+        backgroundColor: cor + (isPrimary ? '26' : '1F'),
+        borderWidth: isPrimary ? 3.25 : 1.5,
+        borderDash: isPrimary ? [] : [5, 4],
         tension: 0.35,
         pointRadius: 0,
-        pointHoverRadius: 4,
+        pointHoverRadius: isPrimary ? 6 : 4,
         pointHoverBackgroundColor: cor,
         pointHoverBorderColor: '#FFFFFF',
-        pointHoverBorderWidth: 1.5,
-        fill: false,
-        order: 1,
-        _isPrimary: false,
-        _clinicaId: clinica.id,
-      });
+        pointHoverBorderWidth: isPrimary ? 2 : 1.5,
+        fill: isPrimary && radiologiaSelecionada !== 'all',
+        order: isPrimary ? 0 : 1,
+        _isPrimary: isPrimary,
+        _radId: s.radiologiaId,
+      };
     });
 
-    return datasets;
+    return { labels, datasets };
   }
 
   function lineTooltipModel(state, tooltip) {
@@ -774,15 +457,15 @@ const Charts = (() => {
     };
   }
 
-  function renderLineChart(state) {
+  async function renderLineChart(state) {
     const ctx = document.getElementById('evolutionChart');
-    const datasets = buildLineDatasets(state);
+    const { labels, datasets } = await buildLineDatasets(state);
 
     if (lineChartInstance) lineChartInstance.destroy();
 
     lineChartInstance = new Chart(ctx, {
       type: 'line',
-      data: { labels: MockData.labelsTempo, datasets },
+      data: { labels, datasets },
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -812,28 +495,28 @@ const Charts = (() => {
     });
   }
 
-  function buildBarData(state) {
-    const { radiologiaSelecionada, visualizacao } = state;
+  async function buildBarData(state) {
+    const filtros = Api.filtrosDoState(state);
 
-    if (radiologiaSelecionada === 'all') {
-      const labels = MockData.radiologias.filter((r) => r.id !== 'all').map((r) => r.nome);
-      const values = MockData.radiologias.filter((r) => r.id !== 'all').map((r) => {
-        const kpi = MockData.kpisPorRadiologia[r.id];
-        return visualizacao === 'faturamento' ? kpi.faturamentoTotal : kpi.totalExames;
-      });
-      const meta = MockData.radiologias.filter((r) => r.id !== 'all').map((r) => ({
-        tipo: 'radiologia',
-        clinicas: MockData.clinicasPorRadiologia[r.id] || [],
-      }));
-      return { labels, values, meta };
+    let res;
+    if (state.visualizacao === 'faturamento') {
+      res = await Api.getFaturamentoPorEntidade(filtros);
+    } else {
+      res = await Api.getExamesPorEntidade(filtros);
     }
 
-    const clinicas = MockData.clinicasPorRadiologia[radiologiaSelecionada] || [];
-    return {
-      labels: clinicas.map((c) => c.nome),
-      values: clinicas.map((c) => (visualizacao === 'faturamento' ? c.faturamento : c.exames)),
-      meta: clinicas.map((c) => ({ tipo: 'clinica', clinicaId: c.id, medicos: c.medicos })),
-    };
+    const itens = res.data.itens;
+    const agrupamento = res.data.agrupamento;
+
+    const labels = itens.map((i) => i.nome);
+    const values = itens.map((i) => state.visualizacao === 'faturamento' ? i.faturamento : i.exames);
+    const meta = itens.map((i) => ({
+      tipo: agrupamento,
+      clinicas: i.breakdown || [],
+      medicos:  i.breakdown || [],
+    }));
+
+    return { labels, values, meta };
   }
 
   function barTooltipModel(state, meta, tooltip) {
@@ -907,22 +590,24 @@ const Charts = (() => {
     };
   }
 
-  function renderBarChart(state) {
+  async function renderBarChart(state) {
     const ctx = document.getElementById('entityChart');
-    const { labels, values, meta } = buildBarData(state);
+    const { labels, values, meta } = await buildBarData(state);
 
     if (barChartInstance) barChartInstance.destroy();
 
     barChartInstance = new Chart(ctx, {
       type: 'bar',
-      data: { labels, datasets: [{
-        label: state.visualizacao === 'faturamento' ? 'Faturamento' : 'Exames',
-        data: values,
-        backgroundColor: SERIES_COLORS[0],
-        hoverBackgroundColor: SERIES_COLORS[1],
-        borderRadius: 4,
-        maxBarThickness: 42,
-      }] },
+      data: {
+        labels, datasets: [{
+          label: state.visualizacao === 'faturamento' ? 'Faturamento' : 'Exames',
+          data: values,
+          backgroundColor: SERIES_COLORS[0],
+          hoverBackgroundColor: SERIES_COLORS[1],
+          borderRadius: 4,
+          maxBarThickness: 42,
+        }]
+      },
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -943,8 +628,8 @@ const Charts = (() => {
   }
 
   function updateChartHeadings(state) {
-    const nomeRadiologia = MockData.nomeRadiologiaPorId[state.radiologiaSelecionada];
-    const labelPeriodo = MockData.labelPeriodo(state.periodo);
+    const nomeRadiologia = state.radiologiaSelecionada === 'all' ? 'Todas as Radiologias' : state.radiologiaSelecionada;
+    const labelPeriodo = { mes_atual: 'mês atual', ultimos_30: 'últimos 30 dias', trimestre: 'trimestre', semestre: 'semestre', ano: 'ano', custom: 'período personalizado' }[state.periodo] || 'período selecionado';
     const isAll = state.radiologiaSelecionada === 'all';
 
     document.getElementById('lineChartTitle').textContent = state.visualizacao === 'faturamento' ? 'Evolução de Faturamento' : 'Evolução de Exames Realizados';
@@ -982,10 +667,10 @@ const Charts = (() => {
     });
   }
 
-  function renderAll(state) {
+  async function renderAll(state) {
     updateChartHeadings(state);
-    renderLineChart(state);
-    renderBarChart(state);
+    await renderLineChart(state);
+    await renderBarChart(state);
   }
 
   function init() {
@@ -1008,108 +693,13 @@ const ExamAnalysis = (() => {
   /* ---------------------------------------------------------------
      DADOS: tipos de exame por radiologia
   --------------------------------------------------------------- */
-  const EXAM_TYPES_BY_RAD = {
-    rad_centro: { 'Panorâmica': 248, 'Tomografia': 156, 'Periapical': 184, 'Interproximal': 78, 'Cefalométrica': 82 },
-    rad_norte:  { 'Panorâmica': 198, 'Tomografia': 112, 'Periapical': 124, 'Interproximal': 48, 'Cefalométrica': 43 },
-    rad_sul:    { 'Panorâmica': 214, 'Tomografia': 134, 'Periapical': 148, 'Interproximal': 62, 'Cefalométrica': 58 },
-    rad_leste:  { 'Panorâmica': 162, 'Tomografia':  98, 'Periapical': 112, 'Interproximal': 44, 'Cefalométrica': 36 },
-  };
 
   /*
    * Distribuição simulada de tipos de exame por médico.
    * Array ordenado por relevância — os 2 primeiros viram tags no minicard.
    * Numa API real, viria do breakdown de laudos por CRM.
    */
-  const DOCTOR_EXAM_TYPES = {
-
-    md_1: [
-        { tipo: "Panorâmica", exames: 248 },
-        { tipo: "Periapical", exames: 184 },
-        { tipo: "Tomografia", exames: 156 },
-        { tipo: "Interproximal", exames: 78 },
-        { tipo: "Raio-X", exames: 52 }
-    ],
-
-    md_2: [
-        { tipo: "Tomografia", exames: 212 },
-        { tipo: "Panorâmica", exames: 145 },
-        { tipo: "Cefalométrica", exames: 84 },
-        { tipo: "Raio-X", exames: 66 }
-    ],
-
-    md_3: [
-        { tipo: "Periapical", exames: 192 },
-        { tipo: "Panorâmica", exames: 167 },
-        { tipo: "Interproximal", exames: 63 },
-        { tipo: "Raio-X", exames: 41 }
-    ],
-
-    md_4: [
-        { tipo: "Panorâmica", exames: 231 },
-        { tipo: "Tomografia", exames: 174 },
-        { tipo: "Cefalométrica", exames: 92 },
-        { tipo: "Raio-X", exames: 58 }
-    ],
-
-    md_5: [
-        { tipo: "Tomografia", exames: 226 },
-        { tipo: "Panorâmica", exames: 181 },
-        { tipo: "Periapical", exames: 109 },
-        { tipo: "Raio-X", exames: 76 }
-    ],
-
-    md_6: [
-        { tipo: "Panorâmica", exames: 208 },
-        { tipo: "Interproximal", exames: 116 },
-        { tipo: "Periapical", exames: 102 },
-        { tipo: "Raio-X", exames: 61 }
-    ],
-
-    md_7: [
-        { tipo: "Cefalométrica", exames: 171 },
-        { tipo: "Panorâmica", exames: 148 },
-        { tipo: "Tomografia", exames: 119 },
-        { tipo: "Raio-X", exames: 53 }
-    ],
-
-    md_8: [
-        { tipo: "Panorâmica", exames: 243 },
-        { tipo: "Periapical", exames: 178 },
-        { tipo: "Tomografia", exames: 152 },
-        { tipo: "Interproximal", exames: 84 },
-        { tipo: "Raio-X", exames: 45 }
-    ],
-
-    md_9: [
-        { tipo: "Tomografia", exames: 238 },
-        { tipo: "Panorâmica", exames: 182 },
-        { tipo: "Periapical", exames: 121 },
-        { tipo: "Raio-X", exames: 73 }
-    ],
-
-    md_10: [
-        { tipo: "Periapical", exames: 214 },
-        { tipo: "Interproximal", exames: 126 },
-        { tipo: "Panorâmica", exames: 118 },
-        { tipo: "Raio-X", exames: 54 }
-    ],
-
-    md_11: [
-        { tipo: "Panorâmica", exames: 259 },
-        { tipo: "Tomografia", exames: 183 },
-        { tipo: "Periapical", exames: 146 },
-        { tipo: "Raio-X", exames: 69 }
-    ],
-
-    md_12: [
-        { tipo: "Cefalométrica", exames: 184 },
-        { tipo: "Panorâmica", exames: 161 },
-        { tipo: "Interproximal", exames: 98 },
-        { tipo: "Raio-X", exames: 48 }
-    ]
-
-  };
-
+  
   const REFERENCED_PCT_BY_RAD = {
     rad_centro: 87.4, rad_norte: 91.2, rad_sul: 84.7, rad_leste: 88.9,
   };
@@ -1118,7 +708,7 @@ const ExamAnalysis = (() => {
     rad_centro: 6.3, rad_norte: 4.1, rad_sul: 7.8, rad_leste: 3.5, all: 5.9,
   };
 
-  const TYPE_COLORS = ['#018093','#01C6BF','#046B85','#8FBFC7','#B7C2C4'];
+  const TYPE_COLORS = ['#018093', '#01C6BF', '#046B85', '#8FBFC7', '#B7C2C4'];
 
   let pieChart = null;
 
@@ -1137,147 +727,72 @@ const ExamAnalysis = (() => {
     return parts[0].slice(0, 2).toUpperCase();
   }
 
-  function getExamTypes(radId) {
-    if (radId === 'all') {
-      const merged = {};
-      Object.values(EXAM_TYPES_BY_RAD).forEach(types => {
-        Object.entries(types).forEach(([tipo, qtd]) => { merged[tipo] = (merged[tipo] || 0) + qtd; });
-      });
-      return merged;
-    }
-    return { ...EXAM_TYPES_BY_RAD[radId] };
-  }
-
-  function getClinicsData(radId) {
-    const allDoctors = MockData.getAllDoctorsFlat();
-    const filtered = radId === 'all' ? allDoctors : allDoctors.filter(d => d.radiologiaId === radId);
-    const clinicMap = {};
-    filtered.forEach(d => {
-      if (!clinicMap[d.clinicaNome]) clinicMap[d.clinicaNome] = { nome: d.clinicaNome, radiologia: d.radiologiaNome, exames: 0 };
-      clinicMap[d.clinicaNome].exames += d.exames;
-    });
-    return Object.values(clinicMap).sort((a, b) => b.exames - a.exames).slice(0, 6);
-  }
-
-  function getDoctorsData(radId, clinic = 'all') {
-    const allDoctors = MockData.getAllDoctorsFlat();
-    let filtered =
-      radId === 'all'
-        ? allDoctors
-        : allDoctors.filter(d => d.radiologiaId === radId);
-
-    if (clinic !== 'all') {
-      filtered = filtered.filter(
-        d => d.clinicaNome === clinic
-      );
-    }
-
-    return [...filtered]
-      .sort((a,b)=>b.exames-a.exames)
-      .map(d=>({
-        id:d.id,
-        nome:d.nome,
-        clinica:d.clinicaNome,
-        radiologia:d.radiologiaNome,
-        exames:d.exames,
-        faturamento:d.faturamento
-
-      }));
-
-  }
-
-  function renderDoctorClinicFilter(state){
-
+  
+  async function renderDoctorClinicFilter(state) {
     const select = document.getElementById('doctorClinicFilter');
-    if(!select) return;
-    const radId = state.radiologiaSelecionada;
-    const doctors = getDoctorsData(radId);
-    const clinics = [
-      ...new Set(
-      doctors.map(d=>d.clinica)
-    )
+    if (!select) return;
+    const filtros = Api.filtrosDoState(state);
+    const res = await Api.getClinicasDisponiveisPorMedico(filtros);
+    const clinicas = res.data;
 
-    ].sort();
-
-    select.innerHTML = `
-      <option value="all">
-        Todas
-      </option>
-    `;
-
-    clinics.forEach(clinic=>{
-      select.insertAdjacentHTML(
-        'beforeend',
-          `<option value="${clinic}">
-            ${clinic}
-          </option>`
-      );
+    select.innerHTML = '';
+    clinicas.forEach(c => {
+      const option = document.createElement('option');
+      option.value = c.clinicaId;
+      option.textContent = c.clinicaNome;
+      select.appendChild(option);
     });
 
-    select.value = state.clinicaSelecionada;
-
+    select.value = state.clinicaSelecionada || 'all';
   }
   /* ---------------------------------------------------------------
      RENDER: KPIs
   --------------------------------------------------------------- */
-  function renderKPIs(state) {
-    const radId = state.radiologiaSelecionada;
-    const types  = getExamTypes(radId);
-    const total  = Object.values(types).reduce((s, v) => s + v, 0);
-    const topEntry = Object.entries(types).sort((a, b) => b[1] - a[1])[0];
-    const topType  = topEntry ? topEntry[0] : '--';
-    const topQtd   = topEntry ? topEntry[1] : 0;
-    const DIAS_UTEIS = 22;
-    const mediaDia = total / DIAS_UTEIS;
+  async function renderKPIs(state) {
+    const filtros = Api.filtrosDoState(state);
+    const res = await Api.getExamesKPIs(filtros);
+    const data = res.data;
+    if (!data) return;
 
-    let pctRef;
-    if (radId === 'all') {
-      const allDrs = MockData.getAllDoctorsFlat();
-      const totalExAll = allDrs.reduce((s, d) => s + d.exames, 0);
-      pctRef = Object.entries(REFERENCED_PCT_BY_RAD).reduce((acc, [rId, pct]) => {
-        const radTotal = allDrs.filter(d => d.radiologiaId === rId).reduce((s, d) => s + d.exames, 0);
-        return acc + (pct * radTotal / totalExAll);
-      }, 0);
-    } else {
-      pctRef = REFERENCED_PCT_BY_RAD[radId] || 0;
-    }
-
-    const variation  = VARIATION_BY_RAD[radId] || 0;
-    const nomeRad    = MockData.nomeRadiologiaPorId[radId];
-    const labelPer   = MockData.labelPeriodo(state.periodo);
+    const labelPer = { mes_atual: 'mês atual', ultimos_30: 'últimos 30 dias', trimestre: 'trimestre', semestre: 'semestre', ano: 'ano', custom: 'período personalizado' }[state.periodo] || 'período selecionado';
+    const nomeRad = state.radiologiaSelecionada === 'all' ? 'Todas as Radiologias' : state.radiologiaSelecionada;
 
     const subtitleEl = document.getElementById('examsSectionSubtitle');
     if (subtitleEl) subtitleEl.textContent = `${nomeRad} — ${labelPer}`;
 
     const kpiTotal = document.getElementById('examKpiTotal');
     if (kpiTotal) {
-      kpiTotal.querySelector('[data-field="value"]').textContent = formatNumber(total);
+      kpiTotal.querySelector('[data-field="value"]').textContent = formatNumber(data.totalExames);
       const changeEl = kpiTotal.querySelector('[data-field="change"]');
-      const isPos = variation >= 0;
-      changeEl.textContent = `${isPos ? '▲' : '▼'} ${isPos ? '+' : ''}${variation.toFixed(1)}%`;
+      const isPos = data.variacaoExames >= 0;
+      changeEl.textContent = `${isPos ? '▲' : '▼'} ${isPos ? '+' : ''}${data.variacaoExames.toFixed(1)}%`;
       changeEl.className = `kpi-card__change ${isPos ? 'is-positive' : 'is-negative'}`;
     }
+
     const kpiAvg = document.getElementById('examKpiAvgDay');
-    if (kpiAvg) kpiAvg.querySelector('[data-field="value"]').textContent = mediaDia.toFixed(1).replace('.', ',');
+    if (kpiAvg) kpiAvg.querySelector('[data-field="value"]').textContent = data.mediaPorDiaUtil.toFixed(1).replace('.', ',');
 
     const kpiTop = document.getElementById('examKpiTopType');
     if (kpiTop) {
-      kpiTop.querySelector('[data-field="value"]').textContent = topType;
-      kpiTop.querySelector('[data-field="context"]').textContent = `${formatNumber(topQtd)} exames no período`;
+      kpiTop.querySelector('[data-field="value"]').textContent = data.tipoMaisRealizado || '--';
+      kpiTop.querySelector('[data-field="context"]').textContent = `${formatNumber(data.tipoMaisRealizadoQtd)} exames no período`;
     }
+
     const kpiRef = document.getElementById('examKpiReferenced');
-    if (kpiRef) kpiRef.querySelector('[data-field="value"]').textContent = `${pctRef.toFixed(1).replace('.', ',')}%`;
+    if (kpiRef) kpiRef.querySelector('[data-field="value"]').textContent = `${data.percentualReferenciados.toFixed(1).replace('.', ',')}%`;
   }
 
   /* ---------------------------------------------------------------
      RENDER: Gráfico de Pizza
   --------------------------------------------------------------- */
-  function renderPieChart(state) {
+  async function renderPieChart(state) {
     const ctx = document.getElementById('examTypeChart');
     if (!ctx) return;
-    const types  = getExamTypes(state.radiologiaSelecionada);
-    const labels = Object.keys(types);
-    const values = Object.values(types);
+    const filtros = Api.filtrosDoState(state);
+    const res = await Api.getExamesDistribuicaoPorTipo(filtros);
+    const tipos = res.data.tipos;
+    const labels = tipos.map(t => t.tipo);
+    const values = tipos.map(t => t.quantidade);
     const total  = values.reduce((s, v) => s + v, 0);
     if (pieChart) { pieChart.destroy(); pieChart = null; }
     pieChart = new Chart(ctx, {
@@ -1324,7 +839,7 @@ const ExamAnalysis = (() => {
   /* ---------------------------------------------------------------
    RENDER: Exames Solicitados por Médico (Accordion)
   --------------------------------------------------------------- */
-  function renderDoctorsSpotlight(state) {
+  async function renderDoctorsSpotlight(state) {
 
     const grid = document.getElementById('examsDoctorsGrid');
     const subtitle = document.getElementById('examsDoctorsSpotlightSubtitle');
@@ -1334,32 +849,26 @@ const ExamAnalysis = (() => {
     const radId = state.radiologiaSelecionada;
     const isAll = radId === 'all';
 
-    const doctorsData = getDoctorsData(
-      radId,
-      state.clinicaSelecionada
-    );
+    const filtros = Api.filtrosDoState(state);
+    if (state.clinicaSelecionada && state.clinicaSelecionada !== 'all') {
+      filtros.clinicaId = state.clinicaSelecionada;
+    }
 
-    const doctors =
-      (radId === 'all' && state.clinicaSelecionada === 'all')
-        ? doctorsData.slice(0, 5)
-        : doctorsData;
+    const res = await Api.getMedicosSpotlight(filtros);
+    const doctors = res.data;
 
     if (subtitle) {
       subtitle.textContent = isAll
         ? 'Exames solicitados por médicos de todas as radiologias'
-        : `Exames solicitados por médicos • ${MockData.nomeRadiologiaPorId[radId]}`;
+        : `Exames solicitados por médicos • ${radId}`;
     }
 
     grid.innerHTML = '';
 
     doctors.forEach(doc => {
 
-      const initials = getInitials(doc.nome);
-
-      const exams = [...(DOCTOR_EXAM_TYPES[doc.id] || [{
-          tipo: 'Sem dados',
-          exames: 0
-      }])];
+      const initials = getInitials(doc.medicoNome);
+      const exams = [...(doc.tiposDeExame || [{ tipo: 'Sem dados', exames: 0 }])];
 
       // Ordena do maior para o menor
       exams.sort((a, b) => b.exames - a.exames);
@@ -1409,14 +918,14 @@ const ExamAnalysis = (() => {
 
           <span
             class="doctor-spotlight-card__name"
-            title="${doc.nome}">
-            ${doc.nome}
+            title="${doc.medicoNome}">
+            ${doc.medicoNome}
           </span>
 
           <span
             class="doctor-spotlight-card__clinic"
-            title="${doc.clinica}">
-            ${doc.clinica}${isAll ? ` · ${doc.radiologia}` : ''}
+            title="${doc.clinicaNome}">
+            ${doc.clinicaNome}${isAll ? ` · ${doc.radiologiaNome}` : ''}
           </span>
 
           <span class="doctor-spotlight-card__main-exam">
@@ -1495,7 +1004,7 @@ const ExamAnalysis = (() => {
   --------------------------------------------------------------- */
   function buildRankItem(nome, sub, exames, totalExames, color) {
     const pct = totalExames > 0 ? (exames / totalExames) * 100 : 0;
-    const li  = document.createElement('li');
+    const li = document.createElement('li');
     li.className = 'exams-rank-item';
     li.innerHTML = `
       <div class="exams-rank-item__header">
@@ -1510,16 +1019,21 @@ const ExamAnalysis = (() => {
     return li;
   }
 
-  function renderRankLists(state) {
-    const radId   = state.radiologiaSelecionada;
-    const isAll   = radId === 'all';
-    const clinics = getClinicsData(radId);
-    const doctors = getDoctorsData(radId);
-    const totalClinicas = clinics.reduce((s, c) => s + c.exames, 0);
-    const totalMedicos  = doctors.reduce((s, d) => s + d.exames, 0);
+  async function renderRankLists(state) {
+    const radId = state.radiologiaSelecionada;
+    const isAll = radId === 'all';
+    const filtros = Api.filtrosDoState(state);
+
+    const resClinicas = await Api.getRankingClinicasPorExames(filtros);
+    const resMedicos  = await Api.getRankingMedicosPorExames(filtros);
+    const clinics = resClinicas.data;
+    const doctors = resMedicos.data;
+
+    const totalClinicas = clinics.reduce((s, c) => s + c.totalExames, 0);
+    const totalMedicos  = doctors.reduce((s, d) => s + d.totalExames, 0);
 
     const subEl = document.getElementById('examsListsSubtitle');
-    if (subEl) subEl.textContent = isAll ? 'Top clínicas e médicos — todas as radiologias' : `Top clínicas e médicos — ${MockData.nomeRadiologiaPorId[radId]}`;
+    if (subEl) subEl.textContent = isAll ? 'Top clínicas e médicos — todas as radiologias' : `Top clínicas e médicos — ${radId}`;
 
     const clinicsColTitle = document.querySelector('#examsClinicsCol .exams-rank-col__title');
     if (clinicsColTitle) {
@@ -1534,13 +1048,13 @@ const ExamAnalysis = (() => {
     const clinicsList = document.getElementById('examsClinicsRankList');
     if (clinicsList) {
       clinicsList.innerHTML = '';
-      clinics.forEach((c, i) => clinicsList.appendChild(buildRankItem(c.nome, isAll ? c.radiologia : null, c.exames, totalClinicas, TYPE_COLORS[i % TYPE_COLORS.length])));
+      clinics.forEach((c, i) => clinicsList.appendChild(buildRankItem(c.clinicaNome, isAll ? c.radiologiaNome : null, c.totalExames, totalClinicas, TYPE_COLORS[i % TYPE_COLORS.length])));
     }
 
     const doctorsList = document.getElementById('examsDoctorsRankList');
     if (doctorsList) {
       doctorsList.innerHTML = '';
-      doctors.forEach((d, i) => doctorsList.appendChild(buildRankItem(d.nome, isAll ? `${d.clinica} · ${d.radiologia}` : d.clinica, d.exames, totalMedicos, TYPE_COLORS[i % TYPE_COLORS.length])));
+      doctors.forEach((d, i) => doctorsList.appendChild(buildRankItem(d.medicoNome, isAll ? `${d.clinicaNome} · ${d.radiologiaNome}` : d.clinicaNome, d.totalExames, totalMedicos, TYPE_COLORS[i % TYPE_COLORS.length])));
     }
   }
 
@@ -1558,76 +1072,64 @@ const ExamAnalysis = (() => {
     return div;
   }
 
-  function renderHighlights(state) {
-    const radId   = state.radiologiaSelecionada;
-    const isAll   = radId === 'all';
-    const grid    = document.getElementById('examsHighlightsGrid');
+  async function renderHighlights(state) {
+    const grid = document.getElementById('examsHighlightsGrid');
     if (!grid) return;
     grid.innerHTML = '';
 
-    const doctors = getDoctorsData(radId);
-    const clinics = getClinicsData(radId);
-    const types   = getExamTypes(radId);
+    const filtros = Api.filtrosDoState(state);
+    const res = await Api.getExamesDestaques(filtros);
+    const data = res.data;
 
-    const topDoc = doctors[0];
+    const isAll = state.radiologiaSelecionada === 'all';
+
     grid.appendChild(buildHighlightBox(
       isAll ? 'Médico destaque' : 'Maior volume',
-      topDoc ? topDoc.nome : '--',
-      topDoc ? `${formatNumber(topDoc.exames)} exames${isAll ? ` · ${topDoc.clinica}` : ''}` : 'Sem dados'
+      data.medicoDestaque ? data.medicoDestaque.nome : '--',
+      data.medicoDestaque ? `${formatNumber(data.medicoDestaque.totalExames)} exames${isAll ? ` · ${data.medicoDestaque.clinicaNome}` : ''}` : 'Sem dados'
     ));
 
-    const topClinic = clinics[0];
     grid.appendChild(buildHighlightBox(
       'Clínica líder',
-      topClinic ? topClinic.nome : '--',
-      topClinic ? `${formatNumber(topClinic.exames)} exames no período` : 'Sem dados'
+      data.clinicaLider ? data.clinicaLider.nome : '--',
+      data.clinicaLider ? `${formatNumber(data.clinicaLider.totalExames)} exames no período` : 'Sem dados'
     ));
 
-    const sortedTypes = Object.entries(types).sort((a, b) => b[1] - a[1]);
-    const risingEntry = sortedTypes[1] || sortedTypes[0];
-    const topEntry    = sortedTypes[0];
-    const risingPct   = topEntry && topEntry[1] > 0 ? ((risingEntry[1] / topEntry[1]) * 100).toFixed(0) : '0';
     grid.appendChild(buildHighlightBox(
       'Tipo em destaque',
-      risingEntry ? risingEntry[0] : '--',
-      risingEntry ? `${formatNumber(risingEntry[1])} exames · ${risingPct}% do líder` : 'Sem dados'
+      data.tipoEmDestaque ? data.tipoEmDestaque.tipo : '--',
+      data.tipoEmDestaque ? `${formatNumber(data.tipoEmDestaque.quantidade)} exames · ${data.tipoEmDestaque.percentualDoLider}% do líder` : 'Sem dados'
     ));
 
-    const secondDoc = doctors[1];
+    const variacaoGeral = data.variacaoGeral || 0;
     grid.appendChild(buildHighlightBox(
-      isAll ? 'Crescimento no período' : 'Destaque em Tomografia',
-      isAll ? `+${VARIATION_BY_RAD['all'].toFixed(1)}% exames` : (secondDoc ? secondDoc.nome : '--'),
-      isAll ? 'vs. período anterior em todas as unidades' : (secondDoc ? `${formatNumber(secondDoc.exames)} exames · ${secondDoc.clinica}` : 'Sem dados')
+      'Crescimento no período',
+      `${variacaoGeral >= 0 ? '+' : ''}${variacaoGeral.toFixed(1)}% exames`,
+      'vs. período anterior'
     ));
   }
 
   /* ---------------------------------------------------------------
      RENDER GERAL
   --------------------------------------------------------------- */
-  function render(state) {
-    renderKPIs(state);
-    renderPieChart(state);
-    renderDoctorClinicFilter(state);
-    renderDoctorsSpotlight(state);
-    renderRankLists(state);
-    renderHighlights(state);
+  async function render(state) {
+    await renderKPIs(state);
+    await renderPieChart(state);
+    await renderDoctorClinicFilter(state);
+    await renderDoctorsSpotlight(state);
+    await renderRankLists(state);
+    await renderHighlights(state);
   }
 
   function init() {
-
     render(AppState.getState());
     AppState.subscribe(render);
     const doctorClinicFilter = document.getElementById('doctorClinicFilter');
     if (doctorClinicFilter) {
       doctorClinicFilter.addEventListener('change', (e) => {
-        AppState.update({
-          clinicaSelecionada: e.target.value
-        });
-
+        AppState.update({ clinicaSelecionada: e.target.value });
       });
-
     }
-
   }
 
   return { init };
@@ -1670,7 +1172,7 @@ const Sidebar = (() => {
 ================================================================= */
 const MobileNav = (() => {
   function init() {
-    const toggle  = document.getElementById('sidebarToggle');
+    const toggle = document.getElementById('sidebarToggle');
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebarOverlay');
     if (!toggle || !sidebar || !overlay) return;
