@@ -33,42 +33,35 @@
   =========================================================== */
   const CFG = {
     colors: {
-      primary:      '#018093',
+      primary: '#018093',
       primaryLight: '#01C6BF',
-      primaryDark:  '#015A68',
-      primary50:    '#EAF6F6',
-      primary100:   '#D2ECEC',
-      positive:     '#0E8F63',
-      positiveBg:   '#E6F6EF',
-      negative:     '#C23B32',
-      negativeBg:   '#FCEBEA',
-      warning:      '#B27A0E',
-      warningBg:    '#FCF3E1',
-      text:         '#273237',
-      textMuted:    '#5C6E72',
-      textSubtle:   '#8B9C9F',
-      border:       '#E7ECED',
-      surface:      '#FFFFFF',
+      primaryDark: '#015A68',
+      primary50: '#EAF6F6',
+      primary100: '#D2ECEC',
+      positive: '#0E8F63',
+      positiveBg: '#E6F6EF',
+      negative: '#C23B32',
+      negativeBg: '#FCEBEA',
+      warning: '#B27A0E',
+      warningBg: '#FCF3E1',
+      text: '#273237',
+      textMuted: '#5C6E72',
+      textSubtle: '#8B9C9F',
+      border: '#E7ECED',
+      surface: '#FFFFFF',
       surfaceMuted: '#F3F7F7',
     },
     chartDefaults: {
       fontFamily: "'Inter', sans-serif",
       monoFamily: "'IBM Plex Mono', monospace",
     },
-    radiologies: [
-      { id: 'all',    label: 'Todas as Radiologias' },
-      { id: 'centro', label: 'Radiologia Centro'     },
-      { id: 'norte',  label: 'Radiologia Zona Norte' },
-      { id: 'sul',    label: 'Radiologia Zona Sul'   },
-      { id: 'leste',  label: 'Radiologia Zona Leste' },
-    ],
     periods: {
-      mes_atual:   'Mês Atual',
-      ultimos_30:  'Últimos 30 Dias',
-      trimestre:   'Trimestre',
-      semestre:    'Semestre',
-      ano:         'Ano',
-      custom:      'Personalizado',
+      mes_atual: 'Mês Atual',
+      ultimos_30: 'Últimos 30 Dias',
+      trimestre: 'Trimestre',
+      semestre: 'Semestre',
+      ano: 'Ano',
+      custom: 'Personalizado',
     },
     reportColumns: [
       'Faturamento Total', 'Faturamento Líquido', 'Margem de Lucro',
@@ -87,423 +80,16 @@
     '#E05C5C',
   ];
 
-  /* ===========================================================
-     2. MOCK DATA
-     Shape espelha o que a API REST irá retornar.
-     [API] GET /financeiro?radiologia=:id&periodo=:periodo
-  =========================================================== */
-
-  // Meses para eixo X dos gráficos de evolução
-  const MONTHS_12 = ['Ago/24','Set/24','Out/24','Nov/24','Dez/24','Jan/25','Fev/25','Mar/25','Abr/25','Mai/25','Jun/25','Jul/25'];
-  const MONTHS_6  = ['Fev/25','Mar/25','Abr/25','Mai/25','Jun/25','Jul/25'];
-
-  // [API] GET /financeiro/kpis
-  const MOCK_KPIS = {
-    faturamentoTotal:    { value: 284750, changeMonth: 12.4,  changeYoY: 23.8 },
-    faturamentoLiquido:  { value: 241637, context: 'após comissões' },
-    margemLucro:         { value: 84.9,   changeMonth: 1.2 },
-    totalExames:         { value: 1847,   changeMonth: 8.7 },
-    ticketMedio:         { value: 154.18, changeMonth: 3.4 },
-    previsao30d:         { value: 301200, forecast60d: 589400 },
-  };
-
-  // [API] GET /financeiro/evolucao?periodo=12m
-  const MOCK_EVOLUCAO = {
-    labels: MONTHS_12,
-    faturamento:    [198400, 211200, 224800, 241300, 198700, 173200, 187400, 231800, 248200, 267400, 271900, 284750],
-    exames:         [1284,   1342,   1418,   1521,   1287,   1122,   1214,   1487,   1603,   1728,   1761,   1847],
-    faturamentoAno: [162000, 178400, 188900, 201700, 167200, 144800, 159200, 196400, 211300, 232100, 243700, 256800],
-  };
-
-  // [API] GET /financeiro/por-radiologia
-  const MOCK_POR_RADIOLOGIA = [
-    { id: 'centro', label: 'Centro',     faturamento: 97820,  exames: 634, variacao: 14.2, participacao: 34.3 },
-    { id: 'norte',  label: 'Zona Norte', faturamento: 78340,  exames: 509, variacao: 9.8,  participacao: 27.5 },
-    { id: 'sul',    label: 'Zona Sul',   faturamento: 63410,  exames: 411, variacao: -3.1, participacao: 22.3 },
-    { id: 'leste',  label: 'Zona Leste', faturamento: 45180,  exames: 293, variacao: 18.7, participacao: 15.9 },
-  ];
-
-  // [API] GET /financeiro/top-clinicas?limit=10
-  const MOCK_TOP_CLINICAS = [
-    { nome: 'Clínica OdontoPremium', faturamento: 47320, participacao: 16.6 },
-    { nome: 'Sorriso Perfeito',      faturamento: 38410, participacao: 13.5 },
-    { nome: 'DentalVip',             faturamento: 29870, participacao: 10.5 },
-    { nome: 'OrthoCenter',           faturamento: 24150, participacao:  8.5 },
-    { nome: 'Clínica Raíz',          faturamento: 20340, participacao:  7.1 },
-    { nome: 'BocaSana',             faturamento: 17820, participacao:  6.3 },
-    { nome: 'Implanto RN',           faturamento: 14430, participacao:  5.1 },
-    { nome: 'SorriRN',               faturamento: 11270, participacao:  4.0 },
-    { nome: 'Estética Oral',         faturamento:  9840, participacao:  3.5 },
-    { nome: 'Clínica Central',       faturamento:  7620, participacao:  2.7 },
-  ];
-
-  // [API] GET /financeiro/top-medicos?limit=15
-  const MOCK_TOP_MEDICOS = [
-    { nome: 'Dr. Thiago Almeida',    clinica: 'OdontoPremium',  exames: 184, faturamento: 28380, comissao: 15, comissaoEstimada: 4257 },
-    { nome: 'Dra. Carla Menezes',    clinica: 'Sorriso Perfeito',exames: 162, faturamento: 24970, comissao: 15, comissaoEstimada: 3746 },
-    { nome: 'Dr. Rafael Lima',       clinica: 'DentalVip',       exames: 148, faturamento: 22820, comissao: 12, comissaoEstimada: 2738 },
-    { nome: 'Dra. Juliana Costa',    clinica: 'OrthoCenter',     exames: 137, faturamento: 21130, comissao: 15, comissaoEstimada: 3170 },
-    { nome: 'Dr. Bruno Figueiredo',  clinica: 'Clínica Raíz',    exames: 124, faturamento: 19110, comissao: 10, comissaoEstimada: 1911 },
-    { nome: 'Dra. Patrícia Souza',   clinica: 'BocaSana',       exames: 118, faturamento: 18190, comissao: 15, comissaoEstimada: 2729 },
-    { nome: 'Dr. André Nascimento',  clinica: 'Implanto RN',     exames: 109, faturamento: 16810, comissao: 12, comissaoEstimada: 2017 },
-    { nome: 'Dra. Fernanda Rocha',   clinica: 'SorriRN',         exames:  98, faturamento: 15110, comissao: 15, comissaoEstimada: 2267 },
-    { nome: 'Dr. Marcos Vinicius',   clinica: 'Estética Oral',   exames:  91, faturamento: 14030, comissao: 10, comissaoEstimada: 1403 },
-    { nome: 'Dra. Bianca Torres',    clinica: 'Clínica Central', exames:  84, faturamento: 12950, comissao: 15, comissaoEstimada: 1943 },
-    { nome: 'Dr. Lucas Barros',      clinica: 'OdontoPremium',   exames:  79, faturamento: 12180, comissao: 12, comissaoEstimada: 1462 },
-    { nome: 'Dra. Amanda Ferreira',  clinica: 'Sorriso Perfeito',exames:  73, faturamento: 11250, comissao: 15, comissaoEstimada: 1688 },
-    { nome: 'Dr. Henrique Dias',     clinica: 'DentalVip',       exames:  67, faturamento: 10330, comissao: 10, comissaoEstimada: 1033 },
-    { nome: 'Dra. Priscila Lemos',   clinica: 'OrthoCenter',     exames:  62, faturamento:  9560, comissao: 15, comissaoEstimada: 1434 },
-    { nome: 'Dr. Eduardo Pinto',     clinica: 'Clínica Raíz',    exames:  57, faturamento:  8790, comissao: 12, comissaoEstimada: 1055 },
-  ];
-
-  // [API] GET /financeiro/snapshot?radiologia=:id
-  // Dados mockados por radiologia para KPIs, top clínicas e top médicos
-  const MOCK_DATA_BY_RADIO = {
-    all: {
-      kpis: {
-        faturamentoTotal:   { value: 284750, changeMonth: 12.4,  changeYoY: 23.8 },
-        faturamentoLiquido: { value: 241637, context: 'após comissões' },
-        margemLucro:        { value: 84.9,  changeMonth: 1.2 },
-        totalExames:        { value: 1847,  changeMonth: 8.7 },
-        previsao30d:        { value: 301200, forecast60d: 589400 },
-      },
-      comissoesKpis: {
-        totalDevido:    { value: 43113 },
-        totalPago:      { value: 29847, percentual: 69.2 },
-        pendente:       { value: 13266, medicos: 7 },
-        percentPago:    { value: 69.2 },
-        mediaPorMedico: { value: 2874 },
-      },
-      topClinicas: MOCK_TOP_CLINICAS,
-      topMedicos:  MOCK_TOP_MEDICOS,
-      insights: [
-        { type: 'positive', text: 'Zona Leste cresceu 18,7% este mês' },
-        { type: 'info',     text: 'OdontoPremium responsável por 16,6% do faturamento' },
-        { type: 'warning',  text: '7 médicos com comissões pendentes — R$ 13.266' },
-        { type: 'positive', text: 'Ticket médio cresceu 3,4% vs. mês anterior' },
-      ],
-    },
-    centro: {
-      kpis: {
-        faturamentoTotal:   { value: 97820, changeMonth: 14.2, changeYoY: 19.1 },
-        faturamentoLiquido: { value: 83147, context: 'após comissões' },
-        margemLucro:        { value: 85.0, changeMonth: 0.8 },
-        totalExames:        { value: 634,  changeMonth: 11.2 },
-        previsao30d:        { value: 103400, forecast60d: 201200 },
-      },
-      comissoesKpis: {
-        totalDevido:    { value: 14673 },
-        totalPago:      { value: 10200, percentual: 69.5 },
-        pendente:       { value: 4473,  medicos: 2 },
-        percentPago:    { value: 69.5 },
-        mediaPorMedico: { value: 3668 },
-      },
-      topClinicas: [
-        { nome: 'OdontoPremium', faturamento: 28380, participacao: 29.0 },
-        { nome: 'DentalVip',     faturamento: 27660, participacao: 28.3 },
-        { nome: 'Sorriso Perfeito', faturamento: 24970, participacao: 25.5 },
-        { nome: 'Implanto RN',   faturamento: 16810, participacao: 17.2 },
-      ],
-      topMedicos: MOCK_TOP_MEDICOS.filter(m => ['OdontoPremium','Sorriso Perfeito','DentalVip','Implanto RN'].includes(m.clinica)),
-      insights: [
-        { type: 'positive', text: 'Centro cresceu 14,2% — maior alta do mês' },
-        { type: 'info',     text: 'OdontoPremium lidera com 29% do faturamento local' },
-        { type: 'warning',  text: 'Implanto RN com R$ 2.017 em comissões pendentes' },
-      ],
-    },
-    norte: {
-      kpis: {
-        faturamentoTotal:   { value: 78340, changeMonth: 9.8, changeYoY: 15.4 },
-        faturamentoLiquido: { value: 66589, context: 'após comissões' },
-        margemLucro:        { value: 85.0, changeMonth: 0.5 },
-        totalExames:        { value: 509,  changeMonth: 7.3 },
-        previsao30d:        { value: 82800, forecast60d: 162100 },
-      },
-      comissoesKpis: {
-        totalDevido:    { value: 11751 },
-        totalPago:      { value: 8814,  percentual: 75.0 },
-        pendente:       { value: 2937,  medicos: 2 },
-        percentPago:    { value: 75.0 },
-        mediaPorMedico: { value: 2938 },
-      },
-      topClinicas: [
-        { nome: 'OrthoCenter',   faturamento: 30690, participacao: 39.2 },
-        { nome: 'Clínica Raíz',  faturamento: 27900, participacao: 35.6 },
-        { nome: 'SorriRN',       faturamento: 19750, participacao: 25.2 },
-      ],
-      topMedicos: MOCK_TOP_MEDICOS.filter(m => ['OrthoCenter','Clínica Raíz','SorriRN'].includes(m.clinica)),
-      insights: [
-        { type: 'positive', text: 'Zona Norte cresceu 9,8% este mês' },
-        { type: 'info',     text: 'OrthoCenter lidera com 39% do faturamento local' },
-        { type: 'positive', text: '75% das comissões já pagas — melhor índice do grupo' },
-      ],
-    },
-    sul: {
-      kpis: {
-        faturamentoTotal:   { value: 63410, changeMonth: -3.1, changeYoY: 8.2 },
-        faturamentoLiquido: { value: 53898, context: 'após comissões' },
-        margemLucro:        { value: 85.0, changeMonth: -0.3 },
-        totalExames:        { value: 411,  changeMonth: -4.2 },
-        previsao30d:        { value: 65200, forecast60d: 126800 },
-      },
-      comissoesKpis: {
-        totalDevido:    { value: 9512 },
-        totalPago:      { value: 7609,  percentual: 80.0 },
-        pendente:       { value: 1903,  medicos: 1 },
-        percentPago:    { value: 80.0 },
-        mediaPorMedico: { value: 2378 },
-      },
-      topClinicas: [
-        { nome: 'BocaSana',      faturamento: 35460, participacao: 55.9 },
-        { nome: 'Estética Oral', faturamento: 27950, participacao: 44.1 },
-      ],
-      topMedicos: MOCK_TOP_MEDICOS.filter(m => ['BocaSana','Estética Oral'].includes(m.clinica)),
-      insights: [
-        { type: 'warning',  text: 'Zona Sul recuou 3,1% — única unidade negativa' },
-        { type: 'info',     text: 'BocaSana representa 56% do faturamento local' },
-        { type: 'positive', text: '80% das comissões pagas — melhor nível de quitação' },
-      ],
-    },
-    leste: {
-      kpis: {
-        faturamentoTotal:   { value: 45180, changeMonth: 18.7, changeYoY: 31.2 },
-        faturamentoLiquido: { value: 38403, context: 'após comissões' },
-        margemLucro:        { value: 85.0, changeMonth: 2.1 },
-        totalExames:        { value: 293,  changeMonth: 16.0 },
-        previsao30d:        { value: 49200, forecast60d: 95800 },
-      },
-      comissoesKpis: {
-        totalDevido:    { value: 6777 },
-        totalPago:      { value: 3224,  percentual: 47.6 },
-        pendente:       { value: 3553,  medicos: 2 },
-        percentPago:    { value: 47.6 },
-        mediaPorMedico: { value: 1694 },
-      },
-      topClinicas: [
-        { nome: 'Nova Odonto',    faturamento: 22650, participacao: 50.1 },
-        { nome: 'Clínica Central',faturamento: 22530, participacao: 49.9 },
-      ],
-      topMedicos: MOCK_TOP_MEDICOS.filter(m => ['Clínica Central','Nova Odonto'].includes(m.clinica)),
-      insights: [
-        { type: 'positive', text: 'Zona Leste lidera crescimento: +18,7% no mês' },
-        { type: 'warning',  text: 'R$ 3.553 em comissões pendentes — atenção necessária' },
-        { type: 'info',     text: 'Nova Odonto e Clínica Central praticamente empatadas' },
-      ],
-    },
-  };
-
-  // [API] GET /financeiro/tipos-exame
-  const MOCK_TIPOS_EXAME = [
-    { tipo: 'Panorâmica',      quantidade: 612, participacao: 33.1 },
-    { tipo: 'Periapical',      quantidade: 441, participacao: 23.9 },
-    { tipo: 'Bite-wing',       quantidade: 295, participacao: 16.0 },
-    { tipo: 'Cefalométrica',   quantidade: 221, participacao: 12.0 },
-    { tipo: 'CBCT (3D)',       quantidade: 148, participacao:  8.0 },
-    { tipo: 'Oclusal',         quantidade:  87, participacao:  4.7 },
-    { tipo: 'Outros',          quantidade:  43, participacao:  2.3 },
-  ];
-
-  // [API] GET /financeiro/ticket-medio-por-radiologia
-  const MOCK_TICKET_MEDIO = {
-    labels: CFG.radiologies.filter(r => r.id !== 'all').map(r => r.label.replace('Radiologia ', '')),
-    atual:     [154.3, 153.9, 154.3, 154.2],
-    anterior:  [141.2, 148.1, 145.7, 137.8],
-  };
-
-  // [API] GET /comissoes?periodo=:periodo&radiologia=:id
-  const MOCK_COMISSOES_KPIS = {
-    totalDevido:   { value: 43113 },
-    totalPago:     { value: 29847, percentual: 69.2 },
-    pendente:      { value: 13266, medicos: 7 },
-    percentPago:   { value: 69.2 },
-    mediaPorMedico:{ value: 2874 },
-  };
-
-  // [API] GET /comissoes/hierarquia
-  const MOCK_COMISSOES_TREE = [
-    {
-      id: 'radio-centro',
-      nome: 'Radiologia Centro',
-      exames: 634, faturamento: 97820, comissaoDevida: 14673, pago: 10200, pendente: 4473,
-      clinicas: [
-        {
-          id: 'cli-odonto',
-          nome: 'OdontoPremium',
-          exames: 184, faturamento: 28380, comissaoDevida: 4257, pago: 4257, pendente: 0,
-          medicos: [
-            { id: 'med-1', nome: 'Dr. Thiago Almeida', exames: 118, faturamento: 18190, percComissao: 15, comissaoDevida: 2729, pago: 2729, pendente: 0,    status: 'paid'    },
-            { id: 'med-2', nome: 'Dr. Lucas Barros',   exames:  66, faturamento: 10190, percComissao: 12, comissaoDevida: 1223, pago: 1223, pendente: 0,    status: 'paid'    },
-          ],
-        },
-        {
-          id: 'cli-sorriso',
-          nome: 'Sorriso Perfeito',
-          exames: 162, faturamento: 24970, comissaoDevida: 3746, pago: 1873, pendente: 1873,
-          medicos: [
-            { id: 'med-3', nome: 'Dra. Carla Menezes',   exames:  98, faturamento: 15110, percComissao: 15, comissaoDevida: 2267, pago: 1134, pendente: 1133, status: 'partial' },
-            { id: 'med-4', nome: 'Dra. Amanda Ferreira', exames:  64, faturamento:  9860, percComissao: 15, comissaoDevida: 1479, pago:  739, pendente:  740, status: 'partial' },
-          ],
-        },
-        {
-          id: 'cli-implanto',
-          nome: 'Implanto RN',
-          exames: 109, faturamento: 16810, comissaoDevida: 2017, pago: 0, pendente: 2017,
-          medicos: [
-            { id: 'med-5', nome: 'Dr. André Nascimento', exames: 109, faturamento: 16810, percComissao: 12, comissaoDevida: 2017, pago: 0, pendente: 2017, status: 'pending' },
-          ],
-        },
-        {
-          id: 'cli-dental',
-          nome: 'DentalVip',
-          exames: 179, faturamento: 27660, comissaoDevida: 4653, pago: 4070, pendente: 583,
-          medicos: [
-            { id: 'med-6', nome: 'Dr. Rafael Lima',    exames: 112, faturamento: 17280, percComissao: 12, comissaoDevida: 2074, pago: 2074, pendente: 0,   status: 'paid'    },
-            { id: 'med-7', nome: 'Dr. Henrique Dias',  exames:  67, faturamento: 10380, percComissao: 10, comissaoDevida: 1038, pago:  455, pendente: 583, status: 'partial' },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'radio-norte',
-      nome: 'Radiologia Zona Norte',
-      exames: 509, faturamento: 78340, comissaoDevida: 11751, pago: 8814, pendente: 2937,
-      clinicas: [
-        {
-          id: 'cli-ortho',
-          nome: 'OrthoCenter',
-          exames: 199, faturamento: 30690, comissaoDevida: 4604, pago: 3170, pendente: 1434,
-          medicos: [
-            { id: 'med-8',  nome: 'Dra. Juliana Costa',  exames: 137, faturamento: 21130, percComissao: 15, comissaoDevida: 3170, pago: 3170, pendente: 0,    status: 'paid'    },
-            { id: 'med-9',  nome: 'Dra. Priscila Lemos', exames:  62, faturamento:  9560, percComissao: 15, comissaoDevida: 1434, pago:    0, pendente: 1434, status: 'pending' },
-          ],
-        },
-        {
-          id: 'cli-raiz',
-          nome: 'Clínica Raíz',
-          exames: 181, faturamento: 27900, comissaoDevida: 2966, pago: 2911, pendente: 55,
-          medicos: [
-            { id: 'med-10', nome: 'Dr. Bruno Figueiredo', exames: 124, faturamento: 19110, percComissao: 10, comissaoDevida: 1911, pago: 1911, pendente:  0,  status: 'paid'    },
-            { id: 'med-11', nome: 'Dr. Eduardo Pinto',    exames:  57, faturamento:  8790, percComissao: 12, comissaoDevida: 1055, pago: 1000, pendente: 55,  status: 'partial' },
-          ],
-        },
-        {
-          id: 'cli-sorrirn',
-          nome: 'SorriRN',
-          exames: 129, faturamento: 19750, comissaoDevida: 4181, pago: 2733, pendente: 1448,
-          medicos: [
-            { id: 'med-12', nome: 'Dra. Fernanda Rocha', exames:  98, faturamento: 15110, percComissao: 15, comissaoDevida: 2267, pago: 2267, pendente:    0, status: 'paid'    },
-            { id: 'med-13', nome: 'Dra. Bianca Torres',  exames:  84, faturamento: 12950, percComissao: 15, comissaoDevida: 1943, pago:  733, pendente: 1448, status: 'partial' },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'radio-sul',
-      nome: 'Radiologia Zona Sul',
-      exames: 411, faturamento: 63410, comissaoDevida: 9512, pago: 7609, pendente: 1903,
-      clinicas: [
-        {
-          id: 'cli-bocasana',
-          nome: 'BocaSana',
-          exames: 230, faturamento: 35460, comissaoDevida: 5319, pago: 5319, pendente: 0,
-          medicos: [
-            { id: 'med-14', nome: 'Dra. Patrícia Souza',  exames: 118, faturamento: 18190, percComissao: 15, comissaoDevida: 2729, pago: 2729, pendente: 0, status: 'paid' },
-            { id: 'med-15', nome: 'Dr. Marcos Vinicius',  exames:  91, faturamento: 14030, percComissao: 10, comissaoDevida: 1403, pago: 1403, pendente: 0, status: 'paid' },
-            { id: 'med-16', nome: 'Dra. Célia Brandão',   exames:  21, faturamento:  3240, percComissao: 15, comissaoDevida:  486, pago:  486, pendente: 0, status: 'paid' },
-          ],
-        },
-        {
-          id: 'cli-estetica',
-          nome: 'Estética Oral',
-          exames: 181, faturamento: 27950, comissaoDevida: 4193, pago: 2290, pendente: 1903,
-          medicos: [
-            { id: 'med-17', nome: 'Dr. Rodrigo Maia',   exames:  90, faturamento: 13880, percComissao: 15, comissaoDevida: 2082, pago: 2082, pendente:    0, status: 'paid'    },
-            { id: 'med-18', nome: 'Dra. Sabrina Dutra', exames:  91, faturamento: 14070, percComissao: 15, comissaoDevida: 2111, pago:  208, pendente: 1903, status: 'partial' },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'radio-leste',
-      nome: 'Radiologia Zona Leste',
-      exames: 293, faturamento: 45180, comissaoDevida: 6777, pago: 3224, pendente: 3553,
-      clinicas: [
-        {
-          id: 'cli-central',
-          nome: 'Clínica Central',
-          exames: 146, faturamento: 22530, comissaoDevida: 3380, pago: 3380, pendente: 0,
-          medicos: [
-            { id: 'med-19', nome: 'Dra. Bianca Torres',   exames:  84, faturamento: 12950, percComissao: 15, comissaoDevida: 1943, pago: 1943, pendente: 0, status: 'paid' },
-            { id: 'med-20', nome: 'Dr. Fábio Cavalcante', exames:  62, faturamento:  9580, percComissao: 15, comissaoDevida: 1437, pago: 1437, pendente: 0, status: 'paid' },
-          ],
-        },
-        {
-          id: 'cli-nova',
-          nome: 'Nova Odonto',
-          exames: 147, faturamento: 22650, comissaoDevida: 3397, pago: -156, pendente: 3553,
-          medicos: [
-            { id: 'med-21', nome: 'Dr. Yuri Monteiro',   exames: 89, faturamento: 13730, percComissao: 15, comissaoDevida: 2060, pago: 0, pendente: 2060, status: 'pending' },
-            { id: 'med-22', nome: 'Dra. Leila Azevedo',  exames: 58, faturamento:  8920, percComissao: 15, comissaoDevida: 1338, pago: 0, pendente: 1493, status: 'pending' },
-          ],
-        },
-      ],
-    },
-  ];
-
-  // [API] GET /comissoes/evolucao?periodo=6m
-  const MOCK_COMM_EVOLUCAO = {
-    labels: MONTHS_6,
-    pagas:    [28400, 31200, 27800, 33400, 30100, 29847],
-    pendentes: [9800, 11400, 8200, 14300, 11700, 13266],
-  };
-
-  const MOCK_COMM_EVOLUCAO_BY_RADIO = {
-    all:    MOCK_COMM_EVOLUCAO,
-    centro: { labels: MONTHS_6, pagas: [9800, 10200, 9100, 11400, 10800, 10200], pendentes: [3200, 4100, 2900, 5200, 4100, 4473] },
-    norte:  { labels: MONTHS_6, pagas: [7100, 7800, 6900, 8200, 8100, 8814],  pendentes: [2100, 2800, 2100, 3400, 2700, 2937] },
-    sul:    { labels: MONTHS_6, pagas: [6200, 6900, 6100, 7400, 7200, 7609],  pendentes: [1400, 1700, 1300, 2100, 1800, 1903] },
-    leste:  { labels: MONTHS_6, pagas: [3800, 4100, 3600, 4800, 4200, 3224],  pendentes: [1900, 2400, 1700, 3100, 2700, 3553] },
-  };
-  // [API] GET /metas
-  const MOCK_METAS = {
-    mensal:    { meta: 300000, realizado: 284750 },
-    anual:     { meta: 3200000, realizado: 2317400 },
-    porRadiologia: [
-      { id: 'centro', nome: 'Centro',     meta: 110000, anual: 1200000, realizado: 97820,  anoRealizado: 812000 },
-      { id: 'norte',  nome: 'Zona Norte', meta:  85000, anual:  900000, realizado: 78340,  anoRealizado: 648000 },
-      { id: 'sul',    nome: 'Zona Sul',   meta:  70000, anual:  700000, realizado: 63410,  anoRealizado: 541200 },
-      { id: 'leste',  nome: 'Zona Leste', meta:  55000, anual:  400000, realizado: 45180,  anoRealizado: 316200 },
-    ],
-  };
-
-  // [API] GET /metas/historico
-  const MOCK_HISTORICO_AJUSTES = [
-    { data: '2025-07-01', tipo: 'Meta',     descricao: 'Meta Mensal Geral',          anterior: 'R$ 280.000', novo: 'R$ 300.000', responsavel: 'Dr. Iago' },
-    { data: '2025-07-01', tipo: 'Comissão', descricao: 'Comissão — Dr. Rafael Lima', anterior: '15%',         novo: '12%',        responsavel: 'Dr. Iago' },
-    { data: '2025-06-15', tipo: 'Meta',     descricao: 'Meta — Zona Leste',          anterior: 'R$ 42.000',  novo: 'R$ 55.000',  responsavel: 'Dr. Iago' },
-    { data: '2025-06-10', tipo: 'Comissão', descricao: 'Taxa padrão',                anterior: '12%',         novo: '15%',        responsavel: 'Dr. Iago' },
-    { data: '2025-05-20', tipo: 'Meta',     descricao: 'Meta Anual Geral',           anterior: 'R$ 2.800.000',novo: 'R$ 3.200.000',responsavel: 'Dr. Iago'},
-  ];
-
-  // [API] GET /relatorios/historico
-  const MOCK_HISTORICO_RELATORIOS = [
-    { nome: 'Relatório Geral de Faturamento', periodo: 'Jun/2025', radiologia: 'Todas', geradoEm: '2025-07-01 08:42', formato: 'PDF'   },
-    { nome: 'Relatório de Comissões',          periodo: 'Jun/2025', radiologia: 'Centro', geradoEm: '2025-06-30 17:15', formato: 'Excel' },
-    { nome: 'Metas vs. Realizado',             periodo: 'Jun/2025', radiologia: 'Todas', geradoEm: '2025-06-29 14:30', formato: 'PDF'   },
-    { nome: 'Relatório por Médico',            periodo: 'Mai/2025', radiologia: 'Todas', geradoEm: '2025-06-05 09:10', formato: 'CSV'   },
-    { nome: 'Relatório Completo do Período',   periodo: 'T2/2025',  radiologia: 'Todas', geradoEm: '2025-06-01 11:00', formato: 'PDF'   },
-  ];
-
 
   /* ===========================================================
      3. STATE (estado global)
   =========================================================== */
   const State = {
     radiologia: 'all',
-    periodo:    'mes_atual',
-    activeTab:  'visao-geral',
+    periodo: 'mes_atual',
+    activeTab: 'visao-geral',
     customStart: null,
-    customEnd:   null,
+    customEnd: null,
     selectedForPayment: [],
     commSearch: '',
     commStatusFilter: 'todas',
@@ -511,6 +97,9 @@
     goalEditing: null,
     commRateEdits: {},
     goalEdits: {},
+    // Dados carregados da API — usados como cache durante a sessão
+    radiologies: [],   // populado em Filtros.init()
+    _metasData: null, // populado em Metas.render()
   };
 
 
@@ -544,9 +133,9 @@
     /** Badge de status de comissão */
     statusBadge(status) {
       const map = {
-        paid:    { cls: 'status-badge--paid',    label: 'Pago'    },
+        paid: { cls: 'status-badge--paid', label: 'Pago' },
         pending: { cls: 'status-badge--pending', label: 'Pendente' },
-        partial: { cls: 'status-badge--partial', label: 'Parcial'  },
+        partial: { cls: 'status-badge--partial', label: 'Parcial' },
       };
       const s = map[status] || map.pending;
       return `<span class="status-badge ${s.cls}">${s.label}</span>`;
@@ -564,7 +153,7 @@
       return `
         <div class="inline-progress">
           <div class="inline-progress__bar">
-            <div class="inline-progress__fill ${cls}" style="width:${Math.min(pct,100)}%"></div>
+            <div class="inline-progress__fill ${cls}" style="width:${Math.min(pct, 100)}%"></div>
           </div>
           <span class="inline-progress__label">${H.percent(pct)}</span>
         </div>`;
@@ -582,23 +171,12 @@
     seriesColor(i, alpha = 1) {
       const hex = SERIES_COLORS[i % SERIES_COLORS.length];
       if (alpha === 1) return hex;
-      const r = parseInt(hex.slice(1,3),16);
-      const g = parseInt(hex.slice(3,5),16);
-      const b = parseInt(hex.slice(5,7),16);
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
       return `rgba(${r},${g},${b},${alpha})`;
     },
 
-    /** Filtra dados do mock pela radiologia selecionada */
-    filteredRadiologies() {
-      if (State.radiologia === 'all') return MOCK_POR_RADIOLOGIA;
-      return MOCK_POR_RADIOLOGIA.filter(r => r.id === State.radiologia);
-    },
-
-    /** Filtra tree de comissões pela radiologia */
-    filteredCommTree() {
-      if (State.radiologia === 'all') return MOCK_COMISSOES_TREE;
-      return MOCK_COMISSOES_TREE.filter(r => r.id === `radio-${State.radiologia}`);
-    },
 
     /** Data atual formatada para input date */
     today() {
@@ -619,9 +197,14 @@
       return `${H.formatDate(parts[0])} ${parts[1] || ''}`.trim();
     },
 
-    /** Retorna snapshot de dados filtrado pela radiologia ativa */
-    getFilteredData() {
-      return MOCK_DATA_BY_RADIO[State.radiologia] || MOCK_DATA_BY_RADIO.all;
+    /** Retorna os filtros ativos do State no formato esperado pela Api */
+    filtrosAtivos() {
+      return {
+        radiologiaId: State.radiologia,
+        periodo: State.periodo,
+        dataInicio: State.customStart || undefined,
+        dataFim: State.customEnd || undefined,
+      };
     },
 
     /** Emite toast de feedback (não-bloqueante) */
@@ -663,72 +246,72 @@
   const ChartFactory = {
     defaults() {
       Chart.defaults.font.family = CFG.chartDefaults.fontFamily;
-      Chart.defaults.color      = CFG.colors.textMuted;
+      Chart.defaults.color = CFG.colors.textMuted;
       Chart.defaults.borderColor = CFG.colors.border;
       Chart.defaults.plugins.legend.display = false;
       Chart.defaults.plugins.tooltip.enabled = false; // usamos tooltips custom
       Chart.defaults.animation.duration = 500;
-      Chart.defaults.animation.easing   = 'easeOutQuart';
+      Chart.defaults.animation.easing = 'easeOutQuart';
     },
 
     /** Tooltip customizado usando HTML externo — versão enriquecida do Financeiro */
     externalTooltip(context) {
-        const { chart, tooltip } = context;
+      const { chart, tooltip } = context;
 
-        let el = document.body.querySelector('.chartjs-tooltip');
-        
-        if (!el) {
-            el = document.createElement('div');
-            el.className = 'chartjs-tooltip';
-            el.innerHTML = '<div class="cjs-tooltip__inner"></div>';
-            el.style.opacity = '0';
-            el.style.position = 'fixed';
-            el.style.pointerEvents = 'none';
-            el.style.zIndex = '9999';
-            el.style.transition = 'opacity 0.15s ease';
-            document.body.appendChild(el);
-        }
+      let el = document.body.querySelector('.chartjs-tooltip');
 
-        // Remove classes de variante anteriores
-        el.classList.remove('chartjs-tooltip--compact', 'chartjs-tooltip--wide');
+      if (!el) {
+        el = document.createElement('div');
+        el.className = 'chartjs-tooltip';
+        el.innerHTML = '<div class="cjs-tooltip__inner"></div>';
+        el.style.opacity = '0';
+        el.style.position = 'fixed';
+        el.style.pointerEvents = 'none';
+        el.style.zIndex = '9999';
+        el.style.transition = 'opacity 0.15s ease';
+        document.body.appendChild(el);
+      }
 
-        if (tooltip.opacity === 0) {
-            el.style.opacity = '0';
-            return;
-        }
+      // Remove classes de variante anteriores
+      el.classList.remove('chartjs-tooltip--compact', 'chartjs-tooltip--wide');
 
-        const inner = el.querySelector('.cjs-tooltip__inner');
-        const dp = tooltip.dataPoints?.[0];
-        if (!dp) { el.style.opacity = '0'; return; }
+      if (tooltip.opacity === 0) {
+        el.style.opacity = '0';
+        return;
+      }
 
-        const canvasId = chart.canvas.id;
-        const label = tooltip.title?.[0] || '';
-        let html = '';
+      const inner = el.querySelector('.cjs-tooltip__inner');
+      const dp = tooltip.dataPoints?.[0];
+      if (!dp) { el.style.opacity = '0'; return; }
 
-        // ------------------------------------------------------------------
-        // GRÁFICO: Evolução Mensal — mostra faturamento + variação + exames
-        // ------------------------------------------------------------------
-        if (canvasId === 'evolutionChart') {
-            const fatPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Faturamento');
-            const antPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Mesmo período ano anterior');
-            const exPoint  = tooltip.dataPoints.find(p => p.dataset.label === 'Exames');
+      const canvasId = chart.canvas.id;
+      const label = tooltip.title?.[0] || '';
+      let html = '';
 
-            if (fatPoint) {
-            const fatVal = fatPoint.raw;
-            const antVal = antPoint ? antPoint.raw : null;
-            let changeHtml = '';
-            if (antVal !== null && antVal > 0) {
-                const pct = ((fatVal - antVal) / antVal * 100);
-                const cls = pct > 0 ? 'cjs-tooltip__change--up' : pct < 0 ? 'cjs-tooltip__change--down' : 'cjs-tooltip__change--flat';
-                const arrow = pct > 0 ? '↑' : pct < 0 ? '↓' : '—';
-                changeHtml = `
+      // ------------------------------------------------------------------
+      // GRÁFICO: Evolução Mensal — mostra faturamento + variação + exames
+      // ------------------------------------------------------------------
+      if (canvasId === 'evolutionChart') {
+        const fatPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Faturamento');
+        const antPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Mesmo período ano anterior');
+        const exPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Exames');
+
+        if (fatPoint) {
+          const fatVal = fatPoint.raw;
+          const antVal = antPoint ? antPoint.raw : null;
+          let changeHtml = '';
+          if (antVal !== null && antVal > 0) {
+            const pct = ((fatVal - antVal) / antVal * 100);
+            const cls = pct > 0 ? 'cjs-tooltip__change--up' : pct < 0 ? 'cjs-tooltip__change--down' : 'cjs-tooltip__change--flat';
+            const arrow = pct > 0 ? '↑' : pct < 0 ? '↓' : '—';
+            changeHtml = `
                 <div class="cjs-tooltip__change-row">
                     <span class="cjs-tooltip__change ${cls}">${arrow} ${Math.abs(pct).toFixed(1)}%</span>
                     <span class="cjs-tooltip__change-context">vs. ano anterior</span>
                 </div>`;
-            }
+          }
 
-            html = `
+          html = `
                 <div class="cjs-tooltip__eyebrow">${label}</div>
                 <div class="cjs-tooltip__headline">
                 <span class="cjs-tooltip__headline-label">
@@ -738,8 +321,8 @@
                 </div>
                 ${changeHtml}`;
 
-            if (exPoint) {
-                html += `
+          if (exPoint) {
+            html += `
                 <div class="cjs-tooltip__divider"></div>
                 <div class="cjs-tooltip__metrics">
                     <div class="cjs-tooltip__metric">
@@ -753,28 +336,28 @@
                     <span class="cjs-tooltip__metric-value">${H.currency(Math.round(fatVal / Math.max(exPoint.raw, 1)))}</span>
                     </div>
                 </div>`;
-            }
+          }
 
-            html += `<div class="cjs-tooltip__footer-note">Dados acumulados do mês</div>`;
-            }
+          html += `<div class="cjs-tooltip__footer-note">Dados acumulados do mês</div>`;
         }
+      }
 
-        // ------------------------------------------------------------------
-        // GRÁFICO: Por Radiologia — breakdown com barras de participação
-        // ------------------------------------------------------------------
-        else if (canvasId === 'byRadiologyChart') {
-          const p = tooltip.dataPoints[0];
-          const val = p.raw;
-          const color = SERIES_COLORS[p.dataIndex % SERIES_COLORS.length];
-          const isAll = State.radiologia === 'all';
+      // ------------------------------------------------------------------
+      // GRÁFICO: Por Radiologia — breakdown com barras de participação
+      // ------------------------------------------------------------------
+      else if (canvasId === 'byRadiologyChart') {
+        const p = tooltip.dataPoints[0];
+        const val = p.raw;
+        const color = SERIES_COLORS[p.dataIndex % SERIES_COLORS.length];
+        const isAll = State.radiologia === 'all';
 
-          if (isAll) {
-              // Tooltip: Radiologia
-              const total = MOCK_POR_RADIOLOGIA.reduce((s, r) => s + r.faturamento, 0);
-              const pct = total > 0 ? (val / total * 100) : 0;
-              const radioData = MOCK_POR_RADIOLOGIA[p.dataIndex];
+        if (isAll) {
+          // Tooltip: Radiologia
+          const total = MOCK_POR_RADIOLOGIA.reduce((s, r) => s + r.faturamento, 0);
+          const pct = total > 0 ? (val / total * 100) : 0;
+          const radioData = MOCK_POR_RADIOLOGIA[p.dataIndex];
 
-              html = `
+          html = `
               <div class="cjs-tooltip__eyebrow">Radiologia</div>
               <div class="cjs-tooltip__headline">
                   <span class="cjs-tooltip__headline-label">
@@ -811,15 +394,15 @@
                   </span>
                   </div>
               </div>`;
-          } else {
-              // Tooltip: Clínica (radiologia específica)
-              const radioData = MOCK_DATA_BY_RADIO[State.radiologia];
-              const clinicas = radioData ? radioData.topClinicas : [];
-              const total = clinicas.reduce((s, c) => s + c.faturamento, 0);
-              const pct = total > 0 ? (val / total * 100) : 0;
-              const clinica = clinicas[p.dataIndex];
+        } else {
+          // Tooltip: Clínica (radiologia específica)
+          const radioData = MOCK_DATA_BY_RADIO[State.radiologia];
+          const clinicas = radioData ? radioData.topClinicas : [];
+          const total = clinicas.reduce((s, c) => s + c.faturamento, 0);
+          const pct = total > 0 ? (val / total * 100) : 0;
+          const clinica = clinicas[p.dataIndex];
 
-              html = `
+          html = `
               <div class="cjs-tooltip__eyebrow">Clínica Referenciadora · ${MOCK_DATA_BY_RADIO[State.radiologia] ? CFG.radiologies.find(r => r.id === State.radiologia)?.label : ''}</div>
               <div class="cjs-tooltip__headline">
                   <span class="cjs-tooltip__headline-label">
@@ -846,44 +429,44 @@
                   <span class="cjs-tooltip__metric-value">${clinica && clinica.participacao ? H.currency(Math.round(val / Math.max(clinica.participacao, 1) * 10)) : '--'}</span>
                   </div>
               </div>`;
-          }
+        }
       }
 
-        // ------------------------------------------------------------------
-        // GRÁFICO: Top Clínicas — faturamento + participação
-        // ------------------------------------------------------------------
-        
-        // ------------------------------------------------------------------
-        // GRÁFICO: Top Médicos — faturamento + comissão estimada
-        // ------------------------------------------------------------------
-        else if (canvasId === 'distribuicaoChart') {
-          const p = tooltip.dataPoints[0];
-          const val = p.raw;
-          const isAll = State.radiologia === 'all';
-          const color = p.dataset.backgroundColor instanceof Array
-              ? p.dataset.backgroundColor[p.dataIndex]
-              : p.dataset.backgroundColor;
+      // ------------------------------------------------------------------
+      // GRÁFICO: Top Clínicas — faturamento + participação
+      // ------------------------------------------------------------------
 
-          let eyebrow, footerNote, pct;
+      // ------------------------------------------------------------------
+      // GRÁFICO: Top Médicos — faturamento + comissão estimada
+      // ------------------------------------------------------------------
+      else if (canvasId === 'distribuicaoChart') {
+        const p = tooltip.dataPoints[0];
+        const val = p.raw;
+        const isAll = State.radiologia === 'all';
+        const color = p.dataset.backgroundColor instanceof Array
+          ? p.dataset.backgroundColor[p.dataIndex]
+          : p.dataset.backgroundColor;
 
-          if (isAll) {
-              const filtered = MOCK_POR_RADIOLOGIA;
-              const total = filtered.reduce((s, r) => s + r.faturamento, 0);
-              pct = total > 0 ? (val / total * 100) : 0;
-              const item = filtered[p.dataIndex];
-              eyebrow = 'Distribuição por Radiologia';
-              footerNote = item ? H.number(item.exames) + ' exames no período' : '';
-          } else {
-              const radioData = MOCK_DATA_BY_RADIO[State.radiologia];
-              const clinicas = radioData ? radioData.topClinicas : [];
-              const total = clinicas.reduce((s, c) => s + c.faturamento, 0);
-              pct = total > 0 ? (val / total * 100) : 0;
-              const radioLabel = CFG.radiologies.find(r => r.id === State.radiologia)?.label || '';
-              eyebrow = `Distribuição por Clínica · ${radioLabel}`;
-              footerNote = `${H.percent(pct)} do faturamento desta unidade`;
-          }
+        let eyebrow, footerNote, pct;
 
-          html = `
+        if (isAll) {
+          const filtered = MOCK_POR_RADIOLOGIA;
+          const total = filtered.reduce((s, r) => s + r.faturamento, 0);
+          pct = total > 0 ? (val / total * 100) : 0;
+          const item = filtered[p.dataIndex];
+          eyebrow = 'Distribuição por Radiologia';
+          footerNote = item ? H.number(item.exames) + ' exames no período' : '';
+        } else {
+          const radioData = MOCK_DATA_BY_RADIO[State.radiologia];
+          const clinicas = radioData ? radioData.topClinicas : [];
+          const total = clinicas.reduce((s, c) => s + c.faturamento, 0);
+          pct = total > 0 ? (val / total * 100) : 0;
+          const radioLabel = CFG.radiologies.find(r => r.id === State.radiologia)?.label || '';
+          eyebrow = `Distribuição por Clínica · ${radioLabel}`;
+          footerNote = `${H.percent(pct)} do faturamento desta unidade`;
+        }
+
+        html = `
           <div class="cjs-tooltip__eyebrow">${eyebrow}</div>
           <div class="cjs-tooltip__headline">
               <span class="cjs-tooltip__headline-label">
@@ -904,22 +487,22 @@
           </div>
           <div class="cjs-tooltip__footer-note">${footerNote}</div>`;
 
-          el.classList.add('chartjs-tooltip--compact');
+        el.classList.add('chartjs-tooltip--compact');
       }
 
-        // ------------------------------------------------------------------
-        // GRÁFICO: Distribuição de Exames (doughnut)
-        // ------------------------------------------------------------------
-        else if (canvasId === 'examTypesChart') {
-            const p = tooltip.dataPoints[0];
-            const val = p.raw;
-            const total = MOCK_TIPOS_EXAME.reduce((s, t) => s + t.quantidade, 0);
-            const pct = total > 0 ? (val / total * 100) : 0;
-            const color = p.dataset.backgroundColor instanceof Array
-            ? p.dataset.backgroundColor[p.dataIndex]
-            : p.dataset.backgroundColor;
+      // ------------------------------------------------------------------
+      // GRÁFICO: Distribuição de Exames (doughnut)
+      // ------------------------------------------------------------------
+      else if (canvasId === 'examTypesChart') {
+        const p = tooltip.dataPoints[0];
+        const val = p.raw;
+        const total = MOCK_TIPOS_EXAME.reduce((s, t) => s + t.quantidade, 0);
+        const pct = total > 0 ? (val / total * 100) : 0;
+        const color = p.dataset.backgroundColor instanceof Array
+          ? p.dataset.backgroundColor[p.dataIndex]
+          : p.dataset.backgroundColor;
 
-            html = `
+        html = `
             <div class="cjs-tooltip__eyebrow">Tipo de Exame</div>
             <div class="cjs-tooltip__headline">
                 <span class="cjs-tooltip__headline-label">
@@ -942,32 +525,32 @@
             </div>
             <div class="cjs-tooltip__footer-note">Total no período: ${H.number(total)} exames</div>`;
 
-            el.classList.add('chartjs-tooltip--compact');
-        }
+        el.classList.add('chartjs-tooltip--compact');
+      }
 
-        // ------------------------------------------------------------------
-        // GRÁFICO: Ticket Médio por Radiologia
-        // ------------------------------------------------------------------
-        else if (canvasId === 'avgTicketChart') {
-            const atualPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Mês Atual');
-            const antPoint   = tooltip.dataPoints.find(p => p.dataset.label === 'Mês Anterior');
+      // ------------------------------------------------------------------
+      // GRÁFICO: Ticket Médio por Radiologia
+      // ------------------------------------------------------------------
+      else if (canvasId === 'avgTicketChart') {
+        const atualPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Mês Atual');
+        const antPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Mês Anterior');
 
-            if (atualPoint) {
-            const atual = atualPoint.raw;
-            const ant   = antPoint ? antPoint.raw : null;
-            let diffHtml = '';
-            if (ant !== null && ant > 0) {
-                const diff = ((atual - ant) / ant * 100);
-                const cls = diff > 0 ? 'cjs-tooltip__change--up' : diff < 0 ? 'cjs-tooltip__change--down' : 'cjs-tooltip__change--flat';
-                const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '—';
-                diffHtml = `
+        if (atualPoint) {
+          const atual = atualPoint.raw;
+          const ant = antPoint ? antPoint.raw : null;
+          let diffHtml = '';
+          if (ant !== null && ant > 0) {
+            const diff = ((atual - ant) / ant * 100);
+            const cls = diff > 0 ? 'cjs-tooltip__change--up' : diff < 0 ? 'cjs-tooltip__change--down' : 'cjs-tooltip__change--flat';
+            const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '—';
+            diffHtml = `
                 <div class="cjs-tooltip__change-row">
                     <span class="cjs-tooltip__change ${cls}">${arrow} ${Math.abs(diff).toFixed(1)}%</span>
                     <span class="cjs-tooltip__change-context">vs. mês anterior</span>
                 </div>`;
-            }
+          }
 
-            html = `
+          html = `
                 <div class="cjs-tooltip__eyebrow">${label}</div>
                 <div class="cjs-tooltip__headline">
                 <span class="cjs-tooltip__headline-label">Ticket médio atual</span>
@@ -986,32 +569,32 @@
                 </div>
                 </div>`;
 
-            el.classList.add('chartjs-tooltip--compact');
-            }
+          el.classList.add('chartjs-tooltip--compact');
         }
+      }
 
-        // ------------------------------------------------------------------
-        // GRÁFICOS DA ABA COMISSÕES
-        // ------------------------------------------------------------------
+      // ------------------------------------------------------------------
+      // GRÁFICOS DA ABA COMISSÕES
+      // ------------------------------------------------------------------
 
-        // Top 10 Clínicas (all) ou Top 10 Médicos (radio específica) — commTopDoctorsChart
-        else if (canvasId === 'commTopDoctorsChart') {
-            const p     = tooltip.dataPoints[0];
-            const val   = p.raw;
-            const idx   = p.dataIndex;
-            const isAll = State.radiologia === 'all';
+      // Top 10 Clínicas (all) ou Top 10 Médicos (radio específica) — commTopDoctorsChart
+      else if (canvasId === 'commTopDoctorsChart') {
+        const p = tooltip.dataPoints[0];
+        const val = p.raw;
+        const idx = p.dataIndex;
+        const isAll = State.radiologia === 'all';
 
-            if (isAll) {
-                // ── Modo Clínica ──
-                const cli   = (State._commTopClinicas || [])[idx];
-                const color = CFG.colors.primaryLight;
+        if (isAll) {
+          // ── Modo Clínica ──
+          const cli = (State._commTopClinicas || [])[idx];
+          const color = CFG.colors.primaryLight;
 
-                if (!cli) { el.style.opacity = '0'; return; }
+          if (!cli) { el.style.opacity = '0'; return; }
 
-                const pctPago = cli.comissaoDevida > 0 ? (cli.pago / cli.comissaoDevida * 100) : 0;
-                const barColor = pctPago >= 100 ? '#0E8F63' : pctPago >= 50 ? '#B27A0E' : '#C23B32';
+          const pctPago = cli.comissaoDevida > 0 ? (cli.pago / cli.comissaoDevida * 100) : 0;
+          const barColor = pctPago >= 100 ? '#0E8F63' : pctPago >= 50 ? '#B27A0E' : '#C23B32';
 
-                html = `
+          html = `
                 <div class="cjs-tooltip__eyebrow">Top Clínicas · Comissão Total</div>
                 <div class="cjs-tooltip__headline">
                     <span class="cjs-tooltip__headline-label">
@@ -1052,30 +635,30 @@
                 </div>
                 <div class="cjs-tooltip__footer-note">${cli.exames} exames · todas as radiologias</div>`;
 
-            } else {
-                // ── Modo Médico ──
-                const color = CFG.colors.primary;
-                const allDoctors = MOCK_COMISSOES_TREE
-                    .flatMap(r => r.clinicas.flatMap(c => c.medicos.map(m => ({ ...m, clinicaNome: c.nome, radioNome: r.nome }))));
-                const med = allDoctors
-                    .filter(m => {
-                        // filtra pela radio ativa
-                        const radioTree = MOCK_COMISSOES_TREE.find(r => r.id === `radio-${State.radiologia}`);
-                        return radioTree ? radioTree.clinicas.some(c => c.medicos.some(dm => dm.id === m.id)) : true;
-                    })
-                    .sort((a, b) => b.comissaoDevida - a.comissaoDevida)
-                    .slice(0, 10)[idx];
+        } else {
+          // ── Modo Médico ──
+          const color = CFG.colors.primary;
+          const allDoctors = MOCK_COMISSOES_TREE
+            .flatMap(r => r.clinicas.flatMap(c => c.medicos.map(m => ({ ...m, clinicaNome: c.nome, radioNome: r.nome }))));
+          const med = allDoctors
+            .filter(m => {
+              // filtra pela radio ativa
+              const radioTree = MOCK_COMISSOES_TREE.find(r => r.id === `radio-${State.radiologia}`);
+              return radioTree ? radioTree.clinicas.some(c => c.medicos.some(dm => dm.id === m.id)) : true;
+            })
+            .sort((a, b) => b.comissaoDevida - a.comissaoDevida)
+            .slice(0, 10)[idx];
 
-                if (!med) { el.style.opacity = '0'; return; }
+          if (!med) { el.style.opacity = '0'; return; }
 
-                const pctPago    = med.comissaoDevida > 0 ? (med.pago / med.comissaoDevida * 100) : 0;
-                const barColor   = pctPago >= 100 ? '#0E8F63' : pctPago >= 50 ? '#B27A0E' : '#C23B32';
-                const statusCls  = med.status === 'paid'    ? 'cjs-tooltip__metric-value--positive'
-                                 : med.status === 'partial' ? 'cjs-tooltip__metric-value--warning'
-                                 : 'cjs-tooltip__metric-value--negative';
-                const statusLabel = med.status === 'paid' ? 'Quitado' : med.status === 'partial' ? 'Parcial' : 'Pendente';
+          const pctPago = med.comissaoDevida > 0 ? (med.pago / med.comissaoDevida * 100) : 0;
+          const barColor = pctPago >= 100 ? '#0E8F63' : pctPago >= 50 ? '#B27A0E' : '#C23B32';
+          const statusCls = med.status === 'paid' ? 'cjs-tooltip__metric-value--positive'
+            : med.status === 'partial' ? 'cjs-tooltip__metric-value--warning'
+              : 'cjs-tooltip__metric-value--negative';
+          const statusLabel = med.status === 'paid' ? 'Quitado' : med.status === 'partial' ? 'Parcial' : 'Pendente';
 
-                html = `
+          html = `
                 <div class="cjs-tooltip__eyebrow">Top Médicos · Comissão Devida</div>
                 <div class="cjs-tooltip__headline">
                     <span class="cjs-tooltip__headline-label">
@@ -1115,31 +698,31 @@
                     </div>
                 </div>
                 <div class="cjs-tooltip__footer-note">${med.exames} exames · ${med.radioNome}</div>`;
-            }
-
-            el.classList.add('chartjs-tooltip--compact');
         }
 
-        // Distribuição por Radiologia (doughnut)
-        else if (canvasId === 'commByRadiologyChart') {
-          const p = tooltip.dataPoints[0];
-          const val = p.raw;
-          const isAll = State.radiologia === 'all';
-          const color = p.dataset.backgroundColor instanceof Array
-              ? p.dataset.backgroundColor[p.dataIndex]
-              : p.dataset.backgroundColor;
+        el.classList.add('chartjs-tooltip--compact');
+      }
 
-          let eyebrow, total, extraMetrics = '';
+      // Distribuição por Radiologia (doughnut)
+      else if (canvasId === 'commByRadiologyChart') {
+        const p = tooltip.dataPoints[0];
+        const val = p.raw;
+        const isAll = State.radiologia === 'all';
+        const color = p.dataset.backgroundColor instanceof Array
+          ? p.dataset.backgroundColor[p.dataIndex]
+          : p.dataset.backgroundColor;
 
-          if (isAll) {
-              total = MOCK_COMISSOES_TREE.reduce((s, r) => s + r.comissaoDevida, 0);
-              const radioTree = MOCK_COMISSOES_TREE[p.dataIndex];
-              eyebrow = 'Comissões por Radiologia';
-              if (radioTree) {
-                  const pago = radioTree.pago;
-                  const pendente = radioTree.pendente;
-                  const pctPago = radioTree.comissaoDevida > 0 ? (pago / radioTree.comissaoDevida * 100) : 0;
-                  extraMetrics = `
+        let eyebrow, total, extraMetrics = '';
+
+        if (isAll) {
+          total = MOCK_COMISSOES_TREE.reduce((s, r) => s + r.comissaoDevida, 0);
+          const radioTree = MOCK_COMISSOES_TREE[p.dataIndex];
+          eyebrow = 'Comissões por Radiologia';
+          if (radioTree) {
+            const pago = radioTree.pago;
+            const pendente = radioTree.pendente;
+            const pctPago = radioTree.comissaoDevida > 0 ? (pago / radioTree.comissaoDevida * 100) : 0;
+            extraMetrics = `
                   <div class="cjs-tooltip__divider"></div>
                   <div class="cjs-tooltip__metrics">
                       <div class="cjs-tooltip__metric">
@@ -1155,17 +738,17 @@
                       <span class="cjs-tooltip__metric-value">${H.percent(pctPago)}</span>
                       </div>
                   </div>`;
-              }
-          } else {
-              const radioTree = MOCK_COMISSOES_TREE.find(r => r.id === `radio-${State.radiologia}`);
-              const clinicas = radioTree ? radioTree.clinicas : [];
-              total = clinicas.reduce((s, c) => s + c.comissaoDevida, 0);
-              const clinica = clinicas[p.dataIndex];
-              const radioLabel = CFG.radiologies.find(r => r.id === State.radiologia)?.label || '';
-              eyebrow = `Comissões por Clínica · ${radioLabel}`;
-              if (clinica) {
-                  const pctPago = clinica.comissaoDevida > 0 ? (clinica.pago / clinica.comissaoDevida * 100) : 0;
-                  extraMetrics = `
+          }
+        } else {
+          const radioTree = MOCK_COMISSOES_TREE.find(r => r.id === `radio-${State.radiologia}`);
+          const clinicas = radioTree ? radioTree.clinicas : [];
+          total = clinicas.reduce((s, c) => s + c.comissaoDevida, 0);
+          const clinica = clinicas[p.dataIndex];
+          const radioLabel = CFG.radiologies.find(r => r.id === State.radiologia)?.label || '';
+          eyebrow = `Comissões por Clínica · ${radioLabel}`;
+          if (clinica) {
+            const pctPago = clinica.comissaoDevida > 0 ? (clinica.pago / clinica.comissaoDevida * 100) : 0;
+            extraMetrics = `
                   <div class="cjs-tooltip__divider"></div>
                   <div class="cjs-tooltip__metrics">
                       <div class="cjs-tooltip__metric">
@@ -1185,12 +768,12 @@
                       <span class="cjs-tooltip__metric-value">${clinica.medicos.length}</span>
                       </div>
                   </div>`;
-              }
           }
+        }
 
-          const pct = total > 0 ? (val / total * 100) : 0;
+        const pct = total > 0 ? (val / total * 100) : 0;
 
-          html = `
+        html = `
           <div class="cjs-tooltip__eyebrow">${eyebrow}</div>
           <div class="cjs-tooltip__headline">
               <span class="cjs-tooltip__headline-label">
@@ -1211,53 +794,53 @@
           </div>
           ${extraMetrics}`;
 
-          el.classList.add('chartjs-tooltip--compact');
+        el.classList.add('chartjs-tooltip--compact');
       }
 
-        // Evolução Pagas vs Pendentes (enriquecido)
-        else if (canvasId === 'commEvolutionChart') {
-            const pagPoint   = tooltip.dataPoints.find(p => p.dataset.label === 'Pagas');
-            const pendPoint  = tooltip.dataPoints.find(p => p.dataset.label === 'Pendentes');
-            const totalPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Total do Mês');
+      // Evolução Pagas vs Pendentes (enriquecido)
+      else if (canvasId === 'commEvolutionChart') {
+        const pagPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Pagas');
+        const pendPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Pendentes');
+        const totalPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Total do Mês');
 
-            const radioLabel = State.radiologia === 'all'
-                ? 'Todas as Radiologias'
-                : CFG.radiologies.find(r => r.id === State.radiologia)?.label || '';
+        const radioLabel = State.radiologia === 'all'
+          ? 'Todas as Radiologias'
+          : CFG.radiologies.find(r => r.id === State.radiologia)?.label || '';
 
-            const pago     = pagPoint  ? pagPoint.raw  : 0;
-            const pendente = pendPoint ? pendPoint.raw : 0;
-            const total    = pago + pendente;
-            const pctPago  = total > 0 ? (pago / total * 100) : 0;
-            const barColor = pctPago >= 80 ? CFG.colors.positive : pctPago >= 50 ? CFG.colors.warning : CFG.colors.negative;
+        const pago = pagPoint ? pagPoint.raw : 0;
+        const pendente = pendPoint ? pendPoint.raw : 0;
+        const total = pago + pendente;
+        const pctPago = total > 0 ? (pago / total * 100) : 0;
+        const barColor = pctPago >= 80 ? CFG.colors.positive : pctPago >= 50 ? CFG.colors.warning : CFG.colors.negative;
 
-            // Calcula variação mês anterior para pagas e pendentes
-            const d = MOCK_COMM_EVOLUCAO_BY_RADIO[State.radiologia] || MOCK_COMM_EVOLUCAO;
-            const idx = tooltip.dataPoints[0]?.dataIndex ?? -1;
-            const pagAnterior  = idx > 0 ? d.pagas[idx - 1]    : null;
-            const pendAnterior = idx > 0 ? d.pendentes[idx - 1] : null;
+        // Calcula variação mês anterior para pagas e pendentes
+        const d = MOCK_COMM_EVOLUCAO_BY_RADIO[State.radiologia] || MOCK_COMM_EVOLUCAO;
+        const idx = tooltip.dataPoints[0]?.dataIndex ?? -1;
+        const pagAnterior = idx > 0 ? d.pagas[idx - 1] : null;
+        const pendAnterior = idx > 0 ? d.pendentes[idx - 1] : null;
 
-            function variacao(atual, anterior) {
-                if (anterior === null || anterior === 0) return null;
-                return ((atual - anterior) / anterior * 100);
-            }
+        function variacao(atual, anterior) {
+          if (anterior === null || anterior === 0) return null;
+          return ((atual - anterior) / anterior * 100);
+        }
 
-            function variacaoHtml(pct) {
-                if (pct === null) return '';
-                const cls   = pct > 0  ? 'cjs-tooltip__change--up'   : pct < 0 ? 'cjs-tooltip__change--down' : 'cjs-tooltip__change--flat';
-                const arrow = pct > 0  ? '↑' : pct < 0 ? '↓' : '—';
-                return `<span class="cjs-tooltip__change ${cls}" style="font-size:10px;padding:1px 5px">${arrow} ${Math.abs(pct).toFixed(1)}%</span>`;
-            }
+        function variacaoHtml(pct) {
+          if (pct === null) return '';
+          const cls = pct > 0 ? 'cjs-tooltip__change--up' : pct < 0 ? 'cjs-tooltip__change--down' : 'cjs-tooltip__change--flat';
+          const arrow = pct > 0 ? '↑' : pct < 0 ? '↓' : '—';
+          return `<span class="cjs-tooltip__change ${cls}" style="font-size:10px;padding:1px 5px">${arrow} ${Math.abs(pct).toFixed(1)}%</span>`;
+        }
 
-            const varPago  = variacao(pago, pagAnterior);
-            const varPend  = variacao(pendente, pendAnterior);
+        const varPago = variacao(pago, pagAnterior);
+        const varPend = variacao(pendente, pendAnterior);
 
-            // Status contextual
-            const statusTexto = pctPago >= 80 ? '✓ Ótimo nível de quitação'
-                              : pctPago >= 60 ? '~ Quitação razoável'
-                              : '⚠ Atenção: muitas pendências';
-            const statusColor = pctPago >= 80 ? '#5EEAA4' : pctPago >= 60 ? '#F5CC6B' : '#F58A83';
+        // Status contextual
+        const statusTexto = pctPago >= 80 ? '✓ Ótimo nível de quitação'
+          : pctPago >= 60 ? '~ Quitação razoável'
+            : '⚠ Atenção: muitas pendências';
+        const statusColor = pctPago >= 80 ? '#5EEAA4' : pctPago >= 60 ? '#F5CC6B' : '#F58A83';
 
-            html = `
+        html = `
             <div class="cjs-tooltip__eyebrow">${label} · ${radioLabel}</div>
 
             <div class="cjs-tooltip__headline">
@@ -1302,29 +885,29 @@
 
             <div class="cjs-tooltip__divider"></div>
             <div class="cjs-tooltip__footer-note" style="color:${statusColor};font-weight:600">${statusTexto}</div>`;
-        }
+      }
 
-        // ------------------------------------------------------------------
-        // GRÁFICO: Distribuição de Comissões — pie (commDistributionChart)
-        // ------------------------------------------------------------------
-        else if (canvasId === 'commDistributionChart') {
-            const p = tooltip.dataPoints[0];
-            const val = p.raw;
-            const isAll = State.radiologia === 'all';
-            const color = p.dataset.backgroundColor instanceof Array
-                ? p.dataset.backgroundColor[p.dataIndex]
-                : p.dataset.backgroundColor;
+      // ------------------------------------------------------------------
+      // GRÁFICO: Distribuição de Comissões — pie (commDistributionChart)
+      // ------------------------------------------------------------------
+      else if (canvasId === 'commDistributionChart') {
+        const p = tooltip.dataPoints[0];
+        const val = p.raw;
+        const isAll = State.radiologia === 'all';
+        const color = p.dataset.backgroundColor instanceof Array
+          ? p.dataset.backgroundColor[p.dataIndex]
+          : p.dataset.backgroundColor;
 
-            let eyebrow, total, extraMetrics = '', footerNote = '';
+        let eyebrow, total, extraMetrics = '', footerNote = '';
 
-            if (isAll) {
-                total = MOCK_COMISSOES_TREE.reduce((s, r) => s + r.comissaoDevida, 0);
-                const radioTree = MOCK_COMISSOES_TREE[p.dataIndex];
-                eyebrow = 'Distribuição de Comissões · Por Radiologia';
-                if (radioTree) {
-                    const pctPago = radioTree.comissaoDevida > 0 ? (radioTree.pago / radioTree.comissaoDevida * 100) : 0;
-                    footerNote = `${radioTree.clinicas.length} clínicas · ${radioTree.exames} exames`;
-                    extraMetrics = `
+        if (isAll) {
+          total = MOCK_COMISSOES_TREE.reduce((s, r) => s + r.comissaoDevida, 0);
+          const radioTree = MOCK_COMISSOES_TREE[p.dataIndex];
+          eyebrow = 'Distribuição de Comissões · Por Radiologia';
+          if (radioTree) {
+            const pctPago = radioTree.comissaoDevida > 0 ? (radioTree.pago / radioTree.comissaoDevida * 100) : 0;
+            footerNote = `${radioTree.clinicas.length} clínicas · ${radioTree.exames} exames`;
+            extraMetrics = `
                     <div class="cjs-tooltip__divider"></div>
                     <div class="cjs-tooltip__metrics">
                         <div class="cjs-tooltip__metric">
@@ -1344,18 +927,18 @@
                         <span class="cjs-tooltip__metric-value">${H.currency(radioTree.faturamento)}</span>
                         </div>
                     </div>`;
-                }
-            } else {
-                const radioTree = MOCK_COMISSOES_TREE.find(r => r.id === `radio-${State.radiologia}`);
-                const clinicas = radioTree ? radioTree.clinicas : [];
-                total = clinicas.reduce((s, c) => s + c.comissaoDevida, 0);
-                const clinica = clinicas[p.dataIndex];
-                const radioLabel = CFG.radiologies.find(r => r.id === State.radiologia)?.label || '';
-                eyebrow = `Distribuição de Comissões · ${radioLabel}`;
-                if (clinica) {
-                    const pctPago = clinica.comissaoDevida > 0 ? (clinica.pago / clinica.comissaoDevida * 100) : 0;
-                    footerNote = `${clinica.medicos.length} médico(s) · ${clinica.exames} exames`;
-                    extraMetrics = `
+          }
+        } else {
+          const radioTree = MOCK_COMISSOES_TREE.find(r => r.id === `radio-${State.radiologia}`);
+          const clinicas = radioTree ? radioTree.clinicas : [];
+          total = clinicas.reduce((s, c) => s + c.comissaoDevida, 0);
+          const clinica = clinicas[p.dataIndex];
+          const radioLabel = CFG.radiologies.find(r => r.id === State.radiologia)?.label || '';
+          eyebrow = `Distribuição de Comissões · ${radioLabel}`;
+          if (clinica) {
+            const pctPago = clinica.comissaoDevida > 0 ? (clinica.pago / clinica.comissaoDevida * 100) : 0;
+            footerNote = `${clinica.medicos.length} médico(s) · ${clinica.exames} exames`;
+            extraMetrics = `
                     <div class="cjs-tooltip__divider"></div>
                     <div class="cjs-tooltip__metrics">
                         <div class="cjs-tooltip__metric">
@@ -1375,12 +958,12 @@
                         <span class="cjs-tooltip__metric-value">${H.currency(clinica.faturamento)}</span>
                         </div>
                     </div>`;
-                }
-            }
+          }
+        }
 
-            const pct = total > 0 ? (val / total * 100) : 0;
+        const pct = total > 0 ? (val / total * 100) : 0;
 
-            html = `
+        html = `
             <div class="cjs-tooltip__eyebrow">${eyebrow}</div>
             <div class="cjs-tooltip__headline">
                 <span class="cjs-tooltip__headline-label">
@@ -1402,37 +985,37 @@
             ${extraMetrics}
             ${footerNote ? `<div class="cjs-tooltip__footer-note">${footerNote}</div>` : ''}`;
 
-            el.classList.add('chartjs-tooltip--compact');
+        el.classList.add('chartjs-tooltip--compact');
+      }
+
+      // ------------------------------------------------------------------
+      // GRÁFICO: Comissões por Radiologia/Clínica — barras empilhadas (commByEntityChart)
+      // ------------------------------------------------------------------
+      else if (canvasId === 'commByEntityChart') {
+        const pagoPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Pago');
+        const pendentPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Pendente');
+        const isAll = State.radiologia === 'all';
+        const radioLabel = isAll
+          ? 'Todas as Radiologias'
+          : CFG.radiologies.find(r => r.id === State.radiologia)?.label || '';
+
+        const pago = pagoPoint ? pagoPoint.raw : 0;
+        const pendente = pendentPoint ? pendentPoint.raw : 0;
+        const total = pago + pendente;
+        const pctPago = total > 0 ? (pago / total * 100) : 0;
+
+        // Enriquece com dados da entidade
+        let exames = null, faturamento = null, nMedicos = null;
+        if (isAll) {
+          const radio = MOCK_COMISSOES_TREE[pagoPoint?.dataIndex ?? 0];
+          if (radio) { exames = radio.exames; faturamento = radio.faturamento; nMedicos = radio.clinicas.reduce((s, c) => s + c.medicos.length, 0); }
+        } else {
+          const radioTree = MOCK_COMISSOES_TREE.find(r => r.id === `radio-${State.radiologia}`);
+          const cli = radioTree?.clinicas[pagoPoint?.dataIndex ?? 0];
+          if (cli) { exames = cli.exames; faturamento = cli.faturamento; nMedicos = cli.medicos.length; }
         }
 
-        // ------------------------------------------------------------------
-        // GRÁFICO: Comissões por Radiologia/Clínica — barras empilhadas (commByEntityChart)
-        // ------------------------------------------------------------------
-        else if (canvasId === 'commByEntityChart') {
-            const pagoPoint    = tooltip.dataPoints.find(p => p.dataset.label === 'Pago');
-            const pendentPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Pendente');
-            const isAll = State.radiologia === 'all';
-            const radioLabel = isAll
-                ? 'Todas as Radiologias'
-                : CFG.radiologies.find(r => r.id === State.radiologia)?.label || '';
-
-            const pago    = pagoPoint    ? pagoPoint.raw    : 0;
-            const pendente = pendentPoint ? pendentPoint.raw : 0;
-            const total   = pago + pendente;
-            const pctPago = total > 0 ? (pago / total * 100) : 0;
-
-            // Enriquece com dados da entidade
-            let exames = null, faturamento = null, nMedicos = null;
-            if (isAll) {
-                const radio = MOCK_COMISSOES_TREE[pagoPoint?.dataIndex ?? 0];
-                if (radio) { exames = radio.exames; faturamento = radio.faturamento; nMedicos = radio.clinicas.reduce((s, c) => s + c.medicos.length, 0); }
-            } else {
-                const radioTree = MOCK_COMISSOES_TREE.find(r => r.id === `radio-${State.radiologia}`);
-                const cli = radioTree?.clinicas[pagoPoint?.dataIndex ?? 0];
-                if (cli) { exames = cli.exames; faturamento = cli.faturamento; nMedicos = cli.medicos.length; }
-            }
-
-            html = `
+        html = `
             <div class="cjs-tooltip__eyebrow">${isAll ? 'Comissões por Radiologia' : `Comissões por Clínica · ${radioLabel}`}</div>
             <div class="cjs-tooltip__headline">
                 <span class="cjs-tooltip__headline-label">${label}</span>
@@ -1477,60 +1060,60 @@
                 </div>` : ''}
             </div>
             ${exames !== null ? `<div class="cjs-tooltip__footer-note">${exames} exames no período</div>` : ''}`;
+      }
+      // ------------------------------------------------------------------
+      // GRÁFICO: Meta vs Realizado — tooltip individual por barra
+      // ------------------------------------------------------------------
+      else if (canvasId === 'goalVsActualChart') {
+        const metaPoint = tooltip.dataPoints.find(
+          p => p.dataset.label === 'Meta'
+        );
+
+        const realPoint = tooltip.dataPoints.find(
+          p => p.dataset.label === 'Realizado'
+        );
+
+        const firstPoint = metaPoint || realPoint;
+
+        if (!firstPoint) {
+          el.style.opacity = '0';
+          return;
         }
-        // ------------------------------------------------------------------
-        // GRÁFICO: Meta vs Realizado — tooltip individual por barra
-        // ------------------------------------------------------------------
-        else if (canvasId === 'goalVsActualChart') {
-            const metaPoint = tooltip.dataPoints.find(
-              p => p.dataset.label === 'Meta'
-            );
 
-            const realPoint = tooltip.dataPoints.find(
-              p => p.dataset.label === 'Realizado'
-            );
+        const gd = State._goalChartData || {};
+        const idx = firstPoint.dataIndex;
+        const isAll = gd.isAll;
 
-            const firstPoint = metaPoint || realPoint;
+        const meta = gd.dataMeta?.[idx] || 0;
+        const real = gd.dataRealizado?.[idx] || 0;
+        const pct = meta > 0 ? (real / meta * 100) : 0;
+        const falta = Math.max(meta - real, 0);
+        const excede = Math.max(real - meta, 0);
+        const itemLabel = gd.labels?.[idx] || label;
 
-            if (!firstPoint) {
-              el.style.opacity = '0';
-              return;
-            }
+        const barColorDark = pct >= 100 ? CFG.colors.positive
+          : pct >= 75 ? CFG.colors.primary
+            : CFG.colors.warning;
+        const barColorLight = pct >= 100 ? '#5EEAA4'
+          : pct >= 75 ? CFG.colors.primaryLight
+            : '#F5CC6B';
 
-            const gd       = State._goalChartData || {};
-            const idx      = firstPoint.dataIndex;
-            const isAll    = gd.isAll;
+        const statusTexto = pct >= 100 ? '✓ Meta atingida!'
+          : pct >= 75 ? '~ Quase lá'
+            : pct >= 50 ? '~ Metade do caminho'
+              : '⚠ Abaixo do esperado';
+        const statusColor = pct >= 100 ? '#5EEAA4'
+          : pct >= 75 ? CFG.colors.primaryLight
+            : pct >= 50 ? '#F5CC6B'
+              : '#F58A83';
 
-            const meta     = gd.dataMeta?.[idx]      || 0;
-            const real     = gd.dataRealizado?.[idx] || 0;
-            const pct      = meta > 0 ? (real / meta * 100) : 0;
-            const falta    = Math.max(meta - real, 0);
-            const excede   = Math.max(real - meta, 0);
-            const itemLabel = gd.labels?.[idx] || label;
+        // Eyebrow contextual: radiologia ou mês
+        const eyebrow = isAll
+          ? `Meta vs. Realizado · ${itemLabel}`
+          : `${gd.radioLabel || ''} · ${itemLabel}`;
 
-            const barColorDark = pct >= 100 ? CFG.colors.positive
-                               : pct >= 75  ? CFG.colors.primary
-                               : CFG.colors.warning;
-            const barColorLight = pct >= 100 ? '#5EEAA4'
-                                : pct >= 75  ? CFG.colors.primaryLight
-                                : '#F5CC6B';
-
-            const statusTexto = pct >= 100 ? '✓ Meta atingida!'
-                              : pct >= 75  ? '~ Quase lá'
-                              : pct >= 50  ? '~ Metade do caminho'
-                              : '⚠ Abaixo do esperado';
-            const statusColor = pct >= 100 ? '#5EEAA4'
-                              : pct >= 75  ? CFG.colors.primaryLight
-                              : pct >= 50  ? '#F5CC6B'
-                              : '#F58A83';
-
-            // Eyebrow contextual: radiologia ou mês
-            const eyebrow = isAll
-              ? `Meta vs. Realizado · ${itemLabel}`
-              : `${gd.radioLabel || ''} · ${itemLabel}`;
-
-            // Tooltip da barra de Meta — simples, só referência
-            html = `
+        // Tooltip da barra de Meta — simples, só referência
+        html = `
               <div class="cjs-tooltip__eyebrow">
                   ${eyebrow}
               </div>
@@ -1599,7 +1182,7 @@
                           <div
                               class="cjs-tooltip__bar-fill"
                               style="
-                                  width:${Math.min(pct,100)}%;
+                                  width:${Math.min(pct, 100)}%;
                                   background:${barColorDark};
                               ">
                           </div>
@@ -1614,12 +1197,11 @@
 
               <div class="cjs-tooltip__metrics">
 
-                  ${
-                      pct >= 100
+                  ${pct >= 100
 
-                      ?
+            ?
 
-                      `
+            `
                       <div class="cjs-tooltip__metric">
                           <span class="cjs-tooltip__metric-label">
                               Excedeu em
@@ -1631,9 +1213,9 @@
                       </div>
                       `
 
-                      :
+            :
 
-                      `
+            `
                       <div class="cjs-tooltip__metric">
                           <span class="cjs-tooltip__metric-label">
                               Falta para atingir
@@ -1645,7 +1227,7 @@
                       </div>
                       `
 
-                  }
+          }
 
               </div>
 
@@ -1659,39 +1241,39 @@
               </div>
               `;
 
-            el.classList.add('chartjs-tooltip--compact');
-        }
+        el.classList.add('chartjs-tooltip--compact');
+      }
 
-        // ------------------------------------------------------------------
-        // FALLBACK: tooltip genérico (para gráficos não listados acima)
-        // ------------------------------------------------------------------
-        else {
-            html = `<div class="cjs-tooltip__eyebrow">${label}</div>`;
-            html += `<div class="cjs-tooltip__metrics">`;
-            tooltip.dataPoints.forEach(p => {
-            const color = p.dataset.backgroundColor instanceof Array
-                ? p.dataset.backgroundColor[p.dataIndex]
-                : p.dataset.borderColor || p.dataset.backgroundColor;
-            html += `
+      // ------------------------------------------------------------------
+      // FALLBACK: tooltip genérico (para gráficos não listados acima)
+      // ------------------------------------------------------------------
+      else {
+        html = `<div class="cjs-tooltip__eyebrow">${label}</div>`;
+        html += `<div class="cjs-tooltip__metrics">`;
+        tooltip.dataPoints.forEach(p => {
+          const color = p.dataset.backgroundColor instanceof Array
+            ? p.dataset.backgroundColor[p.dataIndex]
+            : p.dataset.borderColor || p.dataset.backgroundColor;
+          html += `
                 <div class="cjs-tooltip__metric">
                 <span class="cjs-tooltip__metric-label" style="display:flex;align-items:center;gap:6px">
                     <span class="cjs-tooltip__dot" style="background:${color}"></span>${p.dataset.label || p.label}
                 </span>
                 <span class="cjs-tooltip__metric-value">${p.formattedValue}</span>
                 </div>`;
-            });
-            html += `</div>`;
-        }
+        });
+        html += `</div>`;
+      }
 
-                // ------------------------------------------------------------------
-        // RENDERIZAÇÃO E POSICIONAMENTO (Individualizado por tipo de gráfico)
-        // ------------------------------------------------------------------
-        inner.innerHTML = html;
+      // ------------------------------------------------------------------
+      // RENDERIZAÇÃO E POSICIONAMENTO (Individualizado por tipo de gráfico)
+      // ------------------------------------------------------------------
+      inner.innerHTML = html;
 
-        // Força o browser a calcular layout antes de posicionar
-        el.style.opacity = '0';
-        // setTimeout 0 garante que o DOM já foi pintado antes de medir
-        setTimeout(() => {
+      // Força o browser a calcular layout antes de posicionar
+      el.style.opacity = '0';
+      // setTimeout 0 garante que o DOM já foi pintado antes de medir
+      setTimeout(() => {
         const tooltipW = el.offsetWidth;
         const tooltipH = el.offsetHeight;
         const canvasBox = chart.canvas.getBoundingClientRect();
@@ -1701,95 +1283,95 @@
 
         // Barras horizontais (Top Clínicas, Top Comissões)
         if (canvasId === 'topClinicasChart') {
-            const active = chart.getActiveElements();
-            if (active.length > 0) {
+          const active = chart.getActiveElements();
+          if (active.length > 0) {
             const barBox = active[0].element.getBoundingClientRect();
             left = barBox.right + GAP;
-            top  = barBox.top + barBox.height / 2 - tooltipH / 2;
+            top = barBox.top + barBox.height / 2 - tooltipH / 2;
             if (left + tooltipW > window.innerWidth - 8) {
-                left = barBox.left - tooltipW - GAP;
+              left = barBox.left - tooltipW - GAP;
             }
-            } else {
+          } else {
             left = canvasBox.right + GAP;
-            top  = canvasBox.top;
-            }
+            top = canvasBox.top;
+          }
         }
 
         // Gráficos de linha/área
         else if (canvasId === 'evolutionChart' || canvasId === 'commEvolutionChart') {
-            left = canvasBox.left + tooltip.caretX + GAP;
-            top  = canvasBox.top  + tooltip.caretY - tooltipH - GAP;
-            if (left + tooltipW > window.innerWidth - 8) {
+          left = canvasBox.left + tooltip.caretX + GAP;
+          top = canvasBox.top + tooltip.caretY - tooltipH - GAP;
+          if (left + tooltipW > window.innerWidth - 8) {
             left = canvasBox.left + tooltip.caretX - tooltipW - GAP;
-            }
-            if (top < 8) {
+          }
+          if (top < 8) {
             top = canvasBox.top + tooltip.caretY + GAP;
-            }
+          }
         }
 
         // Barras verticais (Por Radiologia, Ticket Médio, Meta)
         else if (
-            canvasId === 'byRadiologyChart' ||
-            canvasId === 'avgTicketChart'
+          canvasId === 'byRadiologyChart' ||
+          canvasId === 'avgTicketChart'
         ) {
-            left = canvasBox.left + tooltip.caretX - tooltipW / 2;
-            top  = canvasBox.top  + tooltip.caretY - tooltipH - GAP;
-            if (left + tooltipW > window.innerWidth - 8) left = window.innerWidth - tooltipW - 8;
-            if (left < 8) left = 8;
-            if (top < 8)  top  = canvasBox.top + tooltip.caretY + GAP;
+          left = canvasBox.left + tooltip.caretX - tooltipW / 2;
+          top = canvasBox.top + tooltip.caretY - tooltipH - GAP;
+          if (left + tooltipW > window.innerWidth - 8) left = window.innerWidth - tooltipW - 8;
+          if (left < 8) left = 8;
+          if (top < 8) top = canvasBox.top + tooltip.caretY + GAP;
         }
 
         // Meta vs Realizado — acima da barra, fallback para direita/esquerda
         else if (canvasId === 'goalVsActualChart') {
-            left = canvasBox.left + tooltip.caretX - tooltipW / 2;
-            top  = canvasBox.top  + tooltip.caretY - tooltipH - GAP;
-            // se sair para cima do viewport, posiciona abaixo
-            if (top < 8) top = canvasBox.top + tooltip.caretY + GAP;
-            // clamp horizontal
-            if (left < 8) left = 8;
-            if (left + tooltipW > window.innerWidth - 8) left = window.innerWidth - tooltipW - 8;
+          left = canvasBox.left + tooltip.caretX - tooltipW / 2;
+          top = canvasBox.top + tooltip.caretY - tooltipH - GAP;
+          // se sair para cima do viewport, posiciona abaixo
+          if (top < 8) top = canvasBox.top + tooltip.caretY + GAP;
+          // clamp horizontal
+          if (left < 8) left = 8;
+          if (left + tooltipW > window.innerWidth - 8) left = window.innerWidth - tooltipW - 8;
         }
 
         // Doughnut (Tipos de Exame, Comissões por Radiologia)
         // Doughnut / Pie (Tipos de Exame, Comissões por Radiologia, Distribuição de Comissões)
         else if (canvasId === 'examTypesChart' || canvasId === 'commByRadiologyChart' || canvasId === 'distribuicaoChart' || canvasId === 'commDistributionChart') {
-            left = canvasBox.left + tooltip.caretX + GAP;
-            top  = canvasBox.top  + tooltip.caretY - tooltipH / 2;
-            if (left + tooltipW > window.innerWidth - 8) {
+          left = canvasBox.left + tooltip.caretX + GAP;
+          top = canvasBox.top + tooltip.caretY - tooltipH / 2;
+          if (left + tooltipW > window.innerWidth - 8) {
             left = canvasBox.left + tooltip.caretX - tooltipW - GAP;
-            }
+          }
         }
 
         // Barras horizontais (Top Médicos por Comissão)
         else if (canvasId === 'commTopDoctorsChart') {
-            left = canvasBox.left + tooltip.caretX + GAP;
-            top  = canvasBox.top  + tooltip.caretY - tooltipH / 2;
-            if (left + tooltipW > window.innerWidth - 8) {
-                left = canvasBox.left + tooltip.caretX - tooltipW - GAP;
-            }
-            if (top < 8) top = 8;
-            if (top + tooltipH > window.innerHeight - 8) top = window.innerHeight - tooltipH - 8;
+          left = canvasBox.left + tooltip.caretX + GAP;
+          top = canvasBox.top + tooltip.caretY - tooltipH / 2;
+          if (left + tooltipW > window.innerWidth - 8) {
+            left = canvasBox.left + tooltip.caretX - tooltipW - GAP;
+          }
+          if (top < 8) top = 8;
+          if (top + tooltipH > window.innerHeight - 8) top = window.innerHeight - tooltipH - 8;
         }
 
         // Barras empilhadas (Comissões por Radiologia/Clínica)
         else if (canvasId === 'commByEntityChart') {
-            left = canvasBox.left + tooltip.caretX - tooltipW / 2;
-            top  = canvasBox.top  + tooltip.caretY - tooltipH - GAP;
-            if (left + tooltipW > window.innerWidth - 8) left = window.innerWidth - tooltipW - 8;
-            if (left < 8) left = 8;
-            if (top < 8)  top  = canvasBox.top + tooltip.caretY + GAP;
+          left = canvasBox.left + tooltip.caretX - tooltipW / 2;
+          top = canvasBox.top + tooltip.caretY - tooltipH - GAP;
+          if (left + tooltipW > window.innerWidth - 8) left = window.innerWidth - tooltipW - 8;
+          if (left < 8) left = 8;
+          if (top < 8) top = canvasBox.top + tooltip.caretY + GAP;
         }
 
         // Barras horizontais duplas (Top Médicos)
-        
+
         // Fallback
         else {
-            left = canvasBox.left + tooltip.caretX + GAP;
-            top  = canvasBox.top  + tooltip.caretY - tooltipH - GAP;
-            if (left + tooltipW > window.innerWidth - 8) {
+          left = canvasBox.left + tooltip.caretX + GAP;
+          top = canvasBox.top + tooltip.caretY - tooltipH - GAP;
+          if (left + tooltipW > window.innerWidth - 8) {
             left = canvasBox.left + tooltip.caretX - tooltipW - GAP;
-            }
-            if (top < 8) top = canvasBox.top + tooltip.caretY + GAP;
+          }
+          if (top < 8) top = canvasBox.top + tooltip.caretY + GAP;
         }
 
         // Clamp final
@@ -1798,10 +1380,10 @@
         if (left < 8) left = 8;
         if (left + tooltipW > window.innerWidth - 8) left = Math.max(8, window.innerWidth - tooltipW - 8);
 
-        el.style.left    = `${left}px`;
-        el.style.top     = `${top}px`;
+        el.style.left = `${left}px`;
+        el.style.top = `${top}px`;
         el.style.opacity = '1';
-        }, 0);
+      }, 0);
     },
     line(ctx, labels, datasets, opts = {}) {
       H.destroyChart(ctx.id);
@@ -1809,30 +1391,30 @@
         type: 'line',
         data: { labels, datasets },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
             legend: { display: false },
             tooltip: { enabled: false, external: ChartFactory.externalTooltip },
             ...(opts.extra?.plugins || {}),
-            },
-            scales: {
+          },
+          scales: {
             x: {
-                grid: { display: false },
-                ticks: { font: { size: 11 }, maxRotation: 0 },
+              grid: { display: false },
+              ticks: { font: { size: 11 }, maxRotation: 0 },
             },
             y: {
-                grid: { color: CFG.colors.border },
-                ticks: { font: { family: CFG.chartDefaults.monoFamily, size: 11 }, ...opts.yTicks },
-                beginAtZero: false,
-                ...opts.yScale,
+              grid: { color: CFG.colors.border },
+              ticks: { font: { family: CFG.chartDefaults.monoFamily, size: 11 }, ...opts.yTicks },
+              beginAtZero: false,
+              ...opts.yScale,
             },
             ...(opts.y1 ? { y1: opts.y1 } : {}),
-            },
-            ...Object.fromEntries(Object.entries(opts.extra || {}).filter(([k]) => k !== 'plugins')),
+          },
+          ...Object.fromEntries(Object.entries(opts.extra || {}).filter(([k]) => k !== 'plugins')),
         },
-        });
+      });
       State.charts[ctx.id] = instance;
       return instance;
     },
@@ -1844,34 +1426,34 @@
         type: 'bar',
         data: { labels, datasets },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
             mode: isHorizontal ? 'y' : 'index',
             intersect: false,
-            },
-            plugins: {
+          },
+          plugins: {
             legend: { display: false },
             tooltip: { enabled: false, external: ChartFactory.externalTooltip },
             ...(opts.extra?.plugins || {}),
-            },
-            scales: {
+          },
+          scales: {
             x: {
-                grid: { display: false },
-                ticks: { font: { size: 11 } },
-                stacked: opts.stacked || false,
+              grid: { display: false },
+              ticks: { font: { size: 11 } },
+              stacked: opts.stacked || false,
             },
             y: {
-                grid: { color: CFG.colors.border },
-                ticks: { font: { family: CFG.chartDefaults.monoFamily, size: 11 }, ...opts.yTicks },
-                beginAtZero: true,
-                stacked: opts.stacked || false,
+              grid: { color: CFG.colors.border },
+              ticks: { font: { family: CFG.chartDefaults.monoFamily, size: 11 }, ...opts.yTicks },
+              beginAtZero: true,
+              stacked: opts.stacked || false,
             },
-            },
-            indexAxis: opts.horizontal ? 'y' : 'x',
-            ...Object.fromEntries(Object.entries(opts.extra || {}).filter(([k]) => k !== 'plugins')),
+          },
+          indexAxis: opts.horizontal ? 'y' : 'x',
+          ...Object.fromEntries(Object.entries(opts.extra || {}).filter(([k]) => k !== 'plugins')),
         },
-        });
+      });
       State.charts[ctx.id] = instance;
       return instance;
     },
@@ -1924,15 +1506,15 @@
     function renderRadiologyPills() {
       const container = document.getElementById('radiologyFilters');
       if (!container) return;
-      container.innerHTML = CFG.radiologies.map(r => `
-        <button type="button"
-          class="pill${State.radiologia === r.id ? ' is-active' : ''}"
-          data-radio="${r.id}"
-          role="tab"
-          aria-selected="${State.radiologia === r.id}">
-          ${r.label}
-        </button>
-      `).join('');
+      container.innerHTML = State.radiologies.map(r => `
+    <button type="button"
+      class="pill${State.radiologia === r.id ? ' is-active' : ''}"
+      data-radio="${r.id}"
+      role="tab"
+      aria-selected="${State.radiologia === r.id}">
+      ${r.nome}
+    </button>
+  `).join('');
 
       container.querySelectorAll('.pill').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1955,20 +1537,26 @@
       });
 
       const startEl = document.getElementById('customDateStart');
-      const endEl   = document.getElementById('customDateEnd');
+      const endEl = document.getElementById('customDateEnd');
       if (startEl) startEl.addEventListener('change', () => { State.customStart = startEl.value; onFiltersChange(); });
-      if (endEl)   endEl.addEventListener('change',   () => { State.customEnd   = endEl.value;   onFiltersChange(); });
+      if (endEl) endEl.addEventListener('change', () => { State.customEnd = endEl.value; onFiltersChange(); });
     }
 
     function onFiltersChange() {
       // Re-renderiza a aba ativa com os novos filtros
       const tab = State.activeTab;
       if (tab === 'visao-geral') VisaoGeral.render();
-      if (tab === 'metas')       Metas.render();
-      if (tab === 'relatorios')  Relatorios.render();
+      if (tab === 'metas') Metas.render();
+      if (tab === 'relatorios') Relatorios.render();
     }
 
-    function init() {
+    async function init() {
+      try {
+        State.radiologies = await Api.getRadiologias();
+      } catch (err) {
+        console.error('[Filtros] Erro ao carregar radiologias:', err);
+        State.radiologies = [{ id: 'all', nome: 'Todas as Radiologias' }];
+      }
       renderRadiologyPills();
       bindPeriod();
     }
@@ -2005,8 +1593,8 @@
 
       // Renderiza a aba ativada
       if (tabId === 'visao-geral') VisaoGeral.render();
-      if (tabId === 'metas')       Metas.render();
-      if (tabId === 'relatorios')  Relatorios.render();
+      if (tabId === 'metas') Metas.render();
+      if (tabId === 'relatorios') Relatorios.render();
     }
 
     function init() {
@@ -2024,68 +1612,64 @@
   =========================================================== */
   const VisaoGeral = (() => {
 
-    /* ----- KPIs ----- */
-    function renderKPIs() {
-      const kpi = H.getFilteredData().kpis; // [API] substituir por fetch filtrado
+    /* ----- Loading helper local ----- */
+    function setLoading(ids, loading) {
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.setAttribute('aria-busy', loading);
+      });
+    }
 
-      // Faturamento Total
+    /* ----- KPIs ----- */
+    async function renderKPIs(kpi) {
       const kpiRev = document.getElementById('kpiTotalRevenue');
       if (kpiRev) {
-        kpiRev.querySelector('[data-field="value"]').textContent    = H.currency(kpi.faturamentoTotal.value);
-        kpiRev.querySelector('[data-field="change"]').innerHTML     = H.changeBadge(kpi.faturamentoTotal.changeMonth);
-        kpiRev.querySelector('[data-field="yoy"]').textContent      = `${kpi.faturamentoTotal.changeYoY > 0 ? '+' : ''}${kpi.faturamentoTotal.changeYoY}% vs. mesmo mês ano passado`;
+        kpiRev.querySelector('[data-field="value"]').textContent = H.currency(kpi.faturamentoTotal.value);
+        kpiRev.querySelector('[data-field="change"]').innerHTML = H.changeBadge(kpi.faturamentoTotal.changeMonth);
+        kpiRev.querySelector('[data-field="yoy"]').textContent = `${kpi.faturamentoTotal.changeYoY > 0 ? '+' : ''}${kpi.faturamentoTotal.changeYoY}% vs. mesmo mês ano passado`;
       }
 
-      // Faturamento Líquido
       const kpiNet = document.getElementById('kpiNetRevenue');
       if (kpiNet) {
-        kpiNet.querySelector('[data-field="value"]').textContent   = H.currency(kpi.faturamentoLiquido.value);
+        kpiNet.querySelector('[data-field="value"]').textContent = H.currency(kpi.faturamentoLiquido.value);
         kpiNet.querySelector('[data-field="context"]').textContent = kpi.faturamentoLiquido.context;
       }
 
-      // Margem
       const kpiMar = document.getElementById('kpiMargin');
       if (kpiMar) {
-        kpiMar.querySelector('[data-field="value"]').textContent   = H.percent(kpi.margemLucro.value);
-        kpiMar.querySelector('[data-field="change"]').innerHTML    = H.changeBadge(kpi.margemLucro.changeMonth);
+        kpiMar.querySelector('[data-field="value"]').textContent = H.percent(kpi.margemLucro.value);
+        kpiMar.querySelector('[data-field="change"]').innerHTML = H.changeBadge(kpi.margemLucro.changeMonth);
       }
 
-      // Total Exames
       const kpiEx = document.getElementById('kpiTotalExams');
       if (kpiEx) {
-        kpiEx.querySelector('[data-field="value"]').textContent   = H.number(kpi.totalExames.value);
-        kpiEx.querySelector('[data-field="change"]').innerHTML    = H.changeBadge(kpi.totalExames.changeMonth);
+        kpiEx.querySelector('[data-field="value"]').textContent = H.number(kpi.totalExames.value);
+        kpiEx.querySelector('[data-field="change"]').innerHTML = H.changeBadge(kpi.totalExames.changeMonth);
       }
 
-      // Previsão
       const kpiFc = document.getElementById('kpiForecast');
       if (kpiFc) {
-        kpiFc.querySelector('[data-field="value"]').textContent      = H.currency(kpi.previsao30d.value);
-        kpiFc.querySelector('[data-field="context30"]').textContent  = `${H.currency(kpi.previsao30d.value)} próximos 30 dias`;
+        kpiFc.querySelector('[data-field="value"]').textContent = H.currency(kpi.previsao30d.value);
+        kpiFc.querySelector('[data-field="context30"]').textContent = `${H.currency(kpi.previsao30d.value)} próximos 30 dias`;
         kpiFc.querySelector('[data-field="forecast60"]').textContent = `${H.currency(kpi.previsao30d.forecast60d)} próximos 60 dias`;
       }
     }
 
     /* ----- Insights ----- */
-    function renderInsights() {
+    function renderInsights(insights) {
       const bar = document.getElementById('insightsBar');
       if (!bar) return;
-
-      const insights = H.getFilteredData().insights;
-
       bar.innerHTML = insights.map((ins, i) => `
-        <div class="insight-chip insight-chip--${ins.type}" style="animation-delay:${i * 40}ms">
-          <span class="insight-chip__dot"></span>
-          ${ins.text}
-        </div>`).join('');
+    <div class="insight-chip insight-chip--${ins.type}" style="animation-delay:${i * 40}ms">
+      <span class="insight-chip__dot"></span>
+      ${ins.text}
+    </div>`).join('');
     }
 
     /* ----- Gráfico 1: Evolução Mensal ----- */
-    function renderEvolutionChart() {
+    function renderEvolutionChart(d) {
       const ctx = document.getElementById('evolutionChart');
       if (!ctx) return;
-
-      const d = MOCK_EVOLUCAO;
       const isQtd = State.viewMode === 'quantidade';
 
       if (isQtd) {
@@ -2102,18 +1686,14 @@
             pointHoverRadius: 6,
             yAxisID: 'y',
           },
-        ], {
-          yTicks: { callback: v => H.number(v) },
-        });
+        ], { yTicks: { callback: v => H.number(v) } });
 
         const leg = document.getElementById('evolutionLegend');
-        if (leg) {
-          leg.innerHTML = `
-            <span class="chart-legend-item">
-              <span class="chart-legend-line" style="background:${CFG.colors.primaryLight}"></span>
-              Exames realizados
-            </span>`;
-        }
+        if (leg) leg.innerHTML = `
+      <span class="chart-legend-item">
+        <span class="chart-legend-line" style="background:${CFG.colors.primaryLight}"></span>
+        Exames realizados
+      </span>`;
       } else {
         const formatCurrency = v => 'R$ ' + H.number(v / 1000, 0) + 'k';
         ChartFactory.line(ctx, d.labels, [
@@ -2122,34 +1702,23 @@
             data: d.faturamento,
             borderColor: CFG.colors.primary,
             backgroundColor: `${CFG.colors.primary}18`,
-            fill: true,
-            tension: 0.4,
-            borderWidth: 2.5,
-            pointRadius: 3,
-            pointHoverRadius: 6,
-            yAxisID: 'y',
+            fill: true, tension: 0.4, borderWidth: 2.5,
+            pointRadius: 3, pointHoverRadius: 6, yAxisID: 'y',
           },
           {
             label: 'Mesmo período ano anterior',
             data: d.faturamentoAno,
             borderColor: CFG.colors.border,
-            borderDash: [5, 4],
-            borderWidth: 1.8,
-            pointRadius: 0,
-            tension: 0.4,
-            yAxisID: 'y',
+            borderDash: [5, 4], borderWidth: 1.8,
+            pointRadius: 0, tension: 0.4, yAxisID: 'y',
           },
           {
             label: 'Exames',
             data: d.exames,
             borderColor: CFG.colors.primaryLight,
             backgroundColor: `${CFG.colors.primaryLight}10`,
-            fill: false,
-            tension: 0.4,
-            borderWidth: 2,
-            pointRadius: 3,
-            pointHoverRadius: 6,
-            yAxisID: 'y1',
+            fill: false, tension: 0.4, borderWidth: 2,
+            pointRadius: 3, pointHoverRadius: 6, yAxisID: 'y1',
           },
         ], {
           yTicks: { callback: formatCurrency },
@@ -2161,202 +1730,155 @@
         });
 
         const leg = document.getElementById('evolutionLegend');
-        if (leg) {
-          leg.innerHTML = `
-            <span class="chart-legend-item"><span class="chart-legend-line" style="background:${CFG.colors.primary}"></span>Faturamento</span>
-            <span class="chart-legend-item"><span class="chart-legend-line" style="background:${CFG.colors.border};border-top:2px dashed ${CFG.colors.textSubtle};height:0"></span>Ano anterior</span>
-            <span class="chart-legend-item"><span class="chart-legend-line" style="background:${CFG.colors.primaryLight}"></span>Exames</span>
-          `;
-        }
+        if (leg) leg.innerHTML = `
+      <span class="chart-legend-item"><span class="chart-legend-line" style="background:${CFG.colors.primary}"></span>Faturamento</span>
+      <span class="chart-legend-item"><span class="chart-legend-line" style="background:${CFG.colors.border};border-top:2px dashed ${CFG.colors.textSubtle};height:0"></span>Ano anterior</span>
+      <span class="chart-legend-item"><span class="chart-legend-line" style="background:${CFG.colors.primaryLight}"></span>Exames</span>
+    `;
       }
     }
 
     /* ----- Gráfico 2: Por Radiologia ----- */
-    function renderByRadiologyChart() {
+    function renderByRadiologyChart(porRadiologia, topClinicas) {
       const ctx = document.getElementById('byRadiologyChart');
       if (!ctx) return;
 
-      const isAll  = State.radiologia === 'all';
-      const isQtd  = State.viewMode === 'quantidade';
+      const isAll = State.radiologia === 'all';
+      const isQtd = State.viewMode === 'quantidade';
       let labels, values, colors;
 
       if (isAll) {
-        const data = MOCK_POR_RADIOLOGIA;
-        labels = data.map(r => r.label);
-        values = isQtd ? data.map(r => r.exames) : data.map(r => r.faturamento);
-        colors = data.map((_, i) => H.seriesColor(i, 0.85));
+        labels = porRadiologia.map(r => r.label);
+        values = isQtd ? porRadiologia.map(r => r.exames) : porRadiologia.map(r => r.faturamento);
+        colors = porRadiologia.map((_, i) => H.seriesColor(i, 0.85));
       } else {
-        const radioData = MOCK_DATA_BY_RADIO[State.radiologia];
-        const clinicas  = radioData ? radioData.topClinicas : [];
-        labels = clinicas.map(c => c.nome);
-        // topClinicas não tem campo exames individual; usa faturamento / ticket estimado como proxy
+        labels = topClinicas.map(c => c.nome);
         values = isQtd
-          ? clinicas.map(c => Math.round(c.faturamento / 154.18)) // ticket médio geral como proxy
-          : clinicas.map(c => c.faturamento);
-        colors = clinicas.map((_, i) => H.seriesColor(i, 0.85));
+          ? topClinicas.map(c => Math.round(c.faturamento / (State._ticketMedio || 154)))
+          : topClinicas.map(c => c.faturamento);
+        colors = topClinicas.map((_, i) => H.seriesColor(i, 0.85));
       }
 
       const titulo = document.getElementById('byRadiologyChartTitle');
-      if (titulo) {
-        titulo.textContent = isAll
-          ? (isQtd ? 'Exames por Radiologia' : 'Faturamento por Radiologia')
-          : (isQtd ? 'Exames por Clínica'    : 'Faturamento por Clínica');
-      }
-
-      // Atualiza título dentro do chart-card também (o h3 visível)
       const cardTitle = ctx.closest('.chart-card')?.querySelector('.chart-card__title');
-      if (cardTitle) {
-        cardTitle.textContent = isAll
-          ? (isQtd ? 'Exames por Radiologia' : 'Faturamento por Radiologia')
-          : (isQtd ? 'Exames por Clínica'    : 'Faturamento por Clínica');
-      }
+      const t = isAll
+        ? (isQtd ? 'Exames por Radiologia' : 'Faturamento por Radiologia')
+        : (isQtd ? 'Exames por Clínica' : 'Faturamento por Clínica');
+      if (titulo) titulo.textContent = t;
+      if (cardTitle) cardTitle.textContent = t;
 
-      ChartFactory.bar(ctx,
-        labels,
-        [{
-          label: isQtd ? 'Exames' : 'Faturamento',
-          data: values,
-          backgroundColor: colors,
-          borderColor: colors.map((_, i) => H.seriesColor(i)),
-          borderWidth: 1.5,
-          borderRadius: 6,
-          borderSkipped: false,
-        }],
-        {
-          yTicks: {
-            callback: isQtd
-              ? v => H.number(v)
-              : v => 'R$ ' + H.number(v / 1000, 0) + 'k',
-          },
-        }
-      );
+      ChartFactory.bar(ctx, labels, [{
+        label: isQtd ? 'Exames' : 'Faturamento',
+        data: values,
+        backgroundColor: colors,
+        borderColor: colors.map((_, i) => H.seriesColor(i)),
+        borderWidth: 1.5, borderRadius: 6, borderSkipped: false,
+      }], {
+        yTicks: {
+          callback: isQtd
+            ? v => H.number(v)
+            : v => 'R$ ' + H.number(v / 1000, 0) + 'k',
+        },
+      });
     }
 
     /* ----- Gráfico 3: Top Clínicas (horizontal) ----- */
-    function renderDistribuicaoChart() {
+    function renderDistribuicaoChart(porRadiologia, topClinicas) {
       const ctx = document.getElementById('distribuicaoChart');
       if (!ctx) return;
 
       const isAll = State.radiologia === 'all';
-      let labels, values;
+      const labels = isAll ? porRadiologia.map(r => r.label) : topClinicas.map(c => c.nome);
+      const values = isAll ? porRadiologia.map(r => r.faturamento) : topClinicas.map(c => c.faturamento);
 
-      if (isAll) {
-        const data = MOCK_POR_RADIOLOGIA;
-        labels = data.map(r => r.label);
-        values = data.map(r => r.faturamento);
-      } else {
-        const radioData = MOCK_DATA_BY_RADIO[State.radiologia];
-        const clinicas = radioData ? radioData.topClinicas : [];
-        labels = clinicas.map(c => c.nome);
-        values = clinicas.map(c => c.faturamento);
-      }
-
-      ChartFactory.doughnut(ctx,
-        labels,
-        values,
+      ChartFactory.doughnut(ctx, labels, values,
         labels.map((_, i) => H.seriesColor(i)),
         { legendPosition: 'bottom' }
       );
     }
 
-    function renderHighlightsPanel() {
-        const panel = document.getElementById('highlightsPanel');
-        if (!panel) return;
+    function renderHighlightsPanel(topClinicas, topMedicos) {
+      const panel = document.getElementById('highlightsPanel');
+      if (!panel) return;
 
-        const d = H.getFilteredData();
-        const topClinicas = d.topClinicas.slice(0, 5);
-        const topMedicos  = d.topMedicos.slice(0, 5);
+      const clinicasHtml = topClinicas.slice(0, 5).map((c, i) => `
+    <div class="highlight-row">
+      <span class="highlight-row__rank">${i + 1}</span>
+      <div class="highlight-row__info">
+        <span class="highlight-row__name">${c.nome}</span>
+        <span class="highlight-row__meta">${H.percent(c.participacao)} do total</span>
+      </div>
+      <span class="highlight-row__value">${H.currency(c.faturamento)}</span>
+      <div class="highlight-row__tooltip">
+        <strong>${c.nome}</strong><br>
+        Participação: ${H.percent(c.participacao)} do total<br>
+        Faturamento: ${H.currency(c.faturamento)}
+      </div>
+    </div>`).join('');
 
-        const clinicasHtml = topClinicas.map((c, i) => `
-          <div class="highlight-row">
-            <span class="highlight-row__rank">${i + 1}</span>
-            <div class="highlight-row__info">
-              <span class="highlight-row__name">${c.nome}</span>
-              <span class="highlight-row__meta">${H.percent(c.participacao)} do total</span>
-            </div>
-            <span class="highlight-row__value">${H.currency(c.faturamento)}</span>
-            <div class="highlight-row__tooltip">
-              <strong>${c.nome}</strong><br>
-              Participação: ${H.percent(c.participacao)} do total<br>
-              Faturamento: ${H.currency(c.faturamento)}
-            </div>
-          </div>`).join('');
+      const medicosHtml = topMedicos.slice(0, 5).map((m, i) => `
+    <div class="highlight-row">
+      <span class="highlight-row__rank">${i + 1}</span>
+      <div class="highlight-row__info">
+        <span class="highlight-row__name">${m.nome}</span>
+        <span class="highlight-row__meta">${m.clinica} · ${H.number(m.exames)} exames</span>
+      </div>
+      <span class="highlight-row__value">${H.currency(m.faturamento)}</span>
+      <div class="highlight-row__tooltip">
+        <strong>${m.nome}</strong><br>
+        Clínica: ${m.clinica}<br>
+        Exames: ${H.number(m.exames)}<br>
+        Faturamento gerado: ${H.currency(m.faturamento)}
+      </div>
+    </div>`).join('');
 
-        const medicosHtml = topMedicos.map((m, i) => `
-          <div class="highlight-row">
-            <span class="highlight-row__rank">${i + 1}</span>
-            <div class="highlight-row__info">
-              <span class="highlight-row__name">${m.nome}</span>
-              <span class="highlight-row__meta">${m.clinica} · ${H.number(m.exames)} exames</span>
-            </div>
-            <span class="highlight-row__value">${H.currency(m.faturamento)}</span>
-            <div class="highlight-row__tooltip">
-              <strong>${m.nome}</strong><br>
-              Clínica: ${m.clinica}<br>
-              Exames: ${H.number(m.exames)}<br>
-              Faturamento gerado: ${H.currency(m.faturamento)}<br>
-              Comissão estimada: ${H.currency(m.comissaoEstimada)}
-            </div>
-          </div>`).join('');
-
-        panel.innerHTML = `
-            <div class="highlight-group">
-            <div class="highlight-group__title">Top 5 Clínicas Referenciadoras</div>
-            <div class="highlight-list">${clinicasHtml}</div>
-            </div>
-            <div class="highlight-group">
-            <div class="highlight-group__title">Top 5 Médicos Referenciadores</div>
-            <div class="highlight-list">${medicosHtml}</div>
-            </div>`;
+      panel.innerHTML = `
+    <div class="highlight-group">
+      <div class="highlight-group__title">Top 5 Clínicas Referenciadoras</div>
+      <div class="highlight-list">${clinicasHtml}</div>
+    </div>
+    <div class="highlight-group">
+      <div class="highlight-group__title">Top 5 Médicos Referenciadores</div>
+      <div class="highlight-list">${medicosHtml}</div>
+    </div>`;
     }
 
     /* ----- Gráfico 5: Distribuição de Exames ----- */
-    function renderExamTypesChart() {
+    function renderExamTypesChart(tiposExame) {
       const ctx = document.getElementById('examTypesChart');
       if (!ctx) return;
 
-      const data = MOCK_TIPOS_EXAME;
       const colors = [
-        CFG.colors.primary,
-        CFG.colors.primaryLight,
-        '#F5A623',
-        '#7B68EE',
-        '#E05C5C',
-        '#5C9E6E',
-        CFG.colors.textSubtle,
+        CFG.colors.primary, CFG.colors.primaryLight,
+        '#F5A623', '#7B68EE', '#E05C5C', '#5C9E6E', CFG.colors.textSubtle,
       ];
       ChartFactory.doughnut(ctx,
-        data.map(d => d.tipo),
-        data.map(d => d.quantidade),
+        tiposExame.map(d => d.tipo),
+        tiposExame.map(d => d.quantidade),
         colors,
         { legendPosition: 'right' }
       );
     }
 
     /* ----- Gráfico 6: Ticket Médio por Radiologia ----- */
-    function renderAvgTicketChart() {
+    function renderAvgTicketChart(ticketMedio) {
       const ctx = document.getElementById('avgTicketChart');
       if (!ctx) return;
 
-      const d = MOCK_TICKET_MEDIO;
-      ChartFactory.bar(ctx, d.labels, [
+      ChartFactory.bar(ctx, ticketMedio.labels, [
         {
           label: 'Mês Atual',
-          data: d.atual,
+          data: ticketMedio.atual,
           backgroundColor: CFG.colors.primary + 'CC',
           borderColor: CFG.colors.primary,
-          borderWidth: 1.5,
-          borderRadius: 5,
-          borderSkipped: false,
+          borderWidth: 1.5, borderRadius: 5, borderSkipped: false,
         },
         {
           label: 'Mês Anterior',
-          data: d.anterior,
+          data: ticketMedio.anterior,
           backgroundColor: CFG.colors.border,
           borderColor: CFG.colors.textSubtle,
-          borderWidth: 1.5,
-          borderRadius: 5,
-          borderSkipped: false,
+          borderWidth: 1.5, borderRadius: 5, borderSkipped: false,
         },
       ], {
         yTicks: { callback: v => 'R$ ' + H.number(v, 0) },
@@ -2370,12 +1892,14 @@
     }
 
     /* ----- Tabela: Resumo por Radiologia ----- */
-    function renderResumoTable() {
+    function renderResumoTable(porRadiologia) {
       const tbody = document.getElementById('resumoRadiologiaBody');
       if (!tbody) return;
 
       const isQtd = State.viewMode === 'quantidade';
-      const data  = H.filteredRadiologies();
+      const data = State.radiologia === 'all'
+        ? porRadiologia
+        : porRadiologia.filter(r => r.id === State.radiologia);
 
       if (!data.length) {
         tbody.innerHTML = `<tr><td colspan="4" class="empty-state">Nenhum dado para o filtro selecionado.</td></tr>`;
@@ -2383,51 +1907,51 @@
       }
 
       tbody.innerHTML = data.map(r => `
-        <tr>
-          <td><span class="data-table__name-primary">${r.label}</span></td>
-          <td class="data-table__num-faturamento" style="white-space:nowrap">
-            ${isQtd ? H.number(r.exames) : H.currency(r.faturamento)}
-            ${H.changeBadge(r.variacao)}
-          </td>
-          <td class="data-table__num">${H.number(r.exames)}</td>
-          <td>
-            <div class="participation-cell">
-              <span class="participation-cell__value">${H.percent(r.participacao)}</span>
-              <div class="participation-bar">
-                <div class="participation-bar__fill" style="width:${r.participacao}%"></div>
-              </div>
-            </div>
-          </td>
-        </tr>`).join('');
+    <tr>
+      <td><span class="data-table__name-primary">${r.label}</span></td>
+      <td class="data-table__num-faturamento" style="white-space:nowrap">
+        ${isQtd ? H.number(r.exames) : H.currency(r.faturamento)}
+        ${H.changeBadge(r.variacao)}
+      </td>
+      <td class="data-table__num">${H.number(r.exames)}</td>
+      <td>
+        <div class="participation-cell">
+          <span class="participation-cell__value">${H.percent(r.participacao)}</span>
+          <div class="participation-bar">
+            <div class="participation-bar__fill" style="width:${r.participacao}%"></div>
+          </div>
+        </div>
+      </td>
+    </tr>`).join('');
     }
 
     /* ----- Mock de tipos de exame por estrutura (para as tags) ----- */
     const EXAM_TAGS_BY_RADIO = {
       centro: ['Panorâmica', 'CBCT (3D)', 'Cefalométrica'],
-      norte:  ['Panorâmica', 'Periapical', 'Bite-wing'],
-      sul:    ['Periapical', 'Oclusal', 'Panorâmica'],
-      leste:  ['Panorâmica', 'Bite-wing', 'Periapical'],
+      norte: ['Panorâmica', 'Periapical', 'Bite-wing'],
+      sul: ['Periapical', 'Oclusal', 'Panorâmica'],
+      leste: ['Panorâmica', 'Bite-wing', 'Periapical'],
     };
 
     const EXAM_TAGS_BY_CLINICA = {
-      'OdontoPremium':    ['Panorâmica', 'CBCT (3D)'],
+      'OdontoPremium': ['Panorâmica', 'CBCT (3D)'],
       'Sorriso Perfeito': ['Panorâmica', 'Cefalométrica'],
-      'DentalVip':        ['Periapical', 'Bite-wing'],
-      'OrthoCenter':      ['Cefalométrica', 'Panorâmica'],
-      'Clínica Raíz':     ['Periapical', 'Oclusal'],
-      'BocaSana':         ['Panorâmica', 'Periapical'],
-      'Implanto RN':      ['CBCT (3D)', 'Panorâmica'],
-      'SorriRN':          ['Periapical', 'Bite-wing'],
-      'Estética Oral':    ['Oclusal', 'Periapical'],
-      'Clínica Central':  ['Panorâmica', 'Bite-wing'],
-      'Nova Odonto':      ['Panorâmica', 'Periapical'],
+      'DentalVip': ['Periapical', 'Bite-wing'],
+      'OrthoCenter': ['Cefalométrica', 'Panorâmica'],
+      'Clínica Raíz': ['Periapical', 'Oclusal'],
+      'BocaSana': ['Panorâmica', 'Periapical'],
+      'Implanto RN': ['CBCT (3D)', 'Panorâmica'],
+      'SorriRN': ['Periapical', 'Bite-wing'],
+      'Estética Oral': ['Oclusal', 'Periapical'],
+      'Clínica Central': ['Panorâmica', 'Bite-wing'],
+      'Nova Odonto': ['Panorâmica', 'Periapical'],
     };
 
     function buildHierRows(tree, totalFaturamento) {
       let html = '';
 
       tree.forEach(radio => {
-        const radioVariacao = MOCK_POR_RADIOLOGIA.find(r => r.id === radio.id)?.variacao ?? 0;
+        const radioVariacao = radio.variacao ?? 0;
         const radioTags = EXAM_TAGS_BY_RADIO[radio.id] || ['Panorâmica', 'Periapical'];
         const radioTicket = radio.exames > 0 ? Math.round(radio.faturamento / radio.exames) : 0;
         const radioPct = totalFaturamento > 0 ? (radio.faturamento / totalFaturamento * 100) : 0;
@@ -2544,78 +2068,64 @@
       return html;
     }
 
-    function renderHierTable() {
+    function renderHierTable(hierarquia) {
       const body = document.getElementById('hierTableBody');
       if (!body) return;
 
-      // Monta estrutura com dados de MOCK_COMISSOES_TREE enriquecida com faturamento
-      // (reutiliza a tree de comissões que já tem a hierarquia completa)
-      const tree = H.filteredCommTree().map(radio => ({
-        ...radio,
-        clinicas: radio.clinicas.map(cli => ({
-          ...cli,
-          medicos: cli.medicos.map(med => ({
-            ...med,
-            clinicaNome: cli.nome,
-          })),
-        })),
-      }));
-
-      const totalFaturamento = tree.reduce((s, r) => s + r.faturamento, 0);
-
-      body.innerHTML = buildHierRows(tree, totalFaturamento);
+      const totalFaturamento = hierarquia.reduce((s, r) => s + r.faturamento, 0);
+      body.innerHTML = buildHierRows(hierarquia, totalFaturamento);
       bindHierEvents();
     }
 
     function bindHierEvents() {
-      function setExpandedState(id, expanded){
+      function setExpandedState(id, expanded) {
 
         const group = document.getElementById(`hier-grp-${id}`);
         const button = document.querySelector(`[data-hier-toggle="${id}"]`);
         const row = document.querySelector(`[data-hier-row="${id}"]`);
 
-        if(!group) return;
+        if (!group) return;
 
         group.classList.toggle("is-collapsed", !expanded);
 
-        if(button){
+        if (button) {
           button.classList.toggle("is-open", expanded);
           button.setAttribute("aria-expanded", expanded);
         }
 
-        if(row){
+        if (row) {
           row.classList.toggle("is-expanded", expanded);
         }
 
       }
 
-      function closeOtherRadiologies(currentId){
+      function closeOtherRadiologies(currentId) {
 
         document
           .querySelectorAll(".hier-row--level-1[data-hier-row]")
 
-          .forEach(row=>{
-            if(row.dataset.hierRow===currentId) return;
-            setExpandedState(row.dataset.hierRow,false);
+          .forEach(row => {
+            if (row.dataset.hierRow === currentId) return;
+            setExpandedState(row.dataset.hierRow, false);
           });
 
       }
 
-      function toggleHierarchy(id){
+      function toggleHierarchy(id) {
 
-        const group=document.getElementById(`hier-grp-${id}`);
+        const group = document.getElementById(`hier-grp-${id}`);
 
-        if(!group) return;
+        if (!group) return;
 
-        const isOpen=!group.classList.contains("is-collapsed");
-        const row=document.querySelector(`[data-hier-row="${id}"]`);
-        const isRadiology=row?.classList.contains("hier-row--level-1");
+        const isOpen = !group.classList.contains("is-collapsed");
+        const row = document.querySelector(`[data-hier-row="${id}"]`);
+        const isRadiology = row?.classList.contains("hier-row--level-1");
 
-        if(isRadiology && !isOpen){
+        if (isRadiology && !isOpen) {
           closeOtherRadiologies(id);
         }
 
-        setExpandedState(id,!isOpen);
+        setExpandedState(id, !isOpen);
       }
 
       /* ===========================
@@ -2624,9 +2134,9 @@
 
       document
         .querySelectorAll("[data-hier-toggle]")
-        .forEach(btn=>{
+        .forEach(btn => {
 
-          btn.addEventListener("click",(e)=>{
+          btn.addEventListener("click", (e) => {
             e.stopPropagation();
             toggleHierarchy(btn.dataset.hierToggle);
           });
@@ -2639,11 +2149,11 @@
 
       document
         .querySelectorAll("[data-hier-row]")
-        .forEach(row=>{
+        .forEach(row => {
 
-          row.style.cursor="pointer";
+          row.style.cursor = "pointer";
 
-          row.addEventListener("click",()=>{
+          row.addEventListener("click", () => {
             toggleHierarchy(row.dataset.hierRow);
           });
 
@@ -2655,27 +2165,27 @@
 
       document
         .getElementById("hierExpandAll")
-        ?.addEventListener("click",()=>{
+        ?.addEventListener("click", () => {
 
           document
             .querySelectorAll(".hier-group")
 
-            .forEach(group=>{
+            .forEach(group => {
               group.classList.remove("is-collapsed");
             });
 
           document
             .querySelectorAll("[data-hier-toggle]")
 
-            .forEach(btn=>{
+            .forEach(btn => {
               btn.classList.add("is-open");
-              btn.setAttribute("aria-expanded","true");
+              btn.setAttribute("aria-expanded", "true");
             });
 
           document
             .querySelectorAll("[data-hier-row]")
 
-            .forEach(row=>{
+            .forEach(row => {
               row.classList.add("is-expanded");
             });
 
@@ -2687,27 +2197,27 @@
 
       document
         .getElementById("hierCollapseAll")
-        ?.addEventListener("click",()=>{
+        ?.addEventListener("click", () => {
 
           document
             .querySelectorAll(".hier-group")
 
-            .forEach(group=>{
+            .forEach(group => {
               group.classList.add("is-collapsed");
             });
 
           document
             .querySelectorAll("[data-hier-toggle]")
 
-            .forEach(btn=>{
+            .forEach(btn => {
               btn.classList.remove("is-open");
-              btn.setAttribute("aria-expanded","false");
+              btn.setAttribute("aria-expanded", "false");
             });
 
           document
             .querySelectorAll("[data-hier-row]")
 
-            .forEach(row=>{
+            .forEach(row => {
               row.classList.remove("is-expanded");
             });
 
@@ -2720,36 +2230,54 @@
       document
         .getElementById("btnExportHier")
 
-        ?.addEventListener("click",()=>{
-          H.toast("Exportando tabela hierárquica...","info")
+        ?.addEventListener("click", () => {
+          H.toast("Exportando tabela hierárquica...", "info")
 
-          setTimeout(()=>{
-            H.toast("Exportado com sucesso!","success");
-          },1400);
+          setTimeout(() => {
+            H.toast("Exportado com sucesso!", "success");
+          }, 1400);
 
         });
 
     }
 
 
-    function render() {
-      renderKPIs();
-      renderInsights();
-      renderEvolutionChart();
-      renderByRadiologyChart();
-      renderDistribuicaoChart();
-      renderHighlightsPanel();
-      renderExamTypesChart();
-      renderAvgTicketChart();
-      renderResumoTable();
-      renderHierTable();
+    async function render() {
+      const filtros = H.filtrosAtivos();
+
+      try {
+        const [snapshot, evolucao, tiposExame, ticketMedio, hierarquia] = await Promise.all([
+          Api.getFinanceiroSnapshot(filtros),
+          Api.getFinanceiroEvolucao(filtros),
+          Api.getFinanceiroTiposExame(filtros),
+          Api.getFinanceiroTicketMedioPorRadiologia(filtros),
+          Api.getFinanceiroHierarquia(filtros),
+        ]);
+
+        // Salva ticket médio no state para uso no gráfico de barras quando radiologia específica
+        State._ticketMedio = snapshot.kpis?.ticketMedio?.value;
+
+        renderKPIs(snapshot.kpis);
+        renderInsights(snapshot.insights);
+        renderEvolutionChart(evolucao);
+        renderByRadiologyChart(snapshot.porRadiologia, snapshot.topClinicas);
+        renderDistribuicaoChart(snapshot.porRadiologia, snapshot.topClinicas);
+        renderHighlightsPanel(snapshot.topClinicas, snapshot.topMedicos);
+        renderExamTypesChart(tiposExame);
+        renderAvgTicketChart(ticketMedio);
+        renderResumoTable(snapshot.porRadiologia);
+        renderHierTable(hierarquia);
+      } catch (err) {
+        console.error('[VisaoGeral] Erro ao carregar dados:', err);
+        H.toast('Erro ao carregar dados financeiros. Tente novamente.', 'error');
+      }
     }
 
     return { render };
   })();
 
 
-  
+
   /* ===========================================================
    10. MODULE: METAS
   =========================================================== */
@@ -2796,49 +2324,49 @@
     /* ---- Cor e classe de progresso ---- */
     function progressColor(pct) {
       if (pct >= 100) return { bar: 'linear-gradient(90deg,var(--color-positive),#2ec88a)', text: 'meta-row__pct--achieved' };
-      if (pct >= 75)  return { bar: 'var(--gradient-brand)', text: 'meta-row__pct--good' };
-      if (pct >= 50)  return { bar: 'linear-gradient(90deg,#B27A0E,#E0A020)', text: 'meta-row__pct--warning' };
+      if (pct >= 75) return { bar: 'var(--gradient-brand)', text: 'meta-row__pct--good' };
+      if (pct >= 50) return { bar: 'linear-gradient(90deg,#B27A0E,#E0A020)', text: 'meta-row__pct--warning' };
       return { bar: 'linear-gradient(90deg,var(--color-negative),#e05050)', text: 'meta-row__pct--danger' };
     }
 
     /* ---- KPI cards ---- */
-    function renderKPIs() {
+    function renderKPIs(metas) {
       const isAll = State.radiologia === 'all';
 
       let metaMensal, realizadoMensal, metaAnual, realizadoAnual;
       if (isAll) {
-        metaMensal      = MOCK_METAS.mensal.meta;
-        realizadoMensal = MOCK_METAS.mensal.realizado;
-        metaAnual       = MOCK_METAS.anual.meta;
-        realizadoAnual  = MOCK_METAS.anual.realizado;
+        metaMensal = metas.mensal.meta;
+        realizadoMensal = metas.mensal.realizado;
+        metaAnual = metas.anual.meta;
+        realizadoAnual = metas.anual.realizado;
       } else {
-        const r         = MOCK_METAS.porRadiologia.find(r => r.id === State.radiologia);
-        metaMensal      = r?.meta         || 0;
-        realizadoMensal = r?.realizado    || 0;
-        metaAnual       = r?.anual        || 0;
-        realizadoAnual  = r?.anoRealizado || 0;
+        const r = metas.porRadiologia.find(r => r.id === State.radiologia);
+        metaMensal = r?.meta || 0;
+        realizadoMensal = r?.realizado || 0;
+        metaAnual = r?.anual || 0;
+        realizadoAnual = r?.anoRealizado || 0;
       }
 
-      const pctMes = metaMensal  > 0 ? (realizadoMensal / metaMensal)  * 100 : 0;
-      const pctAno = metaAnual   > 0 ? (realizadoAnual  / metaAnual)   * 100 : 0;
-      const faltaMes = Math.max(metaMensal  - realizadoMensal, 0);
-      const faltaAno = Math.max(metaAnual   - realizadoAnual,  0);
+      const pctMes = metaMensal > 0 ? (realizadoMensal / metaMensal) * 100 : 0;
+      const pctAno = metaAnual > 0 ? (realizadoAnual / metaAnual) * 100 : 0;
+      const faltaMes = Math.max(metaMensal - realizadoMensal, 0);
+      const faltaAno = Math.max(metaAnual - realizadoAnual, 0);
 
       // --- KPI Mensal ---
       const kpiM = document.getElementById('kpiGoalMonthly');
       if (kpiM) {
-        kpiM.querySelector('[data-field="value"]').textContent   = H.currency(metaMensal);
+        kpiM.querySelector('[data-field="value"]').textContent = H.currency(metaMensal);
         kpiM.querySelector('[data-field="context"]').textContent = faltaMes > 0
           ? `${H.currency(realizadoMensal)} realizado · faltam ${H.currency(faltaMes)}`
           : `${H.currency(realizadoMensal)} realizado · meta batida! 🎯`;
 
-        const fill   = document.getElementById('goalMonthlyFill');
-        const lbl    = document.getElementById('goalMonthlyLabel');
-        const badge  = document.getElementById('goalMonthlyBadge');
+        const fill = document.getElementById('goalMonthlyFill');
+        const lbl = document.getElementById('goalMonthlyLabel');
+        const badge = document.getElementById('goalMonthlyBadge');
         const { bar } = progressColor(pctMes);
 
-        if (fill)  { fill.style.width = `${Math.min(pctMes, 100)}%`; fill.style.background = bar; }
-        if (lbl)   lbl.textContent = pctMes >= 100 ? '✓ Meta atingida!' : `${H.percent(pctMes)} atingido`;
+        if (fill) { fill.style.width = `${Math.min(pctMes, 100)}%`; fill.style.background = bar; }
+        if (lbl) lbl.textContent = pctMes >= 100 ? '✓ Meta atingida!' : `${H.percent(pctMes)} atingido`;
         if (badge) {
           badge.textContent = H.percent(pctMes);
           badge.classList.toggle('is-achieved', pctMes >= 100);
@@ -2848,52 +2376,46 @@
       // --- KPI Anual ---
       const kpiA = document.getElementById('kpiGoalYearly');
       if (kpiA) {
-        kpiA.querySelector('[data-field="value"]').textContent   = H.currency(metaAnual);
+        kpiA.querySelector('[data-field="value"]').textContent = H.currency(metaAnual);
         kpiA.querySelector('[data-field="context"]').textContent = faltaAno > 0
           ? `${H.currency(realizadoAnual)} no ano · faltam ${H.currency(faltaAno)}`
           : `${H.currency(realizadoAnual)} no ano · meta batida! 🎯`;
 
-        const fill  = document.getElementById('goalYearlyFill');
-        const lbl   = document.getElementById('goalYearlyLabel');
+        const fill = document.getElementById('goalYearlyFill');
+        const lbl = document.getElementById('goalYearlyLabel');
         const badge = document.getElementById('goalYearlyBadge');
 
-        if (fill)  { fill.style.width = `${Math.min(pctAno, 100)}%`; }
-        if (lbl)   lbl.textContent = pctAno >= 100 ? '✓ Meta anual atingida!' : `${H.percent(pctAno)} atingido`;
+        if (fill) { fill.style.width = `${Math.min(pctAno, 100)}%`; }
+        if (lbl) lbl.textContent = pctAno >= 100 ? '✓ Meta anual atingida!' : `${H.percent(pctAno)} atingido`;
         if (badge) badge.textContent = H.percent(pctAno);
       }
 
       // --- KPI Status por Unidade ---
       const listEl = document.getElementById('metaUnitsList');
       if (listEl) {
-        const UNIT_COLORS = [
-          CFG.colors.primary,
-          '#7B68EE',
-          '#F5A623',
-          '#E05C5C',
-        ];
-        listEl.innerHTML = MOCK_METAS.porRadiologia.map((r, i) => {
+        const UNIT_COLORS = [CFG.colors.primary, '#7B68EE', '#F5A623', '#E05C5C'];
+        listEl.innerHTML = metas.porRadiologia.map((r, i) => {
           const pct = r.meta > 0 ? Math.min((r.realizado / r.meta) * 100, 100) : 0;
           const color = pct >= 100 ? CFG.colors.positive
-                      : pct >= 75  ? UNIT_COLORS[i % UNIT_COLORS.length]
-                      : pct >= 50  ? CFG.colors.warning
-                      : CFG.colors.negative;
+            : pct >= 75 ? UNIT_COLORS[i % UNIT_COLORS.length]
+              : pct >= 50 ? CFG.colors.warning
+                : CFG.colors.negative;
           return `
-            <div class="meta-unit-row">
-              <span class="meta-unit-row__name">${r.nome}</span>
-              <div class="meta-unit-row__bar-wrap">
-                <div class="meta-unit-row__bar-fill" style="width:${pct}%;background:${color}"></div>
-              </div>
-              <span class="meta-unit-row__pct" style="color:${color}">${H.percent(pct, 0)}</span>
-            </div>`;
+        <div class="meta-unit-row">
+          <span class="meta-unit-row__name">${r.nome}</span>
+          <div class="meta-unit-row__bar-wrap">
+            <div class="meta-unit-row__bar-fill" style="width:${pct}%;background:${color}"></div>
+          </div>
+          <span class="meta-unit-row__pct" style="color:${color}">${H.percent(pct, 0)}</span>
+        </div>`;
         }).join('');
       }
 
-      // Guarda no State para o gráfico
       State._goalData = { metaMensal, realizadoMensal, metaAnual, realizadoAnual };
     }
 
     /* ---- Gráfico Meta vs Realizado (full-width) ---- */
-    function renderGoalVsActualChart() {
+    function renderGoalVsActualChart(metas, evolucao) {
       const ctx = document.getElementById('goalVsActualChart');
       if (!ctx) return;
 
@@ -2901,32 +2423,38 @@
       let labels, dataMeta, dataRealizado;
 
       if (isAll) {
-        const radios  = MOCK_METAS.porRadiologia;
-        labels        = radios.map(r => r.nome);
-        dataMeta      = radios.map(r => {
+        const radios = metas.porRadiologia;
+        labels = radios.map(r => r.nome);
+        dataMeta = radios.map(r => {
           const edit = State.goalEdits[r.id];
           return edit?.meta !== undefined ? edit.meta : r.meta;
         });
         dataRealizado = radios.map(r => r.realizado);
       } else {
-        const radioMeta = MOCK_METAS.porRadiologia.find(r => r.id === State.radiologia);
-        const pesoRadio = radioMeta ? (radioMeta.realizado / MOCK_METAS.mensal.realizado) : 1;
-        labels        = MOCK_EVOLUCAO.labels;
+        const radioMeta = metas.porRadiologia.find(r => r.id === State.radiologia);
+        const pesoRadio = radioMeta && metas.mensal.realizado > 0
+          ? (radioMeta.realizado / metas.mensal.realizado)
+          : 1;
+        labels = evolucao.labels;
         const metaVal = State.goalEdits[State.radiologia]?.meta ?? (radioMeta?.meta || 0);
-        dataMeta      = labels.map(() => metaVal);
-        dataRealizado = MOCK_EVOLUCAO.faturamento.map(v => Math.round(v * pesoRadio));
+        dataMeta = labels.map(() => metaVal);
+        dataRealizado = evolucao.faturamento.map(v => Math.round(v * pesoRadio));
       }
+
+      const radioLabel = State.radiologies.find(r => r.id === State.radiologia)?.nome || 'Todas';
+
+      State._goalChartData = { isAll, labels, dataMeta, dataRealizado, radioLabel };
 
       const realizadoColors = dataRealizado.map((v, i) => {
         const pct = dataMeta[i] > 0 ? v / dataMeta[i] * 100 : 0;
         return pct >= 100 ? CFG.colors.positive + 'CC'
-            : pct >= 75  ? CFG.colors.primary  + 'CC'
+          : pct >= 75 ? CFG.colors.primary + 'CC'
             : CFG.colors.warning + 'CC';
       });
       const realizadoBorders = dataRealizado.map((v, i) => {
         const pct = dataMeta[i] > 0 ? v / dataMeta[i] * 100 : 0;
         return pct >= 100 ? CFG.colors.positive
-            : pct >= 75  ? CFG.colors.primary
+          : pct >= 75 ? CFG.colors.primary
             : CFG.colors.warning;
       });
 
@@ -2936,9 +2464,9 @@
       };
 
       // Título dinâmico
-      const titleEl    = document.getElementById('goalChartTitle');
+      const titleEl = document.getElementById('goalChartTitle');
       const subtitleEl = document.getElementById('goalChartSubtitle');
-      if (titleEl)    titleEl.textContent    = isAll ? 'Meta vs. Realizado por Radiologia' : `Meta vs. Realizado — ${CFG.radiologies.find(r=>r.id===State.radiologia)?.label||''}`;
+      if (titleEl) titleEl.textContent = isAll ? 'Meta vs. Realizado por Radiologia' : `Meta vs. Realizado — ${radioLabel}`;
       if (subtitleEl) subtitleEl.textContent = isAll ? 'Mês atual · comparativo de todas as unidades' : 'Últimos 12 meses · meta mensal vs. faturamento realizado';
 
       H.destroyChart(ctx.id);
@@ -2996,15 +2524,15 @@
     }
 
     /* ---- Tabela de Metas por Radiologia ---- */
-    function renderMetasByRadiologiaTable() {
+    function renderMetasByRadiologiaTable(metas) {
       const body = document.getElementById('metasByRadiologiaBody');
       if (!body) return;
 
-      body.innerHTML = MOCK_METAS.porRadiologia.map(r => {
-        const savedEdit  = State.goalEdits[r.id] || {};
-        const metaVal    = savedEdit.meta  !== undefined ? savedEdit.meta  : r.meta;
-        const anualVal   = savedEdit.anual !== undefined ? savedEdit.anual : r.anual;
-        const pct        = metaVal > 0 ? Math.min((r.realizado / metaVal) * 100, 100) : 0;
+      body.innerHTML = metas.porRadiologia.map(r => {
+        const savedEdit = State.goalEdits[r.id] || {};
+        const metaVal = savedEdit.meta !== undefined ? savedEdit.meta : r.meta;
+        const anualVal = savedEdit.anual !== undefined ? savedEdit.anual : r.anual;
+        const pct = metaVal > 0 ? Math.min((r.realizado / metaVal) * 100, 100) : 0;
         const { bar, text } = progressColor(pct);
 
         // Máscara para exibição inicial
@@ -3098,9 +2626,9 @@
         bindMoneyInput(inp);
 
         inp.addEventListener('input', () => {
-          const rId  = inp.dataset.radioId;
+          const rId = inp.dataset.radioId;
           const field = inp.dataset.field;
-          const val  = unmaskMoney(inp.value);
+          const val = unmaskMoney(inp.value);
 
           if (!State.goalEdits[rId]) State.goalEdits[rId] = {};
           State.goalEdits[rId][field] = val;
@@ -3112,16 +2640,16 @@
             const pct = val > 0 ? Math.min((realizado / val) * 100, 100) : 0;
             const { bar, text } = progressColor(pct);
 
-            const pctCell  = document.querySelector(`[data-pct-cell="${rId}"]`);
+            const pctCell = document.querySelector(`[data-pct-cell="${rId}"]`);
             const fillCell = document.querySelector(`[data-fill-cell="${rId}"]`);
-            const lblCell  = document.querySelector(`[data-label-cell="${rId}"]`);
+            const lblCell = document.querySelector(`[data-label-cell="${rId}"]`);
 
-            if (pctCell)  {
+            if (pctCell) {
               pctCell.textContent = H.percent(pct);
               pctCell.className = `meta-row__cell meta-row__pct ${text}`;
             }
             if (fillCell) { fillCell.style.width = `${pct}%`; fillCell.style.background = bar; }
-            if (lblCell)  lblCell.textContent = H.percent(pct);
+            if (lblCell) lblCell.textContent = H.percent(pct);
           }
         });
       });
@@ -3130,52 +2658,75 @@
       body.querySelectorAll('.btn-edit-goal').forEach(btn => {
         btn.addEventListener('click', () => {
           Modais.openGoal({
-            radioId:   btn.dataset.radioId,
+            radioId: btn.dataset.radioId,
             radioNome: btn.dataset.radioNome,
-            meta:      parseFloat(btn.dataset.meta),
-            anual:     parseFloat(btn.dataset.anual),
+            meta: parseFloat(btn.dataset.meta),
+            anual: parseFloat(btn.dataset.anual),
           });
         });
       });
     }
 
     /* ---- Histórico de ajustes ---- */
-    function renderAdjustmentHistory() {
+    function renderAdjustmentHistory(historico) {
       const tbody = document.getElementById('adjustmentHistoryBody');
       if (!tbody) return;
 
-      const metasOnly = MOCK_HISTORICO_AJUSTES.filter(a => a.tipo === 'Meta');
-
-      tbody.innerHTML = metasOnly.map(a => `
-        <tr>
-          <td>${H.formatDate(a.data)}</td>
-          <td><span class="badge badge--info">${a.tipo}</span></td>
-          <td>${a.descricao}</td>
-          <td class="data-table__num">${a.anterior}</td>
-          <td class="data-table__num"><strong>${a.novo}</strong></td>
-          <td>${a.responsavel}</td>
-        </tr>`).join('');
+      tbody.innerHTML = historico.map(a => `
+    <tr>
+      <td>${H.formatDate(a.data)}</td>
+      <td><span class="badge badge--info">${a.tipo}</span></td>
+      <td>${a.descricao}</td>
+      <td class="data-table__num">${a.anterior}</td>
+      <td class="data-table__num"><strong>${a.novo}</strong></td>
+      <td>${a.responsavel}</td>
+    </tr>`).join('');
     }
 
     /* ---- Controles da aba ---- */
-    function bindControls() {
+    function bindControls(metas) {
       const saveMetas = document.getElementById('btnSaveMetas');
       if (saveMetas) {
-        saveMetas.addEventListener('click', () => {
-          // [API] POST /metas { metas: State.goalEdits }
-          H.toast('Metas salvas com sucesso!', 'success');
-          State.goalEdits = {};
-          document.querySelectorAll('.meta-input').forEach(inp => inp.classList.remove('is-modified'));
+        // Remove listener anterior para evitar duplicação em re-renders
+        const newBtn = saveMetas.cloneNode(true);
+        saveMetas.parentNode.replaceChild(newBtn, saveMetas);
+
+        newBtn.addEventListener('click', async () => {
+          try {
+            await Api.postMetasSalvar({ metas: State.goalEdits });
+            H.toast('Metas salvas com sucesso!', 'success');
+            State.goalEdits = {};
+            document.querySelectorAll('.meta-input').forEach(inp => inp.classList.remove('is-modified'));
+            await render(); // recarrega com dados atualizados
+          } catch (err) {
+            console.error('[Metas] Erro ao salvar:', err);
+            H.toast('Erro ao salvar metas. Tente novamente.', 'error');
+          }
         });
       }
     }
 
-    function render() {
-      renderKPIs();
-      renderGoalVsActualChart();
-      renderMetasByRadiologiaTable();
-      renderAdjustmentHistory();
-      bindControls();
+    async function render() {
+      const filtros = H.filtrosAtivos();
+
+      try {
+        const [metas, historico, evolucao] = await Promise.all([
+          Api.getMetas(filtros),
+          Api.getMetasHistorico(filtros),
+          Api.getFinanceiroEvolucao(filtros), // necessário para o gráfico quando radiologia específica
+        ]);
+
+        State._metasData = metas;
+
+        renderKPIs(metas);
+        renderGoalVsActualChart(metas, evolucao);
+        renderMetasByRadiologiaTable(metas);
+        renderAdjustmentHistory(historico);
+        bindControls(metas);
+      } catch (err) {
+        console.error('[Metas] Erro ao carregar dados:', err);
+        H.toast('Erro ao carregar metas. Tente novamente.', 'error');
+      }
     }
 
     return { render };
@@ -3187,86 +2738,112 @@
   =========================================================== */
   const Relatorios = (() => {
 
-    function renderHistory() {
+    async function renderHistory() {
       const tbody = document.getElementById('reportHistoryBody');
       if (!tbody) return;
 
-      tbody.innerHTML = MOCK_HISTORICO_RELATORIOS.map(r => `
-        <tr>
-          <td><span class="data-table__name-primary">${r.nome}</span></td>
-          <td>${r.periodo}</td>
-          <td>${r.radiologia}</td>
-          <td>${H.formatDateTime(r.geradoEm)}</td>
-          <td>${H.formatBadge(r.formato)}</td>
-          <td class="data-table__action">
-            <button type="button" class="download-btn" aria-label="Baixar ${r.nome}">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              Baixar
-            </button>
-          </td>
-        </tr>`).join('');
+      try {
+        const historico = await Api.getRelatoriosHistorico(H.filtrosAtivos());
+        tbody.innerHTML = historico.map(r => `
+      <tr>
+        <td><span class="data-table__name-primary">${r.nome}</span></td>
+        <td>${r.periodo}</td>
+        <td>${r.radiologia}</td>
+        <td>${H.formatDateTime(r.geradoEm)}</td>
+        <td>${H.formatBadge(r.formato)}</td>
+        <td class="data-table__action">
+          <button type="button" class="download-btn" aria-label="Baixar ${r.nome}">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Baixar
+          </button>
+        </td>
+      </tr>`).join('');
+      } catch (err) {
+        console.error('[Relatorios] Erro ao carregar histórico:', err);
+        tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Erro ao carregar histórico de relatórios.</td></tr>`;
+      }
     }
 
     function renderCustomOptions() {
-      // Radiologias no relatório customizado
       const radCont = document.getElementById('customReportRadiologies');
       if (radCont) {
-        radCont.innerHTML = CFG.radiologies.filter(r => r.id !== 'all').map(r => `
-          <label class="custom-check is-checked">
-            <input type="checkbox" checked value="${r.id}">
-            ${r.label.replace('Radiologia ','')}
-          </label>`).join('');
+        // Usa State.radiologies (já carregado em Filtros.init)
+        radCont.innerHTML = State.radiologies
+          .filter(r => r.id !== 'all')
+          .map(r => `
+        <label class="custom-check is-checked">
+          <input type="checkbox" checked value="${r.id}">
+          ${r.nome.replace('Radiologia ', '')}
+        </label>`).join('');
 
         radCont.querySelectorAll('.custom-check').forEach(lbl => {
           lbl.addEventListener('click', () => lbl.classList.toggle('is-checked', lbl.querySelector('input').checked));
         });
       }
 
-      // Colunas no relatório customizado
+      // Colunas — mantidas estáticas (definição de UI, não dados de API)
       const colCont = document.getElementById('customReportColumns');
       if (colCont) {
         colCont.innerHTML = CFG.reportColumns.map(col => `
-          <label class="custom-check">
-            <input type="checkbox" value="${col}">
-            ${col}
-          </label>`).join('');
+      <label class="custom-check">
+        <input type="checkbox" value="${col}">
+        ${col}
+      </label>`).join('');
 
         colCont.querySelectorAll('.custom-check').forEach(lbl => {
-          const input = lbl.querySelector('input');
-
-          input.addEventListener('change', () => {
-            lbl.classList.toggle('is-checked', input.checked);
-          });
+          lbl.querySelector('input').addEventListener('change', e => lbl.classList.toggle('is-checked', e.target.checked));
         });
       }
     }
 
     function bindExportButtons() {
       document.querySelectorAll('[data-export]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const fmt    = btn.dataset.export.toUpperCase();
-          const report = btn.dataset.report;
-          // [API] GET /relatorios/exportar?tipo=:report&formato=:fmt&periodo=:periodo&radiologia=:id
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+
+        newBtn.addEventListener('click', async () => {
+          const fmt = newBtn.dataset.export.toUpperCase();
+          const report = newBtn.dataset.report;
           H.toast(`Gerando ${report} em ${fmt}...`, 'info');
-          setTimeout(() => H.toast(`Relatório exportado em ${fmt} com sucesso!`, 'success'), 1500);
+          try {
+            await Api.getRelatorioExportar({
+              tipo: report,
+              formato: fmt,
+              ...H.filtrosAtivos(),
+            });
+            H.toast(`Relatório exportado em ${fmt} com sucesso!`, 'success');
+          } catch (err) {
+            console.error('[Relatorios] Erro ao exportar:', err);
+            H.toast('Erro ao exportar relatório. Tente novamente.', 'error');
+          }
         });
       });
 
       const generateCustom = document.getElementById('btnGenerateCustom');
       if (generateCustom) {
-        generateCustom.addEventListener('click', () => {
+        const newBtn = generateCustom.cloneNode(true);
+        generateCustom.parentNode.replaceChild(newBtn, generateCustom);
+
+        newBtn.addEventListener('click', async () => {
           const radiologies = [...document.querySelectorAll('#customReportRadiologies .custom-check.is-checked input')].map(i => i.value);
-          const columns     = [...document.querySelectorAll('#customReportColumns .custom-check.is-checked input')].map(i => i.value);
-          const periodo     = document.getElementById('customReportPeriod')?.value || 'mes_atual';
-          // [API] POST /relatorios/customizado { periodo, radiologies, columns }
+          const columns = [...document.querySelectorAll('#customReportColumns .custom-check.is-checked input')].map(i => i.value);
+          const periodo = document.getElementById('customReportPeriod')?.value || 'mes_atual';
+
           H.toast(`Gerando relatório customizado (${radiologies.length} radiologias, ${columns.length} colunas)...`, 'info');
-          setTimeout(() => H.toast('Relatório customizado gerado!', 'success'), 1800);
+          try {
+            await Api.postRelatorioCustomizado({ periodo, radiologies, columns });
+            H.toast('Relatório customizado gerado!', 'success');
+            await renderHistory(); // atualiza histórico com o novo relatório
+          } catch (err) {
+            console.error('[Relatorios] Erro ao gerar customizado:', err);
+            H.toast('Erro ao gerar relatório. Tente novamente.', 'error');
+          }
         });
       }
     }
 
-    function render() {
-      renderHistory();
+    async function render() {
+      await renderHistory();
       renderCustomOptions();
       bindExportButtons();
     }
@@ -3296,8 +2873,8 @@
       if (sub) sub.textContent = `Radiologia ${data.radioNome}`;
 
       // Snapshot do estado atual
-      const radioMeta  = MOCK_METAS.porRadiologia.find(r => r.id === data.radioId);
-      const pctAtual   = radioMeta && data.meta > 0 ? (radioMeta.realizado / data.meta * 100) : 0;
+      const radioMeta = MOCK_METAS.porRadiologia.find(r => r.id === data.radioId);
+      const pctAtual = radioMeta && data.meta > 0 ? (radioMeta.realizado / data.meta * 100) : 0;
       const snap = document.getElementById('modalGoalSnapshot');
       if (snap && radioMeta) {
         const { text } = Metas._progressColor ? Metas._progressColor(pctAtual) : { text: '' };
@@ -3320,15 +2897,15 @@
       function setMasked(input, val) {
         if (!input) return;
         const digits = Math.round(val * 100).toString();
-        const num    = parseInt(digits, 10) / 100;
-        input.value  = new Intl.NumberFormat('pt-BR', {
+        const num = parseInt(digits, 10) / 100;
+        input.value = new Intl.NumberFormat('pt-BR', {
           minimumFractionDigits: 2, maximumFractionDigits: 2,
         }).format(num);
       }
 
       const savedEdit = State.goalEdits[data.radioId] || {};
-      setMasked(document.getElementById('goalMonthlyInput'), savedEdit.meta  ?? data.meta);
-      setMasked(document.getElementById('goalYearlyInput'),  savedEdit.anual ?? data.anual);
+      setMasked(document.getElementById('goalMonthlyInput'), savedEdit.meta ?? data.meta);
+      setMasked(document.getElementById('goalYearlyInput'), savedEdit.anual ?? data.anual);
 
       // Limpa preview
       const preview = document.getElementById('modalGoalPreview');
@@ -3341,29 +2918,29 @@
 
     function closeGoal() {
       const backdrop = document.getElementById('modalGoalBackdrop');
-      if (backdrop) { backdrop.hidden = true; backdrop.setAttribute('aria-hidden','true'); }
+      if (backdrop) { backdrop.hidden = true; backdrop.setAttribute('aria-hidden', 'true'); }
       State.goalEditing = null;
     }
 
     function bindGoalModal() {
-      const backdrop   = document.getElementById('modalGoalBackdrop');
-      const closeBtn   = document.getElementById('modalGoalClose');
-      const cancelBtn  = document.getElementById('modalGoalCancel');
+      const backdrop = document.getElementById('modalGoalBackdrop');
+      const closeBtn = document.getElementById('modalGoalClose');
+      const cancelBtn = document.getElementById('modalGoalCancel');
       const confirmBtn = document.getElementById('modalGoalConfirm');
       const monthInput = document.getElementById('goalMonthlyInput');
-      const yearInput  = document.getElementById('goalYearlyInput');
+      const yearInput = document.getElementById('goalYearlyInput');
 
-      if (closeBtn)  closeBtn.addEventListener('click', closeGoal);
+      if (closeBtn) closeBtn.addEventListener('click', closeGoal);
       if (cancelBtn) cancelBtn.addEventListener('click', closeGoal);
-      if (backdrop)  backdrop.addEventListener('click', e => { if (e.target === backdrop) closeGoal(); });
+      if (backdrop) backdrop.addEventListener('click', e => { if (e.target === backdrop) closeGoal(); });
 
       // Aplica máscara nos inputs do modal
       function bindMoneyMask(input) {
         input.addEventListener('input', () => {
-          const raw    = input.value.replace(/\D/g, '');
+          const raw = input.value.replace(/\D/g, '');
           const digits = raw || '0';
-          const num    = parseInt(digits, 10) / 100;
-          input.value  = num === 0 ? '' : new Intl.NumberFormat('pt-BR', {
+          const num = parseInt(digits, 10) / 100;
+          input.value = num === 0 ? '' : new Intl.NumberFormat('pt-BR', {
             minimumFractionDigits: 2, maximumFractionDigits: 2,
           }).format(num);
           updatePreview();
@@ -3371,29 +2948,30 @@
       }
 
       if (monthInput) bindMoneyMask(monthInput);
-      if (yearInput)  bindMoneyMask(yearInput);
+      if (yearInput) bindMoneyMask(yearInput);
 
       function unmask(str) {
-        return parseFloat(String(str).replace(/\./g,'').replace(',','.')) || 0;
+        return parseFloat(String(str).replace(/\./g, '').replace(',', '.')) || 0;
       }
 
       function updatePreview() {
         const preview = document.getElementById('modalGoalPreview');
         if (!preview || !State.goalEditing) return;
 
-        const radioMeta = MOCK_METAS.porRadiologia.find(r => r.id === State.goalEditing);
+        const radioMeta = State._metasData?.porRadiologia?.find(r => r.id === State.goalEditing);
+        const pctAtual = radioMeta && data.meta > 0 ? (radioMeta.realizado / data.meta * 100) : 0;
         if (!radioMeta) return;
 
         const newMeta = unmask(monthInput?.value || '0');
         if (!newMeta) { preview.innerHTML = ''; return; }
 
-        const pct        = (radioMeta.realizado / newMeta) * 100;
-        const falta      = Math.max(newMeta - radioMeta.realizado, 0);
+        const pct = (radioMeta.realizado / newMeta) * 100;
+        const falta = Math.max(newMeta - radioMeta.realizado, 0);
         const statusIcon = pct >= 100 ? '🎯' : pct >= 75 ? '📈' : pct >= 50 ? '⚠️' : '🔴';
         const statusText = pct >= 100 ? 'Meta já atingida com esse valor!'
-                        : pct >= 75  ? `Quase lá — faltam ${H.currency(falta)}`
-                        : pct >= 50  ? `Metade do caminho — faltam ${H.currency(falta)}`
-                        : `Abaixo do esperado — faltam ${H.currency(falta)}`;
+          : pct >= 75 ? `Quase lá — faltam ${H.currency(falta)}`
+            : pct >= 50 ? `Metade do caminho — faltam ${H.currency(falta)}`
+              : `Abaixo do esperado — faltam ${H.currency(falta)}`;
 
         preview.innerHTML = `
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -3408,11 +2986,11 @@
           const radioId = State.goalEditing;
           if (!radioId) return;
 
-          const meta  = unmask(monthInput?.value || '0');
-          const anual = unmask(yearInput?.value  || '0');
+          const meta = unmask(monthInput?.value || '0');
+          const anual = unmask(yearInput?.value || '0');
 
           if (!State.goalEdits[radioId]) State.goalEdits[radioId] = {};
-          State.goalEdits[radioId].meta  = meta;
+          State.goalEdits[radioId].meta = meta;
           State.goalEdits[radioId].anual = anual;
 
           // [API] PUT /metas/:radioId { meta, anual }
@@ -3429,7 +3007,7 @@
     }
 
     /* ----- Modal de Detalhe do Médico ----- */
-    
+
     function init() {
       bindGoalModal();
       document.addEventListener('keydown', e => {
@@ -3446,19 +3024,12 @@
   /* ===========================================================
      13. BOOTSTRAP
   =========================================================== */
-  function init() {
-    // Configura Chart.js defaults globais
+  async function init() {
     ChartFactory.defaults();
-
-    // Inicializa módulos
-    Filtros.init();
+    await Filtros.init(); // carrega radiologias antes de qualquer render
     Tabs.init();
     Modais.init();
-
-    // Renderiza aba inicial (Visão Geral)
-    VisaoGeral.render();
-
-    // Set data inicial do input de pagamento
+    await VisaoGeral.render();
     const dateInput = document.getElementById('paymentDate');
     if (dateInput) dateInput.value = H.today();
   }

@@ -881,6 +881,32 @@ const Api = (() => {
         return request(`/pacientes/${pacienteId}/agendamentos${qs}`);
     }
 
+    // [API] GET /agendamentos
+    async function getAgendamentos(filtros = {}) {
+        const qs = buildQuery({
+            radiologiaId: filtros.radiologiaId || 'all',
+            dataInicio: filtros.dataInicio,
+            dataFim: filtros.dataFim,
+            status: filtros.status,
+        });
+        return request(`/agendamentos${qs}`);
+    }
+
+    // [API] POST /agendamentos
+    async function postAgendamento(dados) {
+        return request('/agendamentos', {
+            method: 'POST',
+            body: JSON.stringify(dados),
+        });
+    }
+
+    // [API] PUT /agendamentos/:id
+    async function updateAgendamento(id, dados) {
+        return request(`/agendamentos/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(dados),
+        });
+    }
     /**
      * Retorna as notas/observações de um paciente ordenadas por data desc.
      * Alimenta a lista #perfil-notas.
@@ -1974,6 +2000,9 @@ const Api = (() => {
         postPaciente,
         updatePaciente,
         postPacienteNota,
+        getAgendamentos,
+        postAgendamento,
+        updateAgendamento,
 
         // 12. Financeiro
         getFinanceiroSnapshot,

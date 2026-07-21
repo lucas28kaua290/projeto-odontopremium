@@ -50,189 +50,6 @@
         hasUnsavedChanges: false,
     }
 
-    /* ===========================================================
-       2. DADOS MOCK
-       [API] Substituir cada objeto/array pela chamada REST correspondente
-    =========================================================== */
-
-    // [API] GET /configuracoes/geral
-    const MOCK_GERAL = {
-        systemName: 'IORD',
-        systemTagline: 'Painel de Gestão — Radiologias Odontológicas',
-        companyName: 'IORD Radiologias Odontológicas Ltda.',
-        companyFantasy: 'IORD',
-        companyCNPJ: '12.345.678/0001-90',
-        companyPhone: '(84) 99999-0000',
-        companyEmail: 'contato@iord.com.br',
-        companySite: 'https://iord.com.br',
-        companyAddress: 'Av. Senador Salgado Filho, 1234 — Tirol, Natal/RN — CEP 59020-000',
-        notifications: {
-            email: {
-                enabled: true,
-                from: 'noreply@iord.com.br',
-                admin: 'admin@iord.com.br',
-                events: ['novo_agendamento', 'cancelamento', 'confirmacao_pagamento', 'relatorio_semanal'],
-            },
-            whatsapp: {
-                enabled: true,
-                number: '+55 84 99999-0001',
-                token: 'EAAxxxxxxxx',
-                events: ['confirmacao_agendamento', 'lembrete_24h', 'laudo_disponivel'],
-            },
-        },
-        regionalization: {
-            language: 'pt-BR',
-            timezone: 'America/Fortaleza',
-            currency: 'BRL',
-            dateFormat: 'DD/MM/YYYY',
-            timeFormat: '24h',
-        },
-    }
-
-    // [API] GET /radiologias
-    const MOCK_RADIOLOGIAS = [
-        {
-            id: 'rad-001',
-            name: 'IORD Centro',
-            phone: '(84) 3232-1000',
-            email: 'centro@iord.com.br',
-            address: 'Av. Senador Salgado Filho, 1234 — Tirol, Natal/RN',
-            openTime: '08:00',
-            closeTime: '18:00',
-            technician: 'Marcos Vinícius Costa',
-            cro: 'CRO-RN 012345',
-            status: 'ativo',
-            color: '#018093',
-        },
-        {
-            id: 'rad-002',
-            name: 'IORD Capim Macio',
-            phone: '(84) 3088-2200',
-            email: 'capimmacio@iord.com.br',
-            address: 'R. Manoel Dantas, 890 — Capim Macio, Natal/RN',
-            openTime: '07:30',
-            closeTime: '17:30',
-            technician: 'Ana Paula Silveira',
-            cro: 'CRO-RN 023456',
-            status: 'ativo',
-            color: '#5B93C8',
-        },
-        {
-            id: 'rad-003',
-            name: 'IORD Mossoró',
-            phone: '(84) 3315-4400',
-            email: 'mossoro@iord.com.br',
-            address: 'Av. Alberto Maranhão, 567 — Centro, Mossoró/RN',
-            openTime: '08:00',
-            closeTime: '17:00',
-            technician: 'Fernanda Leal',
-            cro: 'CRO-RN 034567',
-            status: 'ativo',
-            color: '#7B68EE',
-        },
-        {
-            id: 'rad-004',
-            name: 'IORD Zona Norte',
-            phone: '(84) 3201-5500',
-            email: 'zonanorte@iord.com.br',
-            address: 'Av. Tomaz Landim, 3310 — N. Sra. da Apresentação, Natal/RN',
-            openTime: '08:00',
-            closeTime: '17:00',
-            technician: 'Carlos Eduardo Melo',
-            cro: 'CRO-RN 045678',
-            status: 'manutencao',
-            color: '#E8974A',
-        },
-    ]
-
-    // [API] GET /clinicas
-    const MOCK_CLINICAS = [
-        { id: 'cli-001', name: 'Clínica Odontofácil', city: 'Natal', state: 'RN', phone: '(84) 3232-5566', email: 'contato@odontofacil.com.br', address: 'R. das Orquídeas, 42 — Petrópolis', status: 'ativo' },
-        { id: 'cli-002', name: 'OdontoCenter Natal', city: 'Natal', state: 'RN', phone: '(84) 3088-4411', email: 'admin@odontocenter.com.br', address: 'Av. Roberto Freire, 1800 — Capim Macio', status: 'ativo' },
-        { id: 'cli-003', name: 'Sorriso Pleno', city: 'Mossoró', state: 'RN', phone: '(84) 3315-2233', email: 'sorriso@sorriso.com.br', address: 'Av. Jerônimo Rosado, 900 — Centro', status: 'ativo' },
-        { id: 'cli-004', name: 'DentalArt Clínica', city: 'Parnamirim', state: 'RN', phone: '(84) 3647-8899', email: 'info@dentalart.com.br', address: 'R. José Bezerra Melo, 234', status: 'ativo' },
-        { id: 'cli-005', name: 'OdontoLife Caicó', city: 'Caicó', state: 'RN', phone: '(84) 3421-0011', email: 'caico@odontolife.com.br', address: 'Av. Cel. Martiniano, 1200', status: 'inativo' },
-        { id: 'cli-006', name: 'Clínica Bela Sorria', city: 'Natal', state: 'RN', phone: '(84) 3205-3344', email: 'sorria@belasorria.com.br', address: 'R. Apodi, 89 — Alecrim', status: 'ativo' },
-    ]
-
-    // [API] GET /medicos
-    const MOCK_MEDICOS = [
-        { id: 'med-001', name: 'Dra. Isabela Fonseca', specialty: 'ortodontia', clinicId: 'cli-001', phone: '(84) 99801-1122', email: 'isabela@email.com', comissao: 30, status: 'ativo' },
-        { id: 'med-002', name: 'Dr. Ricardo Azevedo', specialty: 'implantodontia', clinicId: 'cli-001', phone: '(84) 99812-3344', email: 'ricardo@email.com', comissao: 30, status: 'ativo' },
-        { id: 'med-003', name: 'Dra. Camila Torres', specialty: 'endodontia', clinicId: 'cli-002', phone: '(84) 99823-5566', email: 'camila@email.com', comissao: 25, status: 'ativo' },
-        { id: 'med-004', name: 'Dr. André Menezes', specialty: 'cirurgia', clinicId: 'cli-002', phone: '(84) 99834-7788', email: 'andre@email.com', comissao: 35, status: 'ativo' },
-        { id: 'med-005', name: 'Dra. Patrícia Lima', specialty: 'periodontia', clinicId: 'cli-003', phone: '(84) 99845-9900', email: 'patricia@email.com', comissao: 30, status: 'ativo' },
-        { id: 'med-006', name: 'Dr. Felipe Carvalho', specialty: 'clinico', clinicId: 'cli-004', phone: '(84) 99856-1122', email: 'felipe@email.com', comissao: 28, status: 'inativo' },
-        { id: 'med-007', name: 'Dra. Juliana Barbosa', specialty: 'pediatria', clinicId: 'cli-004', phone: '(84) 99867-3344', email: 'juliana@email.com', comissao: 30, status: 'ativo' },
-        { id: 'med-008', name: 'Dr. Thiago Nunes', specialty: 'ortodontia', clinicId: 'cli-006', phone: '(84) 99878-5566', email: 'thiago@email.com', comissao: 32, status: 'ativo' },
-    ]
-
-    // [API] GET /usuarios
-    const MOCK_USUARIOS = [
-        { id: 'usr-001', name: 'Dr. Iago', email: 'iago@iord.com.br', role: 'Proprietário', level: 'admin', radiologia: 'todas', lastAccess: '2025-07-15T14:32:00', status: 'ativo' },
-        { id: 'usr-002', name: 'Carla Mendonça', email: 'carla@iord.com.br', role: 'Gerente', level: 'admin', radiologia: 'todas', lastAccess: '2025-07-14T09:15:00', status: 'ativo' },
-        { id: 'usr-003', name: 'Renata Oliveira', email: 'renata@iord.com.br', role: 'Recepcionista', level: 'recepcao', radiologia: 'rad-001', lastAccess: '2025-07-15T08:00:00', status: 'ativo' },
-        { id: 'usr-004', name: 'Bruna Costa', email: 'bruna@iord.com.br', role: 'Recepcionista', level: 'recepcao', radiologia: 'rad-002', lastAccess: '2025-07-13T17:45:00', status: 'ativo' },
-        { id: 'usr-005', name: 'Marcos Lopes', email: 'marcos@iord.com.br', role: 'Técnico', level: 'viewer', radiologia: 'rad-003', lastAccess: '2025-07-10T11:20:00', status: 'ativo' },
-        { id: 'usr-006', name: 'Luana Ferreira', email: 'luana@iord.com.br', role: 'Recepcionista', level: 'recepcao', radiologia: 'rad-004', lastAccess: null, status: 'pendente' },
-    ]
-
-    // [API] GET /parametros
-    const MOCK_PARAMETROS = {
-        examDurations: [
-            { id: 'periapical', label: 'Periapical', duration: 10 },
-            { id: 'panoramica', label: 'Panorâmica', duration: 15 },
-            { id: 'cefalometrica', label: 'Cefalométrica', duration: 15 },
-            { id: 'tomografia', label: 'Tomografia (CBCT)', duration: 30 },
-            { id: 'interproximal', label: 'Interproximal', duration: 10 },
-            { id: 'oclusais', label: 'Oclusais', duration: 12 },
-            { id: 'atm', label: 'ATM', duration: 20 },
-            { id: 'seios_faciais', label: 'Seios da Face', duration: 20 },
-            { id: 'total_face', label: 'Total de Face', duration: 25 },
-        ],
-        whatsappMessages: [
-            {
-                id: 'confirmacao',
-                event: 'Confirmação de Agendamento',
-                active: true,
-                text: 'Olá, {nome}! Seu agendamento na {radiologia} foi confirmado para {data} às {hora}.\nExame: {exame}.\nQualquer dúvida, entre em contato. Até lá!',
-            },
-            {
-                id: 'lembrete',
-                event: 'Lembrete 24h Antes',
-                active: true,
-                text: 'Oi, {nome}! Lembrando que amanhã às {hora} você tem um exame de {exame} agendado na {radiologia}. Não se esqueça! 😊',
-            },
-            {
-                id: 'laudo',
-                event: 'Laudo Disponível',
-                active: true,
-                text: 'Olá, {nome}! O laudo do seu exame de {exame} realizado em {data} já está disponível. Acesse pelo link: {link}',
-            },
-            {
-                id: 'cancelamento',
-                event: 'Cancelamento',
-                active: false,
-                text: 'Olá, {nome}. Seu agendamento de {exame} em {data} às {hora} na {radiologia} foi cancelado. Para reagendar, entre em contato conosco.',
-            },
-        ],
-        scheduling: {
-            antecedenciaMin: 2,
-            prazoCancelamento: 24,
-            enviarConfirmacao: 24,
-            intervaloMin: 10,
-            maxDia: 40,
-            exigirConfirmacaoLink: true,
-            permitirReagendamento: false,
-            bloquearAutomatico: true,
-        },
-        financial: {
-            comissaoPadrao: 30,
-            impostos: 6,
-            vencimentoComissoes: 30,
-            formasPagamento: ['dinheiro', 'debito', 'credito', 'pix'],
-        },
-    }
 
     // Mapa de especialidades (para exibição)
     const SPECIALTY_LABELS = {
@@ -402,89 +219,140 @@
        5. MÓDULO: ABA GERAL
     =========================================================== */
     const GeralModule = {
-        init() {
-            this.bindSave()
-            this.bindDiscard()
-            this.bindLogoUpload()
-            this.bindColorPicker()
-            this.bindToggleSubs()
-        },
+        async init() {
+    this.bindSave()
+    this.bindDiscard()
+    this.bindLogoUpload()
+    this.bindColorPicker()
+    this.bindToggleSubs()
+
+    // Carrega dados reais da aba Geral
+    try {
+        const dados = await Api.getConfiguracoesGeral()
+        this.fillForm(dados)
+    } catch (err) {
+        console.error(err)
+        Toast.show('Erro ao carregar configurações gerais.', 'error')
+    }
+},
 
         /** [API] POST /configuracoes/geral */
-        bindSave() {
-            const btn = document.getElementById('btnGeralSave')
-            if (!btn) return
-            btn.addEventListener('click', () => {
-                // Coletar valores dos campos
-                const payload = {
-                    systemName: document.getElementById('systemName')?.value?.trim(),
-                    systemTagline: document.getElementById('systemTagline')?.value?.trim(),
-                    companyName: document.getElementById('companyName')?.value?.trim(),
-                    companyFantasy: document.getElementById('companyFantasy')?.value?.trim(),
-                    companyCNPJ: document.getElementById('companyCNPJ')?.value?.trim(),
-                    companyPhone: document.getElementById('companyPhone')?.value?.trim(),
-                    companyEmail: document.getElementById('companyEmail')?.value?.trim(),
-                    companySite: document.getElementById('companySite')?.value?.trim(),
-                    companyAddress: document.getElementById('companyAddress')?.value?.trim(),
-                    language: document.getElementById('cfgLanguage')?.value,
-                    timezone: document.getElementById('cfgTimezone')?.value,
-                    currency: document.getElementById('cfgCurrency')?.value,
-                    dateFormat: document.getElementById('cfgDateFormat')?.value,
-                    timeFormat: document.getElementById('cfgTimeFormat')?.value,
-                }
+        /** [API] POST /configuracoes/geral */
+bindSave() {
+    const btn = document.getElementById('btnGeralSave')
+    if (!btn) return
+    btn.addEventListener('click', async () => {
+        const payload = {
+            systemName: document.getElementById('systemName')?.value?.trim(),
+            systemTagline: document.getElementById('systemTagline')?.value?.trim(),
+            companyName: document.getElementById('companyName')?.value?.trim(),
+            companyFantasy: document.getElementById('companyFantasy')?.value?.trim(),
+            companyCNPJ: document.getElementById('companyCNPJ')?.value?.trim(),
+            companyPhone: document.getElementById('companyPhone')?.value?.trim(),
+            companyEmail: document.getElementById('companyEmail')?.value?.trim(),
+            companySite: document.getElementById('companySite')?.value?.trim(),
+            companyAddress: document.getElementById('companyAddress')?.value?.trim(),
+            language: document.getElementById('cfgLanguage')?.value,
+            timezone: document.getElementById('cfgTimezone')?.value,
+            currency: document.getElementById('cfgCurrency')?.value,
+            dateFormat: document.getElementById('cfgDateFormat')?.value,
+            timeFormat: document.getElementById('cfgTimeFormat')?.value,
+        }
 
-                console.log('[API] POST /configuracoes/geral', payload)
-                // [API] await api.post('/configuracoes/geral', payload)
+        try {
+            await Api.postConfiguracoesGeral(payload)
+            Toast.show('Configurações gerais salvas com sucesso.')
+        } catch (err) {
+            console.error(err)
+            Toast.show('Erro ao salvar configurações.', 'error')
+        }
+    })
+},
 
-                Toast.show('Configurações gerais salvas com sucesso.')
-            })
-        },
+bindDiscard() {
+    const btn = document.getElementById('btnGeralDiscard')
+    if (!btn) return
+    btn.addEventListener('click', async () => {
+        try {
+            const dados = await Api.getConfiguracoesGeral()
+            GeralModule.fillForm(dados)
+            Toast.show('Alterações descartadas.', 'warning')
+        } catch (err) {
+            console.error(err)
+            Toast.show('Erro ao recarregar configurações.', 'error')
+        }
+    })
+},
 
-        bindDiscard() {
-            const btn = document.getElementById('btnGeralDiscard')
-            if (!btn) return
-            btn.addEventListener('click', () => {
-                // [API] Recarregar dados originais
-                console.log('[API] GET /configuracoes/geral (discard → reload)')
-                Toast.show('Alterações descartadas.', 'warning')
-            })
-        },
+/** Preenche os campos do formulário com os dados vindos da API */
+fillForm(dados) {
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? '' }
+    set('systemName',    dados.systemName)
+    set('systemTagline', dados.systemTagline)
+    set('companyName',   dados.companyName)
+    set('companyFantasy',dados.companyFantasy)
+    set('companyCNPJ',   dados.companyCNPJ)
+    set('companyPhone',  dados.companyPhone)
+    set('companyEmail',  dados.companyEmail)
+    set('companySite',   dados.companySite)
+    set('companyAddress',dados.companyAddress)
+    set('cfgLanguage',   dados.regionalization?.language)
+    set('cfgTimezone',   dados.regionalization?.timezone)
+    set('cfgCurrency',   dados.regionalization?.currency)
+    set('cfgDateFormat', dados.regionalization?.dateFormat)
+    set('cfgTimeFormat', dados.regionalization?.timeFormat)
 
-        bindLogoUpload() {
-            const btn = document.getElementById('btnUploadLogo')
-            const input = document.getElementById('logoInput')
-            const preview = document.getElementById('logoPreview')
-            const area = document.getElementById('logoUploadArea')
-            if (!btn || !input) return
+    const toggleEmail = document.getElementById('toggleEmail')
+    if (toggleEmail) toggleEmail.checked = dados.notifications?.email?.enabled ?? true
+    const toggleWA = document.getElementById('toggleWhatsapp')
+    if (toggleWA) toggleWA.checked = dados.notifications?.whatsapp?.enabled ?? true
 
-            const doUpload = () => input.click()
-            btn.addEventListener('click', doUpload)
-            area.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') doUpload() })
+    // Dispara update visual dos sub-configs
+    ;['toggleEmail', 'toggleWhatsapp'].forEach(id => {
+        document.getElementById(id)?.dispatchEvent(new Event('change'))
+    })
+},
 
-            input.addEventListener('change', () => {
-                const file = input.files[0]
-                if (!file) return
-                if (file.size > 2 * 1024 * 1024) {
-                    Toast.show('Arquivo muito grande. Máx. 2MB.', 'error')
-                    return
-                }
-                const reader = new FileReader()
-                reader.onload = e => {
-                    const placeholder = preview.querySelector('.logo-upload-area__placeholder')
-                    if (placeholder) placeholder.remove()
-                    let img = preview.querySelector('img')
-                    if (!img) {
-                        img = document.createElement('img')
-                        preview.appendChild(img)
-                    }
-                    img.src = e.target.result
-                    // [API] POST /configuracoes/logo (multipart)
-                    console.log('[API] POST /configuracoes/logo', file.name)
-                    Toast.show('Logo carregado. Salve as configurações para confirmar.')
-                }
-                reader.readAsDataURL(file)
-            })
-        },
+bindLogoUpload() {
+    const btn     = document.getElementById('btnUploadLogo')
+    const input   = document.getElementById('logoInput')
+    const preview = document.getElementById('logoPreview')
+    const area    = document.getElementById('logoUploadArea')
+    if (!btn || !input) return
+
+    const doUpload = () => input.click()
+    btn.addEventListener('click', doUpload)
+    area.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') doUpload() })
+
+    input.addEventListener('change', async () => {
+        const file = input.files[0]
+        if (!file) return
+        if (file.size > 2 * 1024 * 1024) {
+            Toast.show('Arquivo muito grande. Máx. 2MB.', 'error')
+            return
+        }
+
+        // Preview local imediato
+        const reader = new FileReader()
+        reader.onload = e => {
+            const placeholder = preview.querySelector('.logo-upload-area__placeholder')
+            if (placeholder) placeholder.remove()
+            let img = preview.querySelector('img')
+            if (!img) { img = document.createElement('img'); preview.appendChild(img) }
+            img.src = e.target.result
+        }
+        reader.readAsDataURL(file)
+
+        // Upload real
+        try {
+            await Api.postConfiguracoesLogo(file)
+            Toast.show('Logo enviado com sucesso.')
+        } catch (err) {
+            console.error(err)
+            Toast.show('Erro ao enviar logo.', 'error')
+        }
+    })
+},
 
         bindColorPicker() {
             const picker = document.getElementById('radColor')
@@ -526,12 +394,18 @@
        6. MÓDULO: ABA RADIOLOGIAS
     =========================================================== */
     const RadiologiasModule = {
-        init() {
-            // [API] GET /radiologias
-            State.radiologias = JSON.parse(JSON.stringify(MOCK_RADIOLOGIAS))
-            this.renderCards()
-            this.bindNewButton()
-        },
+        async init() {
+    this.renderCards() // renderiza vazio/loading enquanto carrega
+    this.bindNewButton()
+
+    try {
+        State.radiologias = await Api.getRadiologias()
+        this.renderCards()
+    } catch (err) {
+        console.error(err)
+        Toast.show('Erro ao carregar radiologias.', 'error')
+    }
+},
 
         renderCards() {
             const grid = document.getElementById('radiologyCardsGrid')
@@ -646,10 +520,15 @@
             })
             if (!confirmed) return
 
-            State.radiologias = State.radiologias.filter(r => r.id !== id)
-            // [API] await api.delete(`/radiologias/${id}`)
-            this.renderCards()
-            Toast.show('Radiologia excluída com sucesso.')
+            try {
+        await Api.deleteRadiologia(id)
+        State.radiologias = State.radiologias.filter(r => r.id !== id)
+        this.renderCards()
+        Toast.show('Radiologia excluída com sucesso.')
+    } catch (err) {
+        console.error(err)
+        Toast.show('Erro ao excluir radiologia.', 'error')
+    }
         },
     }
 
@@ -657,17 +536,25 @@
        7. MÓDULO: ABA CLÍNICAS E MÉDICOS
     =========================================================== */
     const ClinicasMedicosModule = {
-        init() {
-            // [API] GET /clinicas + /medicos
-            State.clinicas = JSON.parse(JSON.stringify(MOCK_CLINICAS))
-            State.medicos = JSON.parse(JSON.stringify(MOCK_MEDICOS))
+        async init() {
+    this.initSubTabs()
+    this.bindSearches()
+    this.bindNewButtons()
 
-            this.initSubTabs()
-            this.renderClinicsTable()
-            this.renderDoctorsTable()
-            this.bindSearches()
-            this.bindNewButtons()
-        },
+    try {
+        const [clinicas, medicos] = await Promise.all([
+            Api.getClinicas(),
+            Api.getMedicos(),
+        ])
+        State.clinicas = clinicas
+        State.medicos  = medicos
+        this.renderClinicsTable()
+        this.renderDoctorsTable()
+    } catch (err) {
+        console.error(err)
+        Toast.show('Erro ao carregar clínicas e médicos.', 'error')
+    }
+},
 
         /* --- Sub-abas internas Clínicas | Médicos --- */
         initSubTabs() {
@@ -780,10 +667,16 @@
             })
 
             if (!confirmed) return
-            State.clinicas = State.clinicas.filter(c => c.id !== id)
-            // [API] await api.delete(`/clinicas/${id}`)
-            this.renderClinicsTable()
-            Toast.show('Clínica excluída.')
+            if (!confirmed) return
+try {
+    await Api.deleteClinica(id)
+    State.clinicas = State.clinicas.filter(c => c.id !== id)
+    this.renderClinicsTable()
+    Toast.show('Clínica excluída.')
+} catch (err) {
+    console.error(err)
+    Toast.show('Erro ao excluir clínica.', 'error')
+}
         },
 
         /* ---- MÉDICOS ---- */
@@ -880,10 +773,15 @@
             })
 
             if (!confirmed) return
-            State.medicos = State.medicos.filter(m => m.id !== id)
-            // [API] await api.delete(`/medicos/${id}`)
-            this.renderDoctorsTable()
-            Toast.show('Médico excluído.')
+try {
+    await Api.deleteMedico(id)
+    State.medicos = State.medicos.filter(m => m.id !== id)
+    this.renderDoctorsTable()
+    Toast.show('Médico excluído.')
+} catch (err) {
+    console.error(err)
+    Toast.show('Erro ao excluir médico.', 'error')
+}
         },
 
         /* ---- Buscas e filtros ---- */
@@ -923,15 +821,20 @@
        8. MÓDULO: ABA USUÁRIOS E PERMISSÕES
     =========================================================== */
     const UsuariosModule = {
-        init() {
-            // [API] GET /usuarios
-            State.usuarios = JSON.parse(JSON.stringify(MOCK_USUARIOS))
-            this.renderKPIs()
-            this.renderUsersTable()
-            this.renderPermissionMatrix()
-            this.bindSearch()
-            this.bindNewButton()
-        },
+        async init() {
+    this.renderPermissionMatrix()
+    this.bindSearch()
+    this.bindNewButton()
+
+    try {
+        State.usuarios = await Api.getUsuarios()
+        this.renderKPIs()
+        this.renderUsersTable()
+    } catch (err) {
+        console.error(err)
+        Toast.show('Erro ao carregar usuários.', 'error')
+    }
+},
 
         renderKPIs() {
             const row = document.getElementById('usersKpiRow')
@@ -1083,11 +986,16 @@
             })
 
             if (!confirmed) return
-            State.usuarios = State.usuarios.filter(u => u.id !== id)
-            // [API] await api.delete(`/usuarios/${id}`)
-            this.renderKPIs()
-            this.renderUsersTable()
-            Toast.show('Usuário removido.')
+try {
+    await Api.deleteUsuario(id)
+    State.usuarios = State.usuarios.filter(u => u.id !== id)
+    this.renderKPIs()
+    this.renderUsersTable()
+    Toast.show('Usuário removido.')
+} catch (err) {
+    console.error(err)
+    Toast.show('Erro ao remover usuário.', 'error')
+}
         },
 
         bindSearch() {
@@ -1115,14 +1023,19 @@
     const ParametrosModule = {
         data: null,
 
-        init() {
-            // [API] GET /parametros
-            this.data = JSON.parse(JSON.stringify(MOCK_PARAMETROS))
-            this.renderExamDurations()
-            this.renderWAMessages()
-            this.bindSave()
-            this.bindDiscard()
-        },
+        async init() {
+    this.bindSave()
+    this.bindDiscard()
+
+    try {
+        this.data = await Api.getParametros()
+        this.renderExamDurations()
+        this.renderWAMessages()
+    } catch (err) {
+        console.error(err)
+        Toast.show('Erro ao carregar parâmetros.', 'error')
+    }
+},
 
         renderExamDurations() {
             const grid = document.getElementById('examDurationGrid')
@@ -1231,23 +1144,31 @@
 
         /** [API] POST /parametros */
         bindSave() {
-            document.getElementById('btnParamSave')?.addEventListener('click', () => {
-                const payload = this.collectData()
-                console.log('[API] POST /parametros', payload)
-                // [API] await api.post('/parametros', payload)
-                Toast.show('Parâmetros salvos com sucesso.')
-            })
-        },
+    document.getElementById('btnParamSave')?.addEventListener('click', async () => {
+        const payload = this.collectData()
+        try {
+            await Api.postParametros(payload)
+            Toast.show('Parâmetros salvos com sucesso.')
+        } catch (err) {
+            console.error(err)
+            Toast.show('Erro ao salvar parâmetros.', 'error')
+        }
+    })
+},
 
-        bindDiscard() {
-            document.getElementById('btnParamDiscard')?.addEventListener('click', () => {
-                this.data = JSON.parse(JSON.stringify(MOCK_PARAMETROS))
-                this.renderExamDurations()
-                this.renderWAMessages()
-                // [API] Recarregar do backend
-                Toast.show('Alterações descartadas.', 'warning')
-            })
-        },
+bindDiscard() {
+    document.getElementById('btnParamDiscard')?.addEventListener('click', async () => {
+        try {
+            this.data = await Api.getParametros()
+            this.renderExamDurations()
+            this.renderWAMessages()
+            Toast.show('Alterações descartadas.', 'warning')
+        } catch (err) {
+            console.error(err)
+            Toast.show('Erro ao recarregar parâmetros.', 'error')
+        }
+    })
+},
     }
 
     /* ===========================================================
@@ -1358,39 +1279,42 @@
         },
 
         /** [API] POST /radiologias | PUT /radiologias/:id */
-        save() {
-            const name = document.getElementById('radName')?.value?.trim()
-            if (!name) { Toast.show('Informe o nome da unidade.', 'error'); return }
+        async save() {
+    const name = document.getElementById('radName')?.value?.trim()
+    if (!name) { Toast.show('Informe o nome da unidade.', 'error'); return }
 
-            const payload = {
-                id: document.getElementById('modalRadiologyId')?.value || null,
-                name,
-                phone: document.getElementById('radPhone')?.value?.trim() || '',
-                email: document.getElementById('radEmail')?.value?.trim() || '',
-                address: document.getElementById('radAddress')?.value?.trim() || '',
-                openTime: document.getElementById('radOpenTime')?.value || '08:00',
-                closeTime: document.getElementById('radCloseTime')?.value || '18:00',
-                technician: document.getElementById('radTechnician')?.value?.trim() || '',
-                cro: document.getElementById('radCRO')?.value?.trim() || '',
-                status: document.getElementById('radStatus')?.value || 'ativo',
-                color: document.getElementById('radColor')?.value || '#018093',
-            }
+    const payload = {
+        id: document.getElementById('modalRadiologyId')?.value || null,
+        name,
+        phone:      document.getElementById('radPhone')?.value?.trim() || '',
+        email:      document.getElementById('radEmail')?.value?.trim() || '',
+        address:    document.getElementById('radAddress')?.value?.trim() || '',
+        openTime:   document.getElementById('radOpenTime')?.value || '08:00',
+        closeTime:  document.getElementById('radCloseTime')?.value || '18:00',
+        technician: document.getElementById('radTechnician')?.value?.trim() || '',
+        cro:        document.getElementById('radCRO')?.value?.trim() || '',
+        status:     document.getElementById('radStatus')?.value || 'ativo',
+        color:      document.getElementById('radColor')?.value || '#018093',
+    }
 
-            if (State.modal.mode === 'create') {
-                payload.id = Utils.uid('rad')
-                State.radiologias.push(payload)
-                // [API] await api.post('/radiologias', payload)
-                Toast.show('Radiologia cadastrada com sucesso.')
-            } else {
-                const idx = State.radiologias.findIndex(r => r.id === payload.id)
-                if (idx !== -1) State.radiologias[idx] = payload
-                // [API] await api.put(`/radiologias/${payload.id}`, payload)
-                Toast.show('Radiologia atualizada com sucesso.')
-            }
-
-            closeModal('modalRadiologyBackdrop')
-            RadiologiasModule.renderCards()
-        },
+    try {
+        if (State.modal.mode === 'create') {
+            const criada = await Api.postRadiologia(payload)
+            State.radiologias.push(criada)
+            Toast.show('Radiologia cadastrada com sucesso.')
+        } else {
+            const atualizada = await Api.updateRadiologia(payload.id, payload)
+            const idx = State.radiologias.findIndex(r => r.id === payload.id)
+            if (idx !== -1) State.radiologias[idx] = atualizada
+            Toast.show('Radiologia atualizada com sucesso.')
+        }
+        closeModal('modalRadiologyBackdrop')
+        RadiologiasModule.renderCards()
+    } catch (err) {
+        console.error(err)
+        Toast.show('Erro ao salvar radiologia.', 'error')
+    }
+},
     }
 
     /* ---- MODAL: CLÍNICA ---- */
@@ -1466,37 +1390,40 @@
         },
 
         /** [API] POST /clinicas | PUT /clinicas/:id */
-        save() {
-            const name = document.getElementById('clinicName')?.value?.trim()
-            if (!name) { Toast.show('Informe o nome da clínica.', 'error'); return }
+        async save() {
+    const name = document.getElementById('clinicName')?.value?.trim()
+    if (!name) { Toast.show('Informe o nome da clínica.', 'error'); return }
 
-            const payload = {
-                id: document.getElementById('modalClinicId')?.value || null,
-                name,
-                city: document.getElementById('clinicCity')?.value?.trim() || '',
-                state: document.getElementById('clinicState')?.value || 'RN',
-                phone: document.getElementById('clinicPhone')?.value?.trim() || '',
-                email: document.getElementById('clinicEmail')?.value?.trim() || '',
-                address: document.getElementById('clinicAddress')?.value?.trim() || '',
-                status: document.getElementById('clinicStatus')?.value || 'ativo',
-            }
+    const payload = {
+        id:      document.getElementById('modalClinicId')?.value || null,
+        name,
+        city:    document.getElementById('clinicCity')?.value?.trim() || '',
+        state:   document.getElementById('clinicState')?.value || 'RN',
+        phone:   document.getElementById('clinicPhone')?.value?.trim() || '',
+        email:   document.getElementById('clinicEmail')?.value?.trim() || '',
+        address: document.getElementById('clinicAddress')?.value?.trim() || '',
+        status:  document.getElementById('clinicStatus')?.value || 'ativo',
+    }
 
-            if (State.modal.mode === 'create') {
-                payload.id = Utils.uid('cli')
-                State.clinicas.push(payload)
-                // [API] await api.post('/clinicas', payload)
-                Toast.show('Clínica cadastrada com sucesso.')
-            } else {
-                const idx = State.clinicas.findIndex(c => c.id === payload.id)
-                if (idx !== -1) State.clinicas[idx] = payload
-                // [API] await api.put(`/clinicas/${payload.id}`, payload)
-                Toast.show('Clínica atualizada com sucesso.')
-            }
-
-            closeModal('modalClinicBackdrop')
-            ClinicasMedicosModule.renderClinicsTable()
-            ClinicasMedicosModule.renderDoctorsTable()
-        },
+    try {
+        if (State.modal.mode === 'create') {
+            const criada = await Api.postClinica(payload)
+            State.clinicas.push(criada)
+            Toast.show('Clínica cadastrada com sucesso.')
+        } else {
+            const atualizada = await Api.updateClinica(payload.id, payload)
+            const idx = State.clinicas.findIndex(c => c.id === payload.id)
+            if (idx !== -1) State.clinicas[idx] = atualizada
+            Toast.show('Clínica atualizada com sucesso.')
+        }
+        closeModal('modalClinicBackdrop')
+        ClinicasMedicosModule.renderClinicsTable()
+        ClinicasMedicosModule.renderDoctorsTable()
+    } catch (err) {
+        console.error(err)
+        Toast.show('Erro ao salvar clínica.', 'error')
+    }
+},
     }
 
     /* ---- MODAL: MÉDICO ---- */
@@ -1561,38 +1488,41 @@
         },
 
         /** [API] POST /medicos | PUT /medicos/:id */
-        save() {
-            const name = document.getElementById('doctorName')?.value?.trim()
-            if (!name) { Toast.show('Informe o nome do médico.', 'error'); return }
+        async save() {
+    const name = document.getElementById('doctorName')?.value?.trim()
+    if (!name) { Toast.show('Informe o nome do médico.', 'error'); return }
 
-            const payload = {
-                id: document.getElementById('modalDoctorId')?.value || null,
-                name,
-                specialty: document.getElementById('doctorSpecialty')?.value || '',
-                cro: document.getElementById('doctorCRO')?.value?.trim() || '',
-                phone: document.getElementById('doctorPhone')?.value?.trim() || '',
-                email: document.getElementById('doctorEmail')?.value?.trim() || '',
-                clinicId: document.getElementById('doctorClinic')?.value || '',
-                comissao: parseFloat(document.getElementById('doctorComissao')?.value) || 30,
-                status: document.getElementById('doctorStatus')?.value || 'ativo',
-            }
+    const payload = {
+        id:        document.getElementById('modalDoctorId')?.value || null,
+        name,
+        specialty: document.getElementById('doctorSpecialty')?.value || '',
+        cro:       document.getElementById('doctorCRO')?.value?.trim() || '',
+        phone:     document.getElementById('doctorPhone')?.value?.trim() || '',
+        email:     document.getElementById('doctorEmail')?.value?.trim() || '',
+        clinicId:  document.getElementById('doctorClinic')?.value || '',
+        comissao:  parseFloat(document.getElementById('doctorComissao')?.value) || 30,
+        status:    document.getElementById('doctorStatus')?.value || 'ativo',
+    }
 
-            if (State.modal.mode === 'create') {
-                payload.id = Utils.uid('med')
-                State.medicos.push(payload)
-                // [API] await api.post('/medicos', payload)
-                Toast.show('Médico cadastrado com sucesso.')
-            } else {
-                const idx = State.medicos.findIndex(m => m.id === payload.id)
-                if (idx !== -1) State.medicos[idx] = payload
-                // [API] await api.put(`/medicos/${payload.id}`, payload)
-                Toast.show('Médico atualizado com sucesso.')
-            }
-
-            closeModal('modalDoctorBackdrop')
-            ClinicasMedicosModule.renderDoctorsTable()
-            ClinicasMedicosModule.renderClinicsTable()
-        },
+    try {
+        if (State.modal.mode === 'create') {
+            const criado = await Api.postMedico(payload)
+            State.medicos.push(criado)
+            Toast.show('Médico cadastrado com sucesso.')
+        } else {
+            const atualizado = await Api.updateMedico(payload.id, payload)
+            const idx = State.medicos.findIndex(m => m.id === payload.id)
+            if (idx !== -1) State.medicos[idx] = atualizado
+            Toast.show('Médico atualizado com sucesso.')
+        }
+        closeModal('modalDoctorBackdrop')
+        ClinicasMedicosModule.renderDoctorsTable()
+        ClinicasMedicosModule.renderClinicsTable()
+    } catch (err) {
+        console.error(err)
+        Toast.show('Erro ao salvar médico.', 'error')
+    }
+},
     }
 
     /* ---- MODAL: USUÁRIO ---- */
@@ -1680,43 +1610,42 @@
         },
 
         /** [API] POST /usuarios | PUT /usuarios/:id */
-        save() {
-            const name = document.getElementById('userName')?.value?.trim()
-            const email = document.getElementById('userEmail')?.value?.trim()
-            if (!name) { Toast.show('Informe o nome do usuário.', 'error'); return }
-            if (!email) { Toast.show('Informe o e-mail do usuário.', 'error'); return }
+        async save() {
+    const name  = document.getElementById('userName')?.value?.trim()
+    const email = document.getElementById('userEmail')?.value?.trim()
+    if (!name)  { Toast.show('Informe o nome do usuário.', 'error');  return }
+    if (!email) { Toast.show('Informe o e-mail do usuário.', 'error'); return }
 
-            const payload = {
-                id: document.getElementById('modalUserId')?.value || null,
-                name,
-                email,
-                phone: document.getElementById('userPhone')?.value?.trim() || '',
-                role: document.getElementById('userRole')?.value?.trim() || '',
-                level: document.getElementById('userLevel')?.value || 'recepcao',
-                radiologia: document.getElementById('userRadiology')?.value || 'todas',
-                status: document.getElementById('userStatus')?.value || 'ativo',
-                lastAccess: null,
-            }
+    const payload = {
+        id:        document.getElementById('modalUserId')?.value || null,
+        name,
+        email,
+        phone:     document.getElementById('userPhone')?.value?.trim() || '',
+        role:      document.getElementById('userRole')?.value?.trim() || '',
+        level:     document.getElementById('userLevel')?.value || 'recepcao',
+        radiologia:document.getElementById('userRadiology')?.value || 'todas',
+        status:    document.getElementById('userStatus')?.value || 'ativo',
+    }
 
-            if (State.modal.mode === 'create') {
-                payload.id = Utils.uid('usr')
-                State.usuarios.push(payload)
-                // [API] await api.post('/usuarios', payload)
-                Toast.show('Usuário criado. Um e-mail de boas-vindas foi enviado.')
-            } else {
-                const idx = State.usuarios.findIndex(u => u.id === payload.id)
-                if (idx !== -1) {
-                    payload.lastAccess = State.usuarios[idx].lastAccess
-                    State.usuarios[idx] = payload
-                }
-                // [API] await api.put(`/usuarios/${payload.id}`, payload)
-                Toast.show('Usuário atualizado com sucesso.')
-            }
-
-            closeModal('modalUserBackdrop')
-            UsuariosModule.renderKPIs()
-            UsuariosModule.renderUsersTable()
-        },
+    try {
+        if (State.modal.mode === 'create') {
+            const criado = await Api.postUsuario(payload)
+            State.usuarios.push(criado)
+            Toast.show('Usuário criado. Um e-mail de boas-vindas foi enviado.')
+        } else {
+            const atualizado = await Api.updateUsuario(payload.id, payload)
+            const idx = State.usuarios.findIndex(u => u.id === payload.id)
+            if (idx !== -1) State.usuarios[idx] = { ...atualizado, lastAccess: State.usuarios[idx].lastAccess }
+            Toast.show('Usuário atualizado com sucesso.')
+        }
+        closeModal('modalUserBackdrop')
+        UsuariosModule.renderKPIs()
+        UsuariosModule.renderUsersTable()
+    } catch (err) {
+        console.error(err)
+        Toast.show('Erro ao salvar usuário.', 'error')
+    }
+},
     }
 
     /* ===========================================================

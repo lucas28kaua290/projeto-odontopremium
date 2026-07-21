@@ -6,189 +6,11 @@
 'use strict';
 
 /* =============================================================
-   DADOS MOCK
-============================================================= */
-const PACIENTES = [
-  {
-    id: 'P-0001',
-    nome: 'Juliana Sales de Andrade',
-    cpf: '312.456.789-00',
-    telefone: '(84) 99812-3456',
-    email: 'juliana.andrade@email.com',
-    nascimento: '1990-03-15',
-    endereco: 'Rua das Flores, 142 — Tirol, Natal/RN',
-    status: 'ativo',
-    cadastro: '2022-01-10',
-    observacoes: 'Paciente com histórico de ansiedade durante exames. Prefere agendamentos matutinos.',
-    exames: [
-      { data: '2024-11-20', tipo: 'Tomografia Cone Beam', unidade: 'Unidade Natal Centro', valor: 420.00, status: 'realizado' },
-      { data: '2024-07-05', tipo: 'Panorâmica Digital', unidade: 'Unidade Natal Centro', valor: 120.00, status: 'realizado' },
-      { data: '2023-12-18', tipo: 'Periapical', unidade: 'Unidade Mossoró', valor: 60.00, status: 'realizado' },
-      { data: '2023-05-22', tipo: 'Panorâmica Digital', unidade: 'Unidade Natal Centro', valor: 120.00, status: 'realizado' },
-    ],
-    agendamentos: [
-      { data: '2025-02-14', hora: '09:00', unidade: 'Unidade Natal Centro', tipo: 'Tomografia Cone Beam', status: 'confirmado' },
-      { data: '2024-11-20', hora: '10:30', unidade: 'Unidade Natal Centro', tipo: 'Tomografia Cone Beam', status: 'realizado' },
-    ],
-    notas: [
-      { texto: 'Paciente relatou alergia a látex. Verificar luvas e materiais antes do atendimento.', data: '2024-01-15' },
-    ],
-  },
-  {
-    id: 'P-0002',
-    nome: 'Carlos Eduardo Figueiredo',
-    cpf: '089.234.567-11',
-    telefone: '(84) 98723-0011',
-    email: 'carlosf@gmail.com',
-    nascimento: '1985-07-22',
-    endereco: 'Av. Prudente de Morais, 800 — Lagoa Nova, Natal/RN',
-    status: 'ativo',
-    cadastro: '2021-06-03',
-    observacoes: '',
-    exames: [
-      { data: '2024-10-10', tipo: 'Panorâmica Digital', unidade: 'Unidade Natal Norte', valor: 120.00, status: 'realizado' },
-      { data: '2024-03-14', tipo: 'Periapical', unidade: 'Unidade Natal Norte', valor: 60.00, status: 'realizado' },
-      { data: '2023-08-01', tipo: 'Cefalométrica', unidade: 'Unidade Natal Norte', valor: 90.00, status: 'realizado' },
-    ],
-    agendamentos: [
-      { data: '2025-03-05', hora: '14:00', unidade: 'Unidade Natal Norte', tipo: 'Panorâmica Digital', status: 'pendente' },
-    ],
-    notas: [],
-  },
-  {
-    id: 'P-0003',
-    nome: 'Fernanda Lopes Moura',
-    cpf: '456.789.012-33',
-    telefone: '(84) 99600-7788',
-    email: 'fernanda.moura@hotmail.com',
-    nascimento: '2001-11-30',
-    endereco: 'Rua Seridó, 55 — Petrópolis, Natal/RN',
-    status: 'novo',
-    cadastro: '2025-01-02',
-    observacoes: 'Primeira consulta. Encaminhada pelo Dr. Renato Alves.',
-    exames: [
-      { data: '2025-01-10', tipo: 'Tomografia Cone Beam', unidade: 'Unidade Natal Centro', valor: 420.00, status: 'realizado' },
-    ],
-    agendamentos: [
-      { data: '2025-01-10', hora: '08:30', unidade: 'Unidade Natal Centro', tipo: 'Tomografia Cone Beam', status: 'realizado' },
-    ],
-    notas: [],
-  },
-  {
-    id: 'P-0004',
-    nome: 'Roberto Nunes Cavalcante',
-    cpf: '222.333.444-55',
-    telefone: '(84) 98811-2233',
-    email: 'roberto.nunes@empresa.com',
-    nascimento: '1972-04-08',
-    endereco: 'Rua Açu, 300 — Mossoró/RN',
-    status: 'inativo',
-    cadastro: '2020-09-15',
-    observacoes: 'Paciente não retornou desde 2022.',
-    exames: [
-      { data: '2022-06-14', tipo: 'Panorâmica Digital', unidade: 'Unidade Mossoró', valor: 120.00, status: 'realizado' },
-      { data: '2021-11-20', tipo: 'Periapical', unidade: 'Unidade Mossoró', valor: 60.00, status: 'realizado' },
-    ],
-    agendamentos: [
-      { data: '2022-06-14', hora: '15:00', unidade: 'Unidade Mossoró', tipo: 'Panorâmica Digital', status: 'realizado' },
-    ],
-    notas: [
-      { texto: 'Tentativa de contato em outubro/2023 sem retorno.', data: '2023-10-05' },
-    ],
-  },
-  {
-    id: 'P-0005',
-    nome: 'Beatriz Teixeira Sampaio',
-    cpf: '599.001.234-77',
-    telefone: '(84) 99900-5544',
-    email: 'beatriz.sampaio@bol.com.br',
-    nascimento: '1995-09-03',
-    endereco: 'Rua João XXIII, 10 — Centro, Caicó/RN',
-    status: 'ativo',
-    cadastro: '2023-03-22',
-    observacoes: '',
-    exames: [
-      { data: '2024-12-01', tipo: 'Cefalométrica', unidade: 'Unidade Natal Centro', valor: 90.00, status: 'realizado' },
-      { data: '2024-05-19', tipo: 'Panorâmica Digital', unidade: 'Unidade Natal Centro', valor: 120.00, status: 'realizado' },
-      { data: '2023-09-10', tipo: 'Tomografia Cone Beam', unidade: 'Unidade Natal Centro', valor: 420.00, status: 'realizado' },
-    ],
-    agendamentos: [
-      { data: '2025-02-20', hora: '11:00', unidade: 'Unidade Natal Centro', tipo: 'Panorâmica Digital', status: 'confirmado' },
-    ],
-    notas: [],
-  },
-  {
-    id: 'P-0006',
-    nome: 'Thiago Almeida Brandão',
-    cpf: '711.822.933-44',
-    telefone: '(84) 98755-3322',
-    email: 'thiago.brandao@outlook.com',
-    nascimento: '1988-12-17',
-    endereco: 'Av. Alexandrino de Alencar, 1200 — Tirol, Natal/RN',
-    status: 'ativo',
-    cadastro: '2022-07-18',
-    observacoes: 'Paciente hipertenso. Comunicar equipe antes do atendimento.',
-    exames: [
-      { data: '2024-09-05', tipo: 'Tomografia Cone Beam', unidade: 'Unidade Natal Norte', valor: 420.00, status: 'realizado' },
-      { data: '2024-01-22', tipo: 'Panorâmica Digital', unidade: 'Unidade Natal Norte', valor: 120.00, status: 'realizado' },
-      { data: '2023-04-11', tipo: 'Periapical', unidade: 'Unidade Natal Norte', valor: 60.00, status: 'realizado' },
-      { data: '2022-09-30', tipo: 'Cefalométrica', unidade: 'Unidade Natal Norte', valor: 90.00, status: 'realizado' },
-    ],
-    agendamentos: [],
-    notas: [
-      { texto: 'Pressão alta registrada na última visita. Orientado a trazer receita médica.', data: '2024-09-05' },
-    ],
-  },
-  {
-    id: 'P-0007',
-    nome: 'Patrícia Sousa Lima',
-    cpf: '100.200.300-40',
-    telefone: '(84) 99120-6677',
-    email: 'patricia.lima@gmail.com',
-    nascimento: '2003-06-25',
-    endereco: 'Rua Bela Vista, 77 — Nova Parnamirim, Parnamirim/RN',
-    status: 'novo',
-    cadastro: '2025-01-28',
-    observacoes: '',
-    exames: [
-      { data: '2025-01-30', tipo: 'Panorâmica Digital', unidade: 'Unidade Natal Sul', valor: 120.00, status: 'realizado' },
-    ],
-    agendamentos: [
-      { data: '2025-01-30', hora: '09:30', unidade: 'Unidade Natal Sul', tipo: 'Panorâmica Digital', status: 'realizado' },
-    ],
-    notas: [],
-  },
-  {
-    id: 'P-0008',
-    nome: 'Marcos Vinícius Rocha',
-    cpf: '850.960.070-88',
-    telefone: '(84) 98644-9900',
-    email: 'mvinirocha@terra.com.br',
-    nascimento: '1979-02-14',
-    endereco: 'Rua Dr. Barata, 5 — Centro, Mossoró/RN',
-    status: 'ativo',
-    cadastro: '2020-11-05',
-    observacoes: 'Prefere atendimento no período da tarde.',
-    exames: [
-      { data: '2024-08-22', tipo: 'Tomografia Cone Beam', unidade: 'Unidade Mossoró', valor: 420.00, status: 'realizado' },
-      { data: '2023-11-14', tipo: 'Panorâmica Digital', unidade: 'Unidade Mossoró', valor: 120.00, status: 'realizado' },
-      { data: '2022-05-03', tipo: 'Cefalométrica', unidade: 'Unidade Mossoró', valor: 90.00, status: 'realizado' },
-      { data: '2021-03-19', tipo: 'Periapical', unidade: 'Unidade Mossoró', valor: 60.00, status: 'realizado' },
-      { data: '2020-12-08', tipo: 'Panorâmica Digital', unidade: 'Unidade Mossoró', valor: 120.00, status: 'realizado' },
-    ],
-    agendamentos: [
-      { data: '2025-03-10', hora: '16:00', unidade: 'Unidade Mossoró', tipo: 'Tomografia Cone Beam', status: 'confirmado' },
-    ],
-    notas: [],
-  },
-];
-
-/* =============================================================
    ESTADO DA APLICAÇÃO
 ============================================================= */
 const state = {
-  pacientes: [...PACIENTES],
-  filtrados: [...PACIENTES],
+  pacientes: [],
+  filtrados: [],
   paginaAtual: 1,
   porPagina: 8,
   buscaTexto: '',
@@ -197,6 +19,7 @@ const state = {
   pacienteAtivo: null,
   editandoId: null,
   historicoAba: 'exames',
+  carregando: false,
 };
 
 /* =============================================================
@@ -459,16 +282,38 @@ function atualizarRodapePaginacao(inicio, fim) {
 /* =============================================================
    PERFIL DO PACIENTE
 ============================================================= */
-function abrirPerfil(id) {
-  const p = state.pacientes.find(x => x.id === id);
-  if (!p) return;
-  state.pacienteAtivo = p;
-  state.historicoAba = 'exames';
-
+async function abrirPerfil(id) {
   viewLista.hidden = true;
   viewLista.style.display = 'none';
   viewPerfil.hidden = false;
   viewPerfil.style.display = 'flex';
+  viewPerfil.setAttribute('aria-busy', 'true');
+
+  let p, kpis, exames, agendamentos, notas;
+
+  try {
+    [p, kpis, exames, agendamentos, notas] = await Promise.all([
+      Api.getPaciente(id),
+      Api.getPacienteKPIs(id),
+      Api.getPacienteExames(id),
+      Api.getPacienteAgendamentos(id),
+      Api.getPacienteNotas(id),
+    ]);
+  } catch (err) {
+    mostrarToast('Erro ao carregar dados do paciente.');
+    console.error(err);
+    viewPerfil.hidden = true;
+    viewPerfil.style.display = 'none';
+    viewLista.hidden = false;
+    viewLista.style.display = 'flex';
+    return;
+  } finally {
+    viewPerfil.removeAttribute('aria-busy');
+  }
+
+  // Monta objeto local para as funções de render (estrutura idêntica ao mock)
+  state.pacienteAtivo = { ...p, exames, agendamentos, notas };
+  state.historicoAba = 'exames';
 
   // Avatar e nome
   $('perfil-avatar').textContent = iniciais(p.nome);
@@ -487,17 +332,17 @@ function abrirPerfil(id) {
     <span>Cód. ${p.id}</span>
   `;
 
-  // KPIs
-  const totalGasto = p.exames.reduce((s, e) => s + e.valor, 0);
-  const unidadeFreq = unidadeMaisFrequente(p.exames);
-  const contUnidade = p.exames.filter(e => e.unidade === unidadeFreq).length;
-
-  $('kpi-visitas').textContent = p.exames.length;
-  $('kpi-total-gasto').textContent = formatarValor(totalGasto);
+  // KPIs — usa dados vindos de getPacienteKPIs quando disponíveis,
+  // com fallback calculado localmente a partir dos exames
+  $('kpi-visitas').textContent = kpis.totalExames ?? exames.length;
+  $('kpi-total-gasto').textContent = formatarValor(kpis.totalGasto ?? exames.reduce((s, e) => s + e.valor, 0));
   $('kpi-paciente-desde').textContent = formatarData(p.cadastro);
   $('kpi-tempo-relativo').textContent = tempoRelativo(p.cadastro);
-  $('kpi-radiologia-frequente').textContent = unidadeFreq;
-  $('kpi-radiologia-visitas').textContent = `${contUnidade} visita${contUnidade !== 1 ? 's' : ''}`;
+  $('kpi-radiologia-frequente').textContent = kpis.unidadeFrequente ?? unidadeMaisFrequente(exames);
+  $('kpi-radiologia-visitas').textContent = (() => {
+    const n = kpis.visitasUnidadeFrequente ?? exames.filter(e => e.unidade === (kpis.unidadeFrequente ?? unidadeMaisFrequente(exames))).length;
+    return `${n} visita${n !== 1 ? 's' : ''}`;
+  })();
 
   // Contato Rápido
   const contatoEl = $('perfil-contato-rapido');
@@ -543,19 +388,11 @@ function abrirPerfil(id) {
     ['Status', statusLabel(p.status)],
   ];
   infoBasica.innerHTML = campos.map(([label, valor]) => `
-    <div>
-      <dt>${label}</dt>
-      <dd>${valor}</dd>
-    </div>
+    <div><dt>${label}</dt><dd>${valor}</dd></div>
   `).join('');
 
-  // Notas
-  renderNotas(p);
-
-  // Histórico: exames ativos por padrão
+  renderNotas(state.pacienteAtivo);
   ativarAbaHistorico('exames');
-
-  // Scroll topo
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -634,22 +471,31 @@ function ativarAbaHistorico(aba) {
 /* =============================================================
    MODAL (NOVO / EDITAR)
 ============================================================= */
-function abrirModal(id = null) {
+async function abrirModal(id = null) {
   state.editandoId = id;
   modalTitulo.textContent = id ? 'Editar Paciente' : 'Novo Paciente';
   formPaciente.reset();
 
   if (id) {
-    const p = state.pacientes.find(x => x.id === id);
-    if (p) {
-      $('f-nome').value = p.nome;
-      $('f-cpf').value = p.cpf;
-      $('f-telefone').value = p.telefone;
-      $('f-nascimento').value = p.nascimento || '';
-      $('f-email').value = p.email || '';
-      $('f-endereco').value = p.endereco || '';
-      $('f-observacoes').value = p.observacoes || '';
+    // Prioriza o cache local; faz fallback para a API se não estiver carregado
+    let p = state.pacientes.find(x => x.id === id);
+    if (!p) {
+      try {
+        p = await Api.getPaciente(id);
+      } catch (err) {
+        mostrarToast('Erro ao carregar dados do paciente.');
+        console.error(err);
+        return;
+      }
     }
+
+    $('f-nome').value = p.nome;
+    $('f-cpf').value = p.cpf;
+    $('f-telefone').value = p.telefone;
+    $('f-nascimento').value = p.nascimento || '';
+    $('f-email').value = p.email || '';
+    $('f-endereco').value = p.endereco || '';
+    $('f-observacoes').value = p.observacoes || '';
   }
 
   modalPaciente.hidden = false;
@@ -666,40 +512,38 @@ function fecharModal() {
   formPaciente.reset();
 }
 
-function salvarPaciente(e) {
+async function salvarPaciente(e) {
   e.preventDefault();
 
-  const nome = $('f-nome').value.trim();
-  const cpf = $('f-cpf').value.trim();
-  const telefone = $('f-telefone').value.trim();
-  const nascimento = $('f-nascimento').value;
-  const email = $('f-email').value.trim();
-  const endereco = $('f-endereco').value.trim();
-  const observacoes = $('f-observacoes').value.trim();
+  const dados = {
+    nome:        $('f-nome').value.trim(),
+    cpf:         $('f-cpf').value.trim(),
+    telefone:    $('f-telefone').value.trim(),
+    nascimento:  $('f-nascimento').value,
+    email:       $('f-email').value.trim(),
+    endereco:    $('f-endereco').value.trim(),
+    observacoes: $('f-observacoes').value.trim(),
+  };
 
-  if (state.editandoId) {
-    const idx = state.pacientes.findIndex(x => x.id === state.editandoId);
-    if (idx !== -1) {
-      state.pacientes[idx] = { ...state.pacientes[idx], nome, cpf, telefone, nascimento, email, endereco, observacoes };
+  try {
+    if (state.editandoId) {
+      const atualizado = await Api.updatePaciente(state.editandoId, dados);
+      // Atualiza cache local
+      const idx = state.pacientes.findIndex(x => x.id === state.editandoId);
+      if (idx !== -1) state.pacientes[idx] = { ...state.pacientes[idx], ...atualizado };
       if (state.pacienteAtivo?.id === state.editandoId) {
-        state.pacienteAtivo = state.pacientes[idx];
-        abrirPerfil(state.editandoId);
+        await abrirPerfil(state.editandoId);
       }
+      mostrarToast('Paciente atualizado com sucesso.');
+    } else {
+      const novoPaciente = await Api.postPaciente(dados);
+      state.pacientes.unshift(novoPaciente);
+      mostrarToast('Paciente cadastrado com sucesso.');
     }
-    mostrarToast('Paciente atualizado com sucesso.');
-  } else {
-    const hoje = new Date().toISOString().split('T')[0];
-    const novoPaciente = {
-      id: gerarId(),
-      nome, cpf, telefone, nascimento, email, endereco, observacoes,
-      status: 'novo',
-      cadastro: hoje,
-      exames: [],
-      agendamentos: [],
-      notas: [],
-    };
-    state.pacientes.unshift(novoPaciente);
-    mostrarToast('Paciente cadastrado com sucesso.');
+  } catch (err) {
+    mostrarToast('Erro ao salvar paciente. Tente novamente.');
+    console.error(err);
+    return; // mantém o modal aberto para o usuário tentar novamente
   }
 
   fecharModal();
@@ -839,16 +683,20 @@ $('historico-toggle').addEventListener('click', e => {
 });
 
 // Adicionar nota
-$('btn-add-nota').addEventListener('click', () => {
+$('btn-add-nota').addEventListener('click', async () => {
   if (!state.pacienteAtivo) return;
   const texto = prompt('Nova observação:');
   if (!texto?.trim()) return;
-  const hoje = new Date().toISOString().split('T')[0];
-  state.pacienteAtivo.notas.unshift({ texto: texto.trim(), data: hoje });
-  const idx = state.pacientes.findIndex(x => x.id === state.pacienteAtivo.id);
-  if (idx !== -1) state.pacientes[idx].notas = state.pacienteAtivo.notas;
-  renderNotas(state.pacienteAtivo);
-  mostrarToast('Nota adicionada.');
+
+  try {
+    const novaNota = await Api.postPacienteNota(state.pacienteAtivo.id, { texto: texto.trim() });
+    state.pacienteAtivo.notas.unshift(novaNota);
+    renderNotas(state.pacienteAtivo);
+    mostrarToast('Nota adicionada.');
+  } catch (err) {
+    mostrarToast('Erro ao salvar nota. Tente novamente.');
+    console.error(err);
+  }
 });
 
 // Exportar PDF (placeholder)
@@ -859,8 +707,7 @@ $('btn-exportar-pdf').addEventListener('click', () => {
 /* =============================================================
    INICIALIZAÇÃO
 ============================================================= */
-function init() {
-  // Garante estados iniciais corretos independente do HTML
+async function init() {
   modalPaciente.style.display = 'none';
   modalPaciente.hidden = true;
   toast.style.display = 'none';
@@ -869,6 +716,22 @@ function init() {
   viewPerfil.style.display = 'none';
   viewLista.hidden = false;
   viewLista.style.display = 'flex';
+
+  tabelaBody.innerHTML = `
+    <tr>
+      <td colspan="7" style="text-align:center;padding:var(--space-6);color:var(--color-text-subtle);font-size:var(--fs-sm);">
+        Carregando pacientes…
+      </td>
+    </tr>`;
+
+  try {
+    state.pacientes = await Api.getPacientes();
+  } catch (err) {
+    mostrarToast('Erro ao carregar pacientes.');
+    console.error(err);
+    state.pacientes = [];
+  }
+
   aplicarFiltros();
 }
 
