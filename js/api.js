@@ -39,7 +39,7 @@ const Api = (() => {
        =========================================================================== */
 
     /** URL base da API. Trocar pela URL real de produção / staging conforme o ambiente. */
-    const BASE_URL = 'https://api.iord.com.br/v1';
+    const BASE_URL = 'https://unsanguineously-uninductive-kamdyn.ngrok-free.dev/v1';
 
     /**
      * Retorna o token de autenticação armazenado na sessão.
@@ -47,7 +47,24 @@ const Api = (() => {
      * (localStorage, cookie HttpOnly via servidor, etc.).
      */
     function getToken() {
-        return sessionStorage.getItem('iord_token') || '';
+        const storages = [sessionStorage, localStorage];
+
+        for (const storage of storages) {
+            try {
+                const raw = storage.getItem("iord_auth");
+                if (!raw) continue;
+
+                const session = JSON.parse(raw);
+
+                if (session?.token) {
+                    return session.token;
+                }
+            } catch (e) {
+                // ignora
+            }
+        }
+
+        return "";
     }
 
     /**

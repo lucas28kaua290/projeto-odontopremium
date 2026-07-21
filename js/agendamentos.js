@@ -2830,21 +2830,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   try {
     // 1. Carrega radiologias (necessário para pills de filtro)
-    const radiologias = await Api.getRadiologias();
-    AppCache.setRadiologias([
-      { id: 'all', nome: 'Todas as Radiologias' },
-      ...radiologias,
-    ]);
+    const res = await Api.getRadiologias();
+    AppCache.setRadiologias(res.data);
 
     // 2. Carrega agendamentos do período inicial (hoje por padrão)
     const state = AppState.getState();
     const { start, end } = DateUtils.getPeriodRange(state);
-    const agendamentos = await Api.getAgendamentos({
+    const resAgend = await Api.getAgendamentos({
       radiologiaId: state.radiologiaSelecionada,
       dataInicio: AppCache.toISODate(start),
       dataFim: AppCache.toISODate(end),
     });
-    AppCache.setAgendamentos(agendamentos);
+    AppCache.setAgendamentos(resAgend.data || []);
 
   } catch (err) {
     console.error('[Init] Erro ao carregar dados iniciais:', err);
