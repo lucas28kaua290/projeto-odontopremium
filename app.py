@@ -1050,11 +1050,11 @@ def listar_agendamentos():
             m.nome             AS medico,
             a.tipo_exame_id    AS tipoExameId,
             te.label           AS tipoExame,
-            DATE_FORMAT(a.data_agendamento, '%%Y-%%m-%%d') AS data,
-            TIME_FORMAT(a.hora_agendamento, '%%H:%%i')     AS horarioInicio,
+            DATE_FORMAT(a.data_agendamento, '%Y-%m-%d') AS data,
+            TIME_FORMAT(a.hora_agendamento, '%H:%i')     AS horarioInicio,
             TIME_FORMAT(
                 ADDTIME(a.hora_agendamento, SEC_TO_TIME(te.duracao_min * 60)),
-                '%%H:%%i'
+                '%H:%i'
             )                                              AS horarioFim,
             te.duracao_min     AS duracaoMin,
             te.valor_base      AS valor,
