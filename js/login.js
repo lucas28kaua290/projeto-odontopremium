@@ -24,7 +24,7 @@
     =========================================================== */
     const CONFIG = {
         // [API] Trocar pela URL real do backend
-        apiBase: 'https://unsanguineously-uninductive-kamdyn.ngrok-free.dev/v1',
+        apiBase: 'https://iordfinanceiro.com.br/v1',
 
         // Rota padrão após login
         defaultRedirect: 'dashboard.html',
