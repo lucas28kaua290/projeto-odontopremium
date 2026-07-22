@@ -2132,7 +2132,7 @@ const NewAppointmentModal = (() => {
     try {
       const clinicas = await Api.getClinicasPorRadiologia(radId);
       selCli.innerHTML = '<option value="">Selecione a clínica...</option>';
-      clinicas.forEach(c => {
+      clinicas.data.forEach(c => {
         const opt = document.createElement('option');
         opt.value = c.id ?? c.nome; opt.textContent = c.nome;
         selCli.appendChild(opt);
