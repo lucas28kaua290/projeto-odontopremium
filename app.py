@@ -1002,6 +1002,91 @@ def medicos_clinicas_disponiveis():
 # 9. PACIENTES
 # -----------------------------------------------------------------------------
 
+@app.route("/v1/agendamentos", methods=["GET"])
+@require_auth
+def listar_agendamentos():
+    """[API] GET /agendamentos — lista com filtros por radiologia, data e status."""
+    radiologia_id = request.args.get("radiologiaId")
+    data_inicio   = request.args.get("dataInicio")
+    data_fim      = request.args.get("dataFim")
+    status        = request.args.get("status")
+    busca         = request.args.get("busca", "")
+
+    sql = """
+        SELECT
+            a.id,
+            a.paciente_id      AS pacienteId,
+            p.nome             AS paciente,
+            p.telefone         AS pacienteTelefone,
+            TIMESTAMPDIFF(YEAR, p.nascimento, CURDATE()) AS pacienteIdade,
+            a.radiologia_id    AS radiologiaId,
+            r.nome             AS radiologiaNome,
+            a.clinica_id       AS clinicaId,
+            c.nome             AS clinica,
+            a.medico_id        AS medicoId,
+            m.nome             AS medico,
+            a.tipo_exame_id    AS tipoExameId,
+            te.label           AS tipoExame,
+            DATE_FORMAT(a.data_agendamento, '%%Y-%%m-%%d') AS data,
+            TIME_FORMAT(a.hora_agendamento, '%%H:%%i')     AS horarioInicio,
+            TIME_FORMAT(
+                ADDTIME(a.hora_agendamento, SEC_TO_TIME(te.duracao_min * 60)),
+                '%%H:%%i'
+            )                                              AS horarioFim,
+            te.duracao_min     AS duracaoMin,
+            te.valor_base      AS valor,
+            a.status,
+            a.observacoes,
+            a.criado_em        AS criadoEm
+        FROM agendamentos a
+        JOIN pacientes   p  ON p.id  = a.paciente_id
+        JOIN radiologias r  ON r.id  = a.radiologia_id
+        LEFT JOIN clinicas  c  ON c.id  = a.clinica_id
+        LEFT JOIN medicos   m  ON m.id  = a.medico_id
+        JOIN tipos_exame te  ON te.id = a.tipo_exame_id
+        WHERE 1=1
+    """
+    params = []
+
+    if radiologia_id and radiologia_id != "all":
+        sql += " AND a.radiologia_id = %s"
+        params.append(radiologia_id)
+
+    if data_inicio:
+        sql += " AND a.data_agendamento >= %s"
+        params.append(data_inicio)
+
+    if data_fim:
+        sql += " AND a.data_agendamento <= %s"
+        params.append(data_fim)
+
+    if status and status != "all":
+        sql += " AND a.status = %s"
+        params.append(status)
+
+    if busca:
+        like = f"%{busca}%"
+        sql += " AND (p.nome LIKE %s OR te.label LIKE %s OR m.nome LIKE %s)"
+        params += [like, like, like]
+
+    sql += " ORDER BY a.data_agendamento, a.hora_agendamento"
+
+    rows = query(sql, params)
+
+    result = []
+    for row in rows:
+        item = {}
+        for k, v in row.items():
+            if isinstance(v, Decimal):
+                item[k] = float(v)
+            elif isinstance(v, (datetime.date, datetime.datetime)):
+                item[k] = v.isoformat()
+            else:
+                item[k] = v
+        result.append(item)
+
+    return ok(result)
+
 def _gerar_id_paciente():
     """Gera ID sequencial P-NNNN."""
     row = query("SELECT id FROM pacientes ORDER BY criado_em DESC LIMIT 1", fetch="one")
