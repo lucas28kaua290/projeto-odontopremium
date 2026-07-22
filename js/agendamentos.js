@@ -2166,7 +2166,7 @@ const NewAppointmentModal = (() => {
     try {
       const medicos = await Api.getMedicos({ clinicaId });
       selMed.innerHTML = '<option value="">Selecione o médico...</option>';
-      medicos.forEach(m => {
+      medicos.data.forEach(m => {
         const opt = document.createElement('option');
         opt.value = m.id ?? m.nome; opt.textContent = m.nome;
         selMed.appendChild(opt);
