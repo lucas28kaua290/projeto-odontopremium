@@ -1119,6 +1119,104 @@ def _gerar_id_paciente():
     num = int(last_id.split("-")[1]) + 1
     return f"P-{num:04d}"
 
+@app.route("/v1/agendamentos", methods=["POST"])
+@require_auth
+def criar_agendamento():
+    """[API] POST /agendamentos"""
+    data = request.get_json(silent=True) or {}
+
+    # Busca ou cria paciente pelo nome/telefone
+    paciente_id = data.get("pacienteId")
+
+    # Se não veio pacienteId, cria um paciente básico
+    if not paciente_id:
+        nome     = data.get("paciente", "").strip()
+        telefone = data.get("pacienteTelefone", "").strip()
+        cpf      = data.get("pacienteCpf", "").strip()
+
+        if not nome:
+            return err("Nome do paciente é obrigatório.", 400)
+
+        # Verifica se já existe pelo CPF
+        if cpf:
+            cpf_limpo = re.sub(r"\D", "", cpf)
+            cpf_fmt   = f"{cpf_limpo[:3]}.{cpf_limpo[3:6]}.{cpf_limpo[6:9]}-{cpf_limpo[9:]}" if len(cpf_limpo) == 11 else cpf
+            existing  = query("SELECT id FROM pacientes WHERE cpf = %s", (cpf_fmt,), fetch="one")
+            if existing:
+                paciente_id = existing["id"]
+
+        if not paciente_id:
+            paciente_id = _gerar_id_paciente()
+            query(
+                "INSERT INTO pacientes (id, nome, cpf, telefone) VALUES (%s,%s,%s,%s)",
+                (paciente_id, nome, cpf or None, telefone or None),
+                fetch="none"
+            )
+
+    # Busca tipo de exame pelo label
+    tipo_exame_id = data.get("tipoExameId")
+    if not tipo_exame_id:
+        tipo_label = data.get("tipoExame", "")
+        te = query("SELECT id FROM tipos_exame WHERE label = %s", (tipo_label,), fetch="one")
+        if not te:
+            return err(f"Tipo de exame '{tipo_label}' não encontrado.", 400)
+        tipo_exame_id = te["id"]
+
+    # Busca médico pelo nome se veio nome em vez de ID
+    medico_id = data.get("medicoId")
+    if not medico_id and data.get("medico"):
+        med = query("SELECT id FROM medicos WHERE nome = %s", (data["medico"],), fetch="one")
+        if med:
+            medico_id = med["id"]
+
+    # Busca clínica pelo nome se veio nome em vez de ID
+    clinica_id = data.get("clinicaId")
+    if not clinica_id and data.get("clinica"):
+        cli = query("SELECT id FROM clinicas WHERE nome = %s", (data["clinica"],), fetch="one")
+        if cli:
+            clinica_id = cli["id"]
+
+    missing = []
+    if not data.get("radiologiaId"): missing.append("radiologiaId")
+    if not data.get("data"):         missing.append("data")
+    if not data.get("horarioInicio"): missing.append("horarioInicio")
+    if missing:
+        return err("Campos obrigatórios ausentes.", 400, missing)
+
+    new_id = insert(
+        "INSERT INTO agendamentos (paciente_id, radiologia_id, clinica_id, medico_id, "
+        "tipo_exame_id, data_agendamento, hora_agendamento, status, observacoes) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        (paciente_id, data["radiologiaId"], clinica_id, medico_id,
+         tipo_exame_id, data["data"], data["horarioInicio"],
+         data.get("status", "agendado"), data.get("observacoes"))
+    )
+
+    return created({"id": new_id}, "Agendamento criado com sucesso.")
+
+
+@app.route("/v1/agendamentos/<int:agendamento_id>", methods=["PATCH"])
+@require_auth
+def atualizar_agendamento(agendamento_id):
+    """[API] PATCH /agendamentos/:id"""
+    data   = request.get_json(silent=True) or {}
+    existe = query("SELECT id FROM agendamentos WHERE id = %s", (agendamento_id,), fetch="one")
+    if not existe:
+        return not_found("Agendamento não encontrado.")
+
+    campos = {"status": "status", "observacoes": "observacoes"}
+    sets, params = [], []
+    for chave, coluna in campos.items():
+        if chave in data:
+            sets.append(f"{coluna} = %s")
+            params.append(data[chave])
+
+    if not sets:
+        return err("Nenhum campo para atualizar.", 400)
+
+    params.append(agendamento_id)
+    query(f"UPDATE agendamentos SET {', '.join(sets)} WHERE id = %s", params, fetch="none")
+    return ok({}, "Agendamento atualizado com sucesso.")
 
 @app.route("/v1/pacientes", methods=["GET"])
 @require_auth
