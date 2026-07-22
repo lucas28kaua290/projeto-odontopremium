@@ -843,10 +843,42 @@ const AppointmentModal = (() => {
     closeBtn.addEventListener('click', close);
     overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !overlay.hidden) close(); });
-    statusSelect.addEventListener('change', (e) => setStatus(e.target.value));
+    statusSelect.addEventListener('change', async (e) => {
+      const newStatus = e.target.value;
+      if (!currentAppointment) return;
+      currentAppointment.status = newStatus;
+      fill(currentAppointment);
+      notifyStatusChange(currentAppointment);
+      try {
+        await Api.updateAgendamento(currentAppointment.id, { status: newStatus });
+      } catch (err) {
+        console.error('Erro ao salvar status:', err);
+        showToast('Erro ao salvar status. Tente novamente.', 'error');
+      }
+    });
 
-    document.getElementById('modalBtnDone').addEventListener('click', () => setStatus('realizado'));
-    document.getElementById('modalBtnCancel').addEventListener('click', () => setStatus('cancelado'));
+    document.getElementById('modalBtnDone').addEventListener('click', async () => {
+      if (!currentAppointment) return;
+      currentAppointment.status = 'realizado';
+      fill(currentAppointment);
+      notifyStatusChange(currentAppointment);
+      try {
+        await Api.updateAgendamento(currentAppointment.id, { status: 'realizado' });
+      } catch (err) {
+        showToast('Erro ao salvar status. Tente novamente.', 'error');
+      }
+    });
+    document.getElementById('modalBtnCancel').addEventListener('click', async () => {
+      if (!currentAppointment) return;
+      currentAppointment.status = 'cancelado';
+      fill(currentAppointment);
+      notifyStatusChange(currentAppointment);
+      try {
+        await Api.updateAgendamento(currentAppointment.id, { status: 'cancelado' });
+      } catch (err) {
+        showToast('Erro ao salvar status. Tente novamente.', 'error');
+      }
+    });
     document.getElementById('modalBtnPrint').addEventListener('click', () => window.print());
     document.getElementById('modalBtnEdit').addEventListener('click', () => {
       if (!currentAppointment) return;
