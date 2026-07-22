@@ -28,21 +28,21 @@
 ================================================================= */
 const AppCache = (() => {
   let _radiologias = [];
-  let _agendamentos = [];     // array único; filtrado sob demanda
+  let _agendamentos = [];
+  let _tiposExame = [];
   let _statusConfig = {
-    agendado: { label: 'Agendado', kanbanColumn: 'agendado' },
-    confirmado: { label: 'Confirmado', kanbanColumn: 'confirmado' },
+    agendado:  { label: 'Agendado',  kanbanColumn: 'agendado'  },
+    confirmado:{ label: 'Confirmado',kanbanColumn: 'confirmado'},
     realizado: { label: 'Realizado', kanbanColumn: 'realizado' },
     cancelado: { label: 'Cancelado', kanbanColumn: 'cancelado' },
   };
   let _kanbanColumns = [
-    { id: 'agendado', label: 'Agendado' },
+    { id: 'agendado',   label: 'Agendado'   },
     { id: 'confirmado', label: 'Confirmado' },
-    { id: 'realizado', label: 'Realizado' },
-    { id: 'cancelado', label: 'Cancelado' },
+    { id: 'realizado',  label: 'Realizado'  },
+    { id: 'cancelado',  label: 'Cancelado'  },
   ];
 
-  // helpers de data (antes em MockData, sem dependência de API)
   function pad(n) { return String(n).padStart(2, '0'); }
   function toISODate(d) {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -50,8 +50,10 @@ const AppCache = (() => {
 
   function setRadiologias(list) { _radiologias = list; }
   function setAgendamentos(list) { _agendamentos = list; }
+  function setTiposExame(list) { _tiposExame = list; }
 
   function getRadiologias() { return _radiologias; }
+  function getTiposExame() { return _tiposExame; }
 
   function nomeRadiologiaPorId(id) {
     return (_radiologias.find(r => r.id === id) || {}).nome || id;
@@ -67,14 +69,16 @@ const AppCache = (() => {
   }
 
   function updateAgendamento(id, patch) {
-    const idx = _agendamentos.findIndex(a => a.id === id);
+    // Converte id para o mesmo tipo para comparação segura
+    const sid = String(id);
+    const idx = _agendamentos.findIndex(a => String(a.id) === sid);
     if (idx !== -1) Object.assign(_agendamentos[idx], patch);
   }
 
   return {
     pad, toISODate,
-    setRadiologias, setAgendamentos,
-    getRadiologias, nomeRadiologiaPorId,
+    setRadiologias, setAgendamentos, setTiposExame,
+    getRadiologias, getTiposExame, nomeRadiologiaPorId,
     statusConfig: _statusConfig,
     kanbanColumns: _kanbanColumns,
     getAgendamentos,
@@ -256,7 +260,7 @@ const AgendaData = (() => {
       if (!DateUtils.isWithinRange(a.data, start, end)) return false;
       if (state.status !== 'all' && a.status !== state.status) return false;
       if (buscaLower) {
-        const alvo = `${a.paciente} ${a.tipoExame} ${a.medico}`.toLowerCase();
+        const alvo = `${a.paciente || ''} ${a.tipoExame || ''} ${a.medico || ''}`.toLowerCase();
         if (!alvo.includes(buscaLower)) return false;
       }
       return true;
@@ -269,7 +273,7 @@ const AgendaData = (() => {
     return base.filter((a) => {
       if (state.status !== 'all' && a.status !== state.status) return false;
       if (buscaLower) {
-        const alvo = `${a.paciente} ${a.tipoExame} ${a.medico}`.toLowerCase();
+        const alvo = `${a.paciente || ''} ${a.tipoExame || ''} ${a.medico || ''}`.toLowerCase();
         if (!alvo.includes(buscaLower)) return false;
       }
       return true;
@@ -739,7 +743,7 @@ const AppointmentModal = (() => {
 
   /* Gera link WhatsApp baseado no status */
   function buildWhatsAppLink(agendamento) {
-    const phone = agendamento.pacienteTelefone.replace(/\D/g, '').replace(/^0/, '');
+    const phone = (agendamento.pacienteTelefone || '').replace(/\D/g, '').replace(/^0/, '');
     const num = phone.startsWith('55') ? phone : `55${phone}`;
     const dataLabel = new Date(`${agendamento.data}T00:00:00`).toLocaleDateString('pt-BR', {
       weekday: 'long', day: 'numeric', month: 'long',
@@ -786,7 +790,8 @@ const AppointmentModal = (() => {
     /* Campos do body */
     document.getElementById('modalPatientName').textContent = agendamento.paciente;
     document.getElementById('modalPatientPhone').textContent = agendamento.pacienteTelefone;
-    document.getElementById('modalPatientAge').textContent = `${agendamento.pacienteIdade} anos`;
+    document.getElementById('modalPatientAge').textContent =
+      agendamento.pacienteIdade != null ? `${agendamento.pacienteIdade} anos` : '—';
 
     document.getElementById('modalExamType').textContent = agendamento.tipoExame;
     document.getElementById('modalExamValue').textContent = Kpis.formatCurrency(agendamento.valor);
@@ -835,6 +840,7 @@ const AppointmentModal = (() => {
   function setStatus(newStatus) {
     if (!currentAppointment) return;
     currentAppointment.status = newStatus;
+    AppCache.updateAgendamento(currentAppointment.id, { status: newStatus });
     fill(currentAppointment);
     notifyStatusChange(currentAppointment);
   }
@@ -846,39 +852,56 @@ const AppointmentModal = (() => {
     statusSelect.addEventListener('change', async (e) => {
       const newStatus = e.target.value;
       if (!currentAppointment) return;
+      const oldStatus = currentAppointment.status;
       currentAppointment.status = newStatus;
+      AppCache.updateAgendamento(currentAppointment.id, { status: newStatus });
       fill(currentAppointment);
       notifyStatusChange(currentAppointment);
+      // Força re-render dos KPIs e gráfico imediatamente
+      Kpis.render(AppState.getState());
+      OccupancyChart.render(AppState.getState());
       try {
         await Api.updateAgendamento(currentAppointment.id, { status: newStatus });
+        showToast('Status atualizado com sucesso!');
       } catch (err) {
+        // Reverte em caso de erro
+        currentAppointment.status = oldStatus;
+        AppCache.updateAgendamento(currentAppointment.id, { status: oldStatus });
+        fill(currentAppointment);
+        notifyStatusChange(currentAppointment);
+        Kpis.render(AppState.getState());
+        OccupancyChart.render(AppState.getState());
         console.error('Erro ao salvar status:', err);
         showToast('Erro ao salvar status. Tente novamente.', 'error');
       }
     });
 
-    document.getElementById('modalBtnDone').addEventListener('click', async () => {
+    async function applyStatusChange(newStatus) {
       if (!currentAppointment) return;
-      currentAppointment.status = 'realizado';
+      const oldStatus = currentAppointment.status;
+      if (oldStatus === newStatus) return;
+      currentAppointment.status = newStatus;
+      AppCache.updateAgendamento(currentAppointment.id, { status: newStatus });
       fill(currentAppointment);
       notifyStatusChange(currentAppointment);
+      Kpis.render(AppState.getState());
+      OccupancyChart.render(AppState.getState());
       try {
-        await Api.updateAgendamento(currentAppointment.id, { status: 'realizado' });
+        await Api.updateAgendamento(currentAppointment.id, { status: newStatus });
+        showToast('Status atualizado com sucesso!');
       } catch (err) {
+        currentAppointment.status = oldStatus;
+        AppCache.updateAgendamento(currentAppointment.id, { status: oldStatus });
+        fill(currentAppointment);
+        notifyStatusChange(currentAppointment);
+        Kpis.render(AppState.getState());
+        OccupancyChart.render(AppState.getState());
         showToast('Erro ao salvar status. Tente novamente.', 'error');
       }
-    });
-    document.getElementById('modalBtnCancel').addEventListener('click', async () => {
-      if (!currentAppointment) return;
-      currentAppointment.status = 'cancelado';
-      fill(currentAppointment);
-      notifyStatusChange(currentAppointment);
-      try {
-        await Api.updateAgendamento(currentAppointment.id, { status: 'cancelado' });
-      } catch (err) {
-        showToast('Erro ao salvar status. Tente novamente.', 'error');
-      }
-    });
+    }
+
+    document.getElementById('modalBtnDone').addEventListener('click', () => applyStatusChange('realizado'));
+    document.getElementById('modalBtnCancel').addEventListener('click', () => applyStatusChange('cancelado'));
     document.getElementById('modalBtnPrint').addEventListener('click', () => window.print());
     document.getElementById('modalBtnEdit').addEventListener('click', () => {
       if (!currentAppointment) return;
@@ -1097,7 +1120,7 @@ const CalHoverCard = (() => {
     /* Clique nos itens da lista abre o modal de detalhes */
     cardEl.querySelectorAll('.cal-hover-card__item').forEach(item => {
       item.addEventListener('click', () => {
-        const appt = agendamentos.find(a => a.id === item.dataset.id);
+        const appt = agendamentos.find(a => String(a.id) === item.dataset.id);
         if (appt) { hide(); AppointmentModal.open(appt); }
       });
     });
@@ -1330,7 +1353,7 @@ const KanbanHoverCard = (() => {
   }
 
   function buildWhatsAppLink(appt) {
-    const phone = appt.pacienteTelefone.replace(/\D/g, '').replace(/^0/, '');
+    const phone = (appt.pacienteTelefone || '').replace(/\D/g, '').replace(/^0/, '');
     const num = phone.startsWith('55') ? phone : `55${phone}`;
     const dataLabel = new Date(`${appt.data}T00:00:00`).toLocaleDateString('pt-BR', {
       weekday: 'long', day: 'numeric', month: 'long',
@@ -1495,10 +1518,12 @@ const KanbanView = (() => {
 
   function agendamentosDoKanban(state) {
     const kanbanSearch = (searchInput?.value || '').trim().toLowerCase();
-    const base = AgendaData.getFiltered(state);
+    // Kanban mostra TODOS os agendamentos da radiologia (sem filtro de período)
+    // para dar visão completa do pipeline de status
+    let base = AgendaData.getFilteredNoPeriod(state);
     if (!kanbanSearch) return base;
     return base.filter((a) =>
-      `${a.paciente} ${a.tipoExame} ${a.medico}`.toLowerCase().includes(kanbanSearch)
+      `${a.paciente || ''} ${a.tipoExame || ''} ${a.medico || ''}`.toLowerCase().includes(kanbanSearch)
     );
   }
 
@@ -1689,7 +1714,7 @@ const KanbanView = (() => {
   }
 
   function findAppointmentById(id) {
-    return AppCache.getAgendamentos({ radiologiaId: 'all' }).find(a => a.id === id);
+    return AppCache.getAgendamentos({ radiologiaId: 'all' }).find(a => String(a.id) === String(id));
   }
 
   function moveAppointment(id, newStatus) {
@@ -1700,16 +1725,28 @@ const KanbanView = (() => {
       .find(([, cfg]) => cfg.kanbanColumn === newStatus)?.[0];
     if (!novoStatus) return;
 
+    const oldStatus = agendamento.status;
     agendamento.status = novoStatus;
+    AppCache.updateAgendamento(agendamento.id, { status: novoStatus });
+
+    render(AppState.getState());
+    Kpis.render(AppState.getState());
+    OccupancyChart.render(AppState.getState());
+    document.dispatchEvent(new CustomEvent('appointment:statusChanged', { detail: { agendamento } }));
+    showToast(`Status movido para "${AppCache.statusConfig[novoStatus].label}"!`);
 
     // Persiste no backend de forma otimista
     Api.updateAgendamento(agendamento.id, { status: novoStatus }).catch(err => {
+      // Reverte em caso de erro
+      agendamento.status = oldStatus;
+      AppCache.updateAgendamento(agendamento.id, { status: oldStatus });
+      render(AppState.getState());
+      Kpis.render(AppState.getState());
+      OccupancyChart.render(AppState.getState());
+      document.dispatchEvent(new CustomEvent('appointment:statusChanged', { detail: { agendamento } }));
       console.error('[KanbanView] Erro ao salvar status:', err);
       showToast('Erro ao salvar status. Tente novamente.', 'error');
     });
-
-    render(AppState.getState());
-    document.dispatchEvent(new CustomEvent('appointment:statusChanged', { detail: { agendamento } }));
   }
 
   function render(state) {
@@ -2094,12 +2131,15 @@ const NewAppointmentModal = (() => {
     return h * 60 + m;
   }
 
-  function horariosOcupados(radId, isoDate, tipoExame) {
+  function horariosOcupados(radId, isoDate, tipoExameId) {
     if (!radId || !isoDate) return [];
+    // Busca o label correspondente ao ID para comparar com o cache
+    const tipoInfo = AppCache.getTiposExame().find(t => t.id === tipoExameId);
+    const tipoLabel = tipoInfo ? tipoInfo.label : tipoExameId;
     return AppCache.getAgendamentos({ radiologiaId: radId })
       .filter(a =>
         a.data === isoDate &&
-        a.tipoExame === tipoExame &&
+        (a.tipoExame === tipoLabel || a.tipoExameId === tipoExameId) &&
         a.status !== 'cancelado' &&
         a.status !== 'faltou'
       )
@@ -2108,29 +2148,12 @@ const NewAppointmentModal = (() => {
 
 
   function horarioLivre(slot, duracao, ocupados) {
-
     const inicio = toMinutes(slot);
     const fim = inicio + duracao;
-    console.log({
-      slot,
-      inicio,
-      fim,
-      ocupados
-    });
-    const conflito = ocupados.some(ag =>
-      inicio < ag.fim &&
-      fim > ag.inicio
-    );
-
-    console.log(slot, conflito);
-
-    return !conflito;
-
     return !ocupados.some(ag =>
       inicio < ag.fim &&
       fim > ag.inicio
     );
-
   }
 
   /* Calcula hora fim a partir de hora início + duração */
@@ -2249,7 +2272,7 @@ const NewAppointmentModal = (() => {
           tipoExame
         );
 
-        console.log("Ocupados:", ocupados);
+        
 
         // Primeiro: remove horários ocupados
         let disponiveis = allSlots().filter(slot =>
@@ -2331,9 +2354,9 @@ const NewAppointmentModal = (() => {
 
   /* Quando o usuário muda manualmente o horário, recalcula hora fim */
   function onHorarioChange() {
-    const tipoExame = document.getElementById('newTipoExame').value;
+    const tipoExameId = document.getElementById('newTipoExame').value;
     const horario = document.getElementById('newTimeStart').value;
-    const duracao = DURACAO_POR_EXAME[tipoExame] || 30;
+    const duracao = DURACAO_POR_EXAME[tipoExameId] || 30;
     document.getElementById('newTimeEnd').value = calcFim(horario, duracao);
   }
 
@@ -2341,13 +2364,15 @@ const NewAppointmentModal = (() => {
      PREVIEW DE VALOR
   ------------------------------------------------------------------ */
   function updateValuePreview() {
-    const tipoExame = document.getElementById('newTipoExame').value;
+    const tipoExameId = document.getElementById('newTipoExame').value;
     const preview = document.getElementById('newValuePreview');
-    if (!tipoExame) { preview.hidden = true; return; }
+    if (!tipoExameId) { preview.hidden = true; return; }
+    const valor   = VALOR_POR_EXAME[tipoExameId]    || 0;
+    const duracao = DURACAO_POR_EXAME[tipoExameId]  || 30;
     document.getElementById('newValueAmount').textContent =
-      VALOR_POR_EXAME[tipoExame].toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     document.getElementById('newValueDuration').textContent =
-      `· duração estimada: ${DURACAO_POR_EXAME[tipoExame]} min`;
+      `· duração estimada: ${duracao} min`;
     preview.hidden = false;
   }
 
@@ -2393,7 +2418,8 @@ const NewAppointmentModal = (() => {
     document.getElementById('newCpf').value = ag.pacienteCpf || '';
     document.getElementById('newTelefone').value = ag.pacienteTelefone || '';
     document.getElementById('newIdade').value = ag.pacienteIdade || '';
-    document.getElementById('newTipoExame').value = ag.tipoExame || '';
+    // tipoExameId é o id do banco (ex: 'tomografia'); tipoExame é o label
+    document.getElementById('newTipoExame').value = ag.tipoExameId || ag.tipoExame || '';
     document.getElementById('newDate').value = ag.data || '';
     document.getElementById('newStatus').value = ag.status || 'agendado';
     document.getElementById('newObservacoes').value = ag.observacoes || '';
@@ -2402,16 +2428,17 @@ const NewAppointmentModal = (() => {
     document.getElementById('newRadiologia').value = ag.radiologiaId || '';
     onRadiologiaChange();
 
-    if (ag.clinica) {
+    if (ag.clinicaId) {
       const selCli = document.getElementById('newClinica');
-      /* Aguarda populate do select antes de setar valor */
-      requestAnimationFrame(() => {
-        selCli.value = ag.clinica;
+      setTimeout(() => {
+        selCli.value = String(ag.clinicaId);
         onClinicaChange();
-        requestAnimationFrame(() => {
-          document.getElementById('newMedico').value = ag.medico || '';
-        });
-      });
+        setTimeout(() => {
+          if (ag.medicoId) {
+            document.getElementById('newMedico').value = String(ag.medicoId);
+          }
+        }, 600);
+      }, 600);
     }
 
     updateValuePreview();
@@ -2421,14 +2448,12 @@ const NewAppointmentModal = (() => {
     setTimeout(() => {
       const selTime = document.getElementById('newTimeStart');
       if (ag.horarioInicio) {
-        /* Tenta encontrar a opção com aquele slot */
         const match = [...selTime.options].find(o => o.value === ag.horarioInicio);
         if (match) { match.selected = true; onHorarioChange(); }
         else {
-          /* Insere manualmente se o horário não estava disponível (ocupado por outro) */
           const opt = document.createElement('option');
           opt.value = ag.horarioInicio;
-          const dur = DURACAO_POR_EXAME[ag.tipoExame] || 30;
+          const dur = DURACAO_POR_EXAME[ag.tipoExameId] || DURACAO_POR_EXAME[ag.tipoExame] || 30;
           opt.textContent = `${ag.horarioInicio} → ${ag.horarioFim}  (${dur}min) — atual`;
           opt.selected = true;
           selTime.insertBefore(opt, selTime.options[1]);
@@ -2436,7 +2461,7 @@ const NewAppointmentModal = (() => {
           document.getElementById('newTimeEnd').value = ag.horarioFim;
         }
       }
-    }, 750); /* aguarda o debounce do tryUpdateHorarios */
+    }, 950);
   }
 
   /* ------------------------------------------------------------------
@@ -2484,8 +2509,10 @@ const NewAppointmentModal = (() => {
       pacienteIdade: parseInt(document.getElementById('newIdade').value) || null,
       tipoExame,
       valor: VALOR_POR_EXAME[tipoExame] || 0,
-      medico: document.getElementById('newMedico').value.trim(),
-      clinica: document.getElementById('newClinica').value.trim(),
+      medicoId: document.getElementById('newMedico').value.trim() || null,
+      medico: document.getElementById('newMedico').options[document.getElementById('newMedico').selectedIndex]?.text || '',
+      clinicaId: document.getElementById('newClinica').value.trim() || null,
+      clinica: document.getElementById('newClinica').options[document.getElementById('newClinica').selectedIndex]?.text || '',
       status: document.getElementById('newStatus').value,
       observacoes: document.getElementById('newObservacoes').value.trim(),
     };
@@ -2499,8 +2526,9 @@ const NewAppointmentModal = (() => {
 
     try {
       if (editingAppointment) {
-        const atualizado = await Api.updateAgendamento(editingAppointment.id, appt);
-        AppCache.updateAgendamento(editingAppointment.id, atualizado ?? appt);
+        await Api.updateAgendamento(editingAppointment.id, appt);
+        // O backend retorna {} — usa o objeto local como fonte de verdade
+        AppCache.updateAgendamento(editingAppointment.id, appt);
         showToast(`Agendamento de ${appt.paciente} atualizado com sucesso!`);
       } else {
         await Api.postAgendamento(appt);
@@ -2517,8 +2545,27 @@ const NewAppointmentModal = (() => {
         AppCache.setAgendamentos(resAgend.data || []);
       }
       close();
+      // Re-render completo após salvar
+      Kpis.render(AppState.getState());
+      OccupancyChart.render(AppState.getState());
       document.dispatchEvent(new CustomEvent('appointment:statusChanged', { detail: { agendamento: appt } }));
-      AppState.update({ ...AppState.getState() });
+      // Força re-fetch e re-render geral
+      const stateAtual = AppState.getState();
+      const { start, end } = DateUtils.getPeriodRange(stateAtual);
+      try {
+        const resAgend = await Api.getAgendamentos({
+          radiologiaId: stateAtual.radiologiaSelecionada,
+          dataInicio: AppCache.toISODate(start),
+          dataFim: AppCache.toISODate(end),
+        });
+        AppCache.setAgendamentos(resAgend.data || []);
+        Kpis.render(stateAtual);
+        OccupancyChart.render(stateAtual);
+        CalendarView.render(stateAtual);
+        KanbanView.render(stateAtual);
+        DayView.render(stateAtual);
+        PendingList.render(stateAtual);
+      } catch (_) { /* já salvou, ignora erro de reload */ }
     } catch (err) {
       console.error('[NewAppointmentModal] Erro ao salvar:', err);
       showToast('Erro ao salvar agendamento. Tente novamente.', 'error');
@@ -2527,12 +2574,40 @@ const NewAppointmentModal = (() => {
     }
   }
 
+  function _populateRadiologiaSelect() {
+    const sel = document.getElementById('newRadiologia');
+    if (!sel) return;
+    const radiologias = AppCache.getRadiologias().filter(r => r.id !== 'all');
+    sel.innerHTML = '<option value="">Selecione a radiologia...</option>';
+    radiologias.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.id;
+      opt.textContent = r.nome;
+      sel.appendChild(opt);
+    });
+  }
+
+  function _populateTipoExameSelect() {
+    const sel = document.getElementById('newTipoExame');
+    if (!sel) return;
+    const tipos = AppCache.getTiposExame();
+    sel.innerHTML = '<option value="">Selecione o exame...</option>';
+    tipos.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id;       // usa o ID do banco (ex: 'tomografia')
+      opt.textContent = t.label; // exibe o label (ex: 'Tomografia')
+      sel.appendChild(opt);
+    });
+  }
+
   /* ------------------------------------------------------------------
      OPEN / CLOSE
   ------------------------------------------------------------------ */
   function open() {
     editingAppointment = null;
     resetForm();
+    _populateRadiologiaSelect();          
+    _populateTipoExameSelect();           
     document.querySelector('.new-appointment-modal__title').textContent = 'Novo Agendamento';
     saveBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Salvar Agendamento`;
     overlay.hidden = false;
@@ -2543,6 +2618,8 @@ const NewAppointmentModal = (() => {
   function openEdit(ag) {
     editingAppointment = ag;
     resetForm();
+    _populateRadiologiaSelect();          
+    _populateTipoExameSelect();           
     fillFormForEdit(ag);
     document.querySelector('.new-appointment-modal__title').textContent = 'Editar Agendamento';
     saveBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Salvar Alterações`;
@@ -2640,7 +2717,7 @@ const PendingList = (() => {
      Mensagem de confirmação (status === 'agendado')
   ------------------------------------------------------------------ */
   function buildWhatsAppLinkConfirmacao(appt) {
-    const phone = appt.pacienteTelefone.replace(/\D/g, '').replace(/^0/, '');
+    const phone = (appt.pacienteTelefone || '').replace(/\D/g, '').replace(/^0/, '');
     const num = phone.startsWith('55') ? phone : `55${phone}`;
     const dataLabel = new Date(`${appt.data}T00:00:00`).toLocaleDateString('pt-BR', {
       weekday: 'long', day: 'numeric', month: 'long',
@@ -2659,7 +2736,7 @@ const PendingList = (() => {
      Mensagem de lembrete (status === 'confirmado')
   ------------------------------------------------------------------ */
   function buildWhatsAppLinkLembrete(appt) {
-    const phone = appt.pacienteTelefone.replace(/\D/g, '').replace(/^0/, '');
+    const phone = (appt.pacienteTelefone || '').replace(/\D/g, '').replace(/^0/, '');
     const num = phone.startsWith('55') ? phone : `55${phone}`;
     const dataLabel = new Date(`${appt.data}T00:00:00`).toLocaleDateString('pt-BR', {
       weekday: 'long', day: 'numeric', month: 'long',
@@ -2710,7 +2787,7 @@ const PendingList = (() => {
         if (a.status !== currentFilter) return false;
         if (!DateUtils.isWithinRange(a.data, effectiveStart, end)) return false;
         if (buscaLower) {
-          const alvo = `${a.paciente} ${a.tipoExame} ${a.medico} ${a.clinica}`.toLowerCase();
+          const alvo = `${a.paciente || ''} ${a.tipoExame || ''} ${a.medico || ''} ${a.clinica || ''}`.toLowerCase();
           if (!alvo.includes(buscaLower)) return false;
         }
         return true;
@@ -2892,9 +2969,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 3. Carrega tipos de exame
     const resParametros = await Api.getParametros();
     resParametros.data.examDurations.forEach(e => {
-      VALOR_POR_EXAME[e.label] = e.valor_base || 0;
-      DURACAO_POR_EXAME[e.label] = e.duration || 30;
+      // Indexa por ID (usado como value no select) E por label (fallback)
+      VALOR_POR_EXAME[e.id]    = e.valor_base || 0;
+      DURACAO_POR_EXAME[e.id]  = e.duration   || 30;
+      VALOR_POR_EXAME[e.label]    = e.valor_base || 0;
+      DURACAO_POR_EXAME[e.label]  = e.duration   || 30;
     });
+    // Guarda lista completa para popular selects dinamicamente
+    AppCache.setTiposExame(resParametros.data.examDurations || []);
 
   } catch (err) {
     console.error('[Init] Erro ao carregar dados iniciais:', err);
@@ -2919,18 +3001,30 @@ document.addEventListener('DOMContentLoaded', async () => {
   Sidebar.init();
 
   // Recarrega agendamentos quando o filtro de período/radiologia muda
+  // e re-renderiza TODOS os módulos após o novo cache
+  let _fetchDebounce = null;
   AppState.subscribe(async (state) => {
-    try {
-      const { start, end } = DateUtils.getPeriodRange(state);
-      const agendamentos = await Api.getAgendamentos({
-        radiologiaId: state.radiologiaSelecionada,
-        dataInicio: AppCache.toISODate(start),
-        dataFim: AppCache.toISODate(end),
-        status: state.status !== 'all' ? state.status : undefined,
-      });
-      AppCache.setAgendamentos(agendamentos.data || []);
-    } catch (err) {
-      console.error('[Init] Erro ao atualizar agendamentos:', err);
-    }
+    clearTimeout(_fetchDebounce);
+    _fetchDebounce = setTimeout(async () => {
+      try {
+        const { start, end } = DateUtils.getPeriodRange(state);
+        const agendamentos = await Api.getAgendamentos({
+          radiologiaId: state.radiologiaSelecionada,
+          dataInicio: AppCache.toISODate(start),
+          dataFim: AppCache.toISODate(end),
+          // Não filtra status aqui — os módulos filtram localmente
+        });
+        AppCache.setAgendamentos(agendamentos.data || []);
+        // Re-renderiza toda a UI com os dados novos
+        Kpis.render(state);
+        OccupancyChart.render(state);
+        CalendarView.render(state);
+        KanbanView.render(state);
+        DayView.render(state);
+        PendingList.render(state);
+      } catch (err) {
+        console.error('[Init] Erro ao atualizar agendamentos:', err);
+      }
+    }, 300); // debounce para evitar chamadas redundantes
   });
 });

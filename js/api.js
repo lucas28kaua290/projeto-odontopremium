@@ -928,6 +928,13 @@ const Api = (() => {
             body: JSON.stringify(dados),
         });
     }
+
+    // [API] DELETE /agendamentos/:id
+    async function deleteAgendamento(id) {
+        return request(`/agendamentos/${id}`, {
+            method: 'DELETE',
+        });
+    }
     /**
      * Retorna as notas/observações de um paciente ordenadas por data desc.
      * Alimenta a lista #perfil-notas.
@@ -2081,6 +2088,9 @@ const Api = (() => {
         // 15. Configurações — Parâmetros
         getParametros,
         postParametros,
+
+        // 16. Outros
+        deleteAgendamento,
     };
 
 })();

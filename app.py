@@ -1106,6 +1106,9 @@ def listar_agendamentos():
                 item[k] = v.isoformat()
             else:
                 item[k] = v
+        # Garante que id venha como string para comparação segura no JS
+        if "id" in item and item["id"] is not None:
+            item["id"] = str(item["id"])
         result.append(item)
 
     return ok(result)
@@ -1204,12 +1207,33 @@ def atualizar_agendamento(agendamento_id):
     if not existe:
         return not_found("Agendamento não encontrado.")
 
-    campos = {"status": "status", "observacoes": "observacoes"}
+    campos = {
+        "status":       "status",
+        "observacoes":  "observacoes",
+        "data":         "data_agendamento",
+        "horarioInicio":"hora_agendamento",
+    }
     sets, params = [], []
     for chave, coluna in campos.items():
-        if chave in data:
+        if chave in data and data[chave] is not None:
             sets.append(f"{coluna} = %s")
             params.append(data[chave])
+
+    # Suporte a mudança de médico, clínica e tipo de exame
+    if "medicoId" in data:
+        sets.append("medico_id = %s")
+        params.append(data["medicoId"] or None)
+    if "clinicaId" in data:
+        sets.append("clinica_id = %s")
+        params.append(data["clinicaId"] or None)
+    if "tipoExameId" in data:
+        sets.append("tipo_exame_id = %s")
+        params.append(data["tipoExameId"] or None)
+    elif "tipoExame" in data:
+        te = query("SELECT id FROM tipos_exame WHERE label = %s", (data["tipoExame"],), fetch="one")
+        if te:
+            sets.append("tipo_exame_id = %s")
+            params.append(te["id"])
 
     if not sets:
         return err("Nenhum campo para atualizar.", 400)
@@ -1217,6 +1241,19 @@ def atualizar_agendamento(agendamento_id):
     params.append(agendamento_id)
     query(f"UPDATE agendamentos SET {', '.join(sets)} WHERE id = %s", params, fetch="none")
     return ok({}, "Agendamento atualizado com sucesso.")
+
+@app.route("/v1/agendamentos/<int:agendamento_id>", methods=["DELETE"])
+@require_auth
+def deletar_agendamento(agendamento_id):
+    """[API] DELETE /agendamentos/:id — cancela (soft delete via status)"""
+    existe = query("SELECT id FROM agendamentos WHERE id = %s", (agendamento_id,), fetch="one")
+    if not existe:
+        return not_found("Agendamento não encontrado.")
+    query(
+        "UPDATE agendamentos SET status = 'cancelado' WHERE id = %s",
+        (agendamento_id,), fetch="none"
+    )
+    return ok({}, "Agendamento cancelado com sucesso.")
 
 @app.route("/v1/pacientes", methods=["GET"])
 @require_auth

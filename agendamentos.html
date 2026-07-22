@@ -547,10 +547,7 @@
           <div class="form-field__select-wrapper">
             <select id="newRadiologia" class="form-field__select" required>
               <option value="">Selecione a radiologia...</option>
-              <option value="rad_centro">Radiologia Centro</option>
-              <option value="rad_norte">Radiologia Zona Norte</option>
-              <option value="rad_sul">Radiologia Zona Sul</option>
-              <option value="rad_leste">Radiologia Zona Leste</option>
+              <!-- Opções preenchidas dinamicamente pelo JS via AppCache.getRadiologias() -->
             </select>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
@@ -602,11 +599,7 @@
           <div class="form-field__select-wrapper">
             <select id="newTipoExame" class="form-field__select" required>
               <option value="">Selecione o exame...</option>
-              <option value="Tomografia">Tomografia</option>
-              <option value="Raio-X">Raio-X</option>
-              <option value="Ultrassom">Ultrassom</option>
-              <option value="Panorâmica">Panorâmica</option>
-              <option value="Escaneamento 3D">Escaneamento 3D</option>
+              <!-- Opções preenchidas dinamicamente pelo JS via AppCache.getTiposExame() -->
             </select>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
