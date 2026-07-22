@@ -615,19 +615,20 @@ def clinicas_por_radiologia(radiologia_id):
     data_inicio = request.args.get("dataInicio")
     data_fim = request.args.get("dataFim")
     di, df, _, _ = periodo_para_datas(periodo, data_inicio, data_fim)
-
     rows = query(
         "SELECT c.id, c.nome, c.cidade, c.estado, c.status, "
         "       COUNT(DISTINCT e.id) AS total_exames, "
         "       COALESCE(SUM(e.valor), 0) AS faturamento "
         "FROM clinicas c "
+        "JOIN clinica_radiologia cr ON cr.clinica_id = c.id "
+        "       AND cr.radiologia_id = %s "
         "LEFT JOIN exames e ON e.clinica_id = c.id "
         "       AND e.radiologia_id = %s "
         "       AND e.data_exame BETWEEN %s AND %s "
         "       AND e.status = 'realizado' "
         "GROUP BY c.id, c.nome, c.cidade, c.estado, c.status "
         "ORDER BY faturamento DESC",
-        (radiologia_id, di, df)
+        (radiologia_id, radiologia_id, di, df)
     )
     return ok(rows)
 
