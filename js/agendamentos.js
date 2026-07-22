@@ -2169,7 +2169,8 @@ const NewAppointmentModal = (() => {
       selMed.innerHTML = '<option value="">Selecione o médico...</option>';
       medicos.data.forEach(m => {
         const opt = document.createElement('option');
-        opt.value = m.id ?? m.nome; opt.textContent = m.nome;
+        opt.value = m.id ?? m.name;
+        opt.textContent = m.name || m.nome; // ← aceita os dois
         selMed.appendChild(opt);
       });
       selMed.disabled = false;
