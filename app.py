@@ -3083,8 +3083,8 @@ def parametros_get():
                 resultado[chave] = {}
 
     # Mapeia para o formato esperado pelo frontend
-    tipos = query("SELECT id, label, duracao_min AS duration FROM tipos_exame ORDER BY label")
-    exam_durations = [{"id": t["id"], "label": t["label"], "duration": t["duration"]} for t in tipos]
+    tipos = query("SELECT id, label, duracao_min AS duration, valor_base FROM tipos_exame ORDER BY label")
+    exam_durations = [{"id": t["id"], "label": t["label"], "duration": t["duration"], "valor_base": float(t["valor_base"] or 0)} for t in tipos]
 
     return ok({
         "examDurations":    exam_durations,

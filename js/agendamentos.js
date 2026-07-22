@@ -2820,6 +2820,10 @@ const PendingList = (() => {
   return { init };
 })();
 
+// Variáveis globais de tipos de exame
+let VALOR_POR_EXAME = {};
+let DURACAO_POR_EXAME = {};
+
 /* =================================================================
    15. INIT — bootstrap assíncrono
 ================================================================= */
@@ -2843,6 +2847,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       dataFim: AppCache.toISODate(end),
     });
     AppCache.setAgendamentos(resAgend.data || []);
+
+    // 3. Carrega tipos de exame
+    const resParametros = await Api.getParametros();
+    resParametros.data.examDurations.forEach(e => {
+      VALOR_POR_EXAME[e.label] = e.valor_base || 0;
+      DURACAO_POR_EXAME[e.label] = e.duration || 30;
+    });
 
   } catch (err) {
     console.error('[Init] Erro ao carregar dados iniciais:', err);
