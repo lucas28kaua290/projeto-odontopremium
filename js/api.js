@@ -407,9 +407,13 @@ const Api = (() => {
         const qs = buildQuery({
             radiologiaId: filtros.radiologiaId || 'all',
             clinicaId: filtros.clinicaId,
-            periodo: filtros.periodo || 'mes_atual',
-            dataInicio: filtros.dataInicio,
-            dataFim: filtros.dataFim,
+            busca: filtros.busca,
+            status: filtros.status,
+            ...(filtros.semPeriodo ? {} : {
+                periodo: filtros.periodo || 'mes_atual',
+                dataInicio: filtros.dataInicio,
+                dataFim: filtros.dataFim,
+            }),
         });
         return request(`/medicos${qs}`);
     }

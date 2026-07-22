@@ -2152,7 +2152,7 @@ const NewAppointmentModal = (() => {
   ------------------------------------------------------------------ */
   async function onClinicaChange() {
     const clinicaId = document.getElementById('newClinica').value;
-    const radId = document.getElementById('newRadiologia').value; // ← adiciona isso
+    const radId = document.getElementById('newRadiologia').value;
     const selMed = document.getElementById('newMedico');
     const hintMed = document.getElementById('newMedicoHint');
 
@@ -2165,7 +2165,7 @@ const NewAppointmentModal = (() => {
     selMed.innerHTML = '<option value="">Carregando médicos...</option>';
 
     try {
-      const medicos = await Api.getMedicos({ clinicaId, radiologiaId: radId }); // ← passa radId
+      const medicos = await Api.getMedicos({ clinicaId, radiologiaId: radId, semPeriodo: true });
       selMed.innerHTML = '<option value="">Selecione o médico...</option>';
       medicos.data.forEach(m => {
         const opt = document.createElement('option');
