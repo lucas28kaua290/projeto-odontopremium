@@ -745,18 +745,40 @@ def listar_medicos():
     """[API] GET /medicos"""
     radiologia_id = request.args.get("radiologiaId", "all")
     clinica_id    = request.args.get("clinicaId")
-    periodo       = request.args.get("periodo", "mes_atual")
-    data_inicio   = request.args.get("dataInicio")
-    data_fim      = request.args.get("dataFim")
     busca         = request.args.get("busca", "")
     status        = request.args.get("status", "")
-    di, df, _, _  = periodo_para_datas(periodo, data_inicio, data_fim)
+
+    # Modo simples: só clinicaId (cascata do modal de agendamento)
+    if clinica_id and not busca and not status:
+        sql = """
+            SELECT m.id, m.nome AS name, m.especialidade AS specialty,
+                   m.clinica_id AS clinicId, m.telefone AS phone, m.email, m.status,
+                   c.nome AS clinicaNome
+            FROM medicos m
+            JOIN clinicas c ON c.id = m.clinica_id
+            WHERE m.clinica_id = %s AND m.status = 'ativo'
+        """
+        params = [clinica_id]
+
+        if radiologia_id and radiologia_id != "all":
+            sql += " AND EXISTS (SELECT 1 FROM medico_radiologia mr WHERE mr.medico_id = m.id AND mr.radiologia_id = %s)"
+            params.append(radiologia_id)
+
+        sql += " ORDER BY m.nome"
+        rows = query(sql, params)
+        return ok(rows)
+
+    # Modo completo: com período e métricas (telas de relatório/dashboard)
+    periodo     = request.args.get("periodo", "mes_atual")
+    data_inicio = request.args.get("dataInicio")
+    data_fim    = request.args.get("dataFim")
+    di, df, _, _ = periodo_para_datas(periodo, data_inicio, data_fim)
 
     sql = """
         SELECT m.id, m.nome AS name, m.especialidade AS specialty,
                m.clinica_id AS clinicId, m.telefone AS phone, m.email, m.status,
                c.nome AS clinicaNome,
-               r.id AS radiologiaId, r.nome AS radiologiaNome,
+               mr.radiologia_id AS radiologiaId, r.nome AS radiologiaNome,
                COALESCE(SUM(CASE WHEN e.status='realizado'
                                   AND e.data_exame BETWEEN %s AND %s
                                   THEN 1 ELSE 0 END), 0) AS exames,
@@ -779,7 +801,7 @@ def listar_medicos():
     params = [di, df, di, df, di, df, di, df]
 
     if radiologia_id and radiologia_id != "all":
-        sql += " AND r.id = %s"
+        sql += " AND mr.radiologia_id = %s"
         params.append(radiologia_id)
     if clinica_id:
         sql += " AND m.clinica_id = %s"
@@ -792,7 +814,7 @@ def listar_medicos():
         sql += " AND m.status = %s"
         params.append(status)
 
-    sql += " GROUP BY m.id, m.nome, m.especialidade, m.clinica_id, m.telefone, m.email, m.status, c.nome, r.id, r.nome"
+    sql += " GROUP BY m.id, m.nome, m.especialidade, m.clinica_id, m.telefone, m.email, m.status, c.nome, mr.radiologia_id, r.nome"
     sql += " ORDER BY faturamento DESC"
 
     rows = query(sql, params)
