@@ -1827,7 +1827,6 @@ const DayView = (() => {
     body.className = 'day-timeline__body';
 
     const isHoje = AppCache.toISODate(state.dayDate) === AppCache.toISODate(new Date());
-    const label = `${AppCache.pad(hora)}:00`;
 
     if (!agendamentos.length) {
       body.innerHTML = `
