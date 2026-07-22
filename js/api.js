@@ -921,10 +921,10 @@ const Api = (() => {
         });
     }
 
-    // [API] PUT /agendamentos/:id
+    // [API] PATCH /agendamentos/:id
     async function updateAgendamento(id, dados) {
         return request(`/agendamentos/${id}`, {
-            method: 'PUT',
+            method: 'PATCH',
             body: JSON.stringify(dados),
         });
     }

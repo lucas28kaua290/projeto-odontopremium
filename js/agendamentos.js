@@ -1474,7 +1474,7 @@ const KanbanView = (() => {
      mantendo a ordem cronológica relativa ao card arrastado.     */
   function resolveNewTime(agendamento, targetStatus, allAgendamentos) {
     const targetCards = allAgendamentos
-      .filter((a) => a.id !== agendamento.id && MockData.statusConfig[a.status].kanbanColumn === targetStatus)
+      .filter((a) => a.id !== agendamento.id && AppCache.statusConfig[a.status].kanbanColumn === targetStatus)
       .sort((a, b) => (a.data + a.horarioInicio).localeCompare(b.data + b.horarioInicio));
 
     // Mantém data/hora originais — a ordem visual já é resolvida pelo sort
@@ -1843,7 +1843,7 @@ const DayView = (() => {
     const hojeHora = new Date().getHours();
 
     HORAS.forEach((hora) => {
-      const label = `${MockData.pad(hora)}:00`;
+      const label = `${AppCache.pad(hora)}:00`;
       const doHorario = agendamentos
         .filter((a) => parseInt(a.horarioInicio.split(':')[0], 10) === hora)
         .sort((a, b) => a.horarioInicio.localeCompare(b.horarioInicio));
@@ -2896,7 +2896,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         dataFim: AppCache.toISODate(end),
         status: state.status !== 'all' ? state.status : undefined,
       });
-      AppCache.setAgendamentos(agendamentos);
+      AppCache.setAgendamentos(agendamentos.data || []);
     } catch (err) {
       console.error('[Init] Erro ao atualizar agendamentos:', err);
     }
