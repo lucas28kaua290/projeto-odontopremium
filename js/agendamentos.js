@@ -2471,9 +2471,18 @@ const NewAppointmentModal = (() => {
         AppCache.updateAgendamento(editingAppointment.id, atualizado ?? appt);
         showToast(`Agendamento de ${appt.paciente} atualizado com sucesso!`);
       } else {
-        const criado = await Api.postAgendamento(appt);
-        AppCache.addAgendamento(criado ?? appt);
+        await Api.postAgendamento(appt);
         showToast(`Agendamento de ${appt.paciente} criado com sucesso!`);
+
+        // Recarrega agendamentos do servidor
+        const state = AppState.getState();
+        const { start, end } = DateUtils.getPeriodRange(state);
+        const resAgend = await Api.getAgendamentos({
+          radiologiaId: state.radiologiaSelecionada,
+          dataInicio: AppCache.toISODate(start),
+          dataFim: AppCache.toISODate(end),
+        });
+        AppCache.setAgendamentos(resAgend.data || []);
       }
       close();
       document.dispatchEvent(new CustomEvent('appointment:statusChanged', { detail: { agendamento: appt } }));
