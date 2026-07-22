@@ -39,7 +39,7 @@ const Api = (() => {
        =========================================================================== */
 
     /** URL base da API. Trocar pela URL real de produção / staging conforme o ambiente. */
-    const BASE_URL = 'https://unsanguineously-uninductive-kamdyn.ngrok-free.dev/v1';
+    const BASE_URL = 'https://iordfinanceiro.com.br';
 
     /**
      * Retorna o token de autenticação armazenado na sessão.
