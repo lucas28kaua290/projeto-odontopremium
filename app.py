@@ -948,21 +948,21 @@ def medicos_spotlight():
     sql = """
         SELECT m.id AS medicoId, m.nome AS medicoNome,
                c.nome AS clinicaNome, r.nome AS radiologiaNome,
-               COUNT(e.id) AS totalExames,
-               COALESCE(SUM(e.valor), 0) AS faturamento
+               COUNT(a.id) AS totalExames,
+               COALESCE(SUM(te.valor_base), 0) AS faturamento
         FROM medicos m
         JOIN clinicas c ON c.id = m.clinica_id
-        LEFT JOIN medico_radiologia mr ON mr.medico_id = m.id
-        LEFT JOIN radiologias r ON r.id = mr.radiologia_id
-        LEFT JOIN exames e ON e.medico_id = m.id
-               AND e.status='realizado'
-               AND e.data_exame BETWEEN %s AND %s
+        LEFT JOIN agendamentos a ON a.medico_id = m.id
+               AND a.status='realizado'
+               AND a.data_agendamento BETWEEN %s AND %s
+        LEFT JOIN tipos_exame te ON te.id = a.tipo_exame_id
+        LEFT JOIN radiologias r ON r.id = a.radiologia_id
         WHERE 1=1
     """
     params = [di, df]
 
     if radiologia_id != "all":
-        sql += " AND r.id = %s"
+        sql += " AND a.radiologia_id = %s"
         params.append(radiologia_id)
     if clinica_id:
         sql += " AND m.clinica_id = %s"
@@ -977,9 +977,9 @@ def medicos_spotlight():
     for med in medicos_top:
         tipos = query(
             "SELECT te.label AS tipo, COUNT(*) AS exames "
-            "FROM exames e JOIN tipos_exame te ON te.id = e.tipo_exame_id "
-            "WHERE e.medico_id = %s AND e.status='realizado' "
-            "AND e.data_exame BETWEEN %s AND %s "
+            "FROM agendamentos a JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+            "WHERE a.medico_id = %s AND a.status='realizado' "
+            "AND a.data_agendamento BETWEEN %s AND %s "
             "GROUP BY te.label ORDER BY exames DESC LIMIT 5",
             (med["medicoId"], di, df)
         )
@@ -1000,20 +1000,17 @@ def medicos_clinicas_disponiveis():
         rows = query(
             "SELECT DISTINCT c.id AS clinicaId, c.nome AS clinicaNome "
             "FROM clinicas c "
-            "JOIN medicos m ON m.clinica_id = c.id "
-            "JOIN exames e ON e.medico_id = m.id "
-            "WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s "
+            "JOIN agendamentos a ON a.clinica_id = c.id "
+            "WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s "
             "ORDER BY c.nome", (di, df)
         )
     else:
         rows = query(
             "SELECT DISTINCT c.id AS clinicaId, c.nome AS clinicaNome "
             "FROM clinicas c "
-            "JOIN medicos m ON m.clinica_id = c.id "
-            "JOIN medico_radiologia mr ON mr.medico_id = m.id "
-            "JOIN exames e ON e.medico_id = m.id "
-            "WHERE mr.radiologia_id = %s AND e.status='realizado' "
-            "AND e.data_exame BETWEEN %s AND %s "
+            "JOIN agendamentos a ON a.clinica_id = c.id "
+            "WHERE a.radiologia_id = %s AND a.status='realizado' "
+            "AND a.data_agendamento BETWEEN %s AND %s "
             "ORDER BY c.nome", (radiologia_id, di, df)
         )
 
@@ -1646,39 +1643,40 @@ def exames_kpis():
 
     rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id)
 
+    rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
+
     atual = query(
-        f"SELECT COUNT(*) AS total FROM exames e "
-        f"WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql}",
-        [di, df] + rad_params, fetch="one"
+        f"SELECT COUNT(*) AS total FROM agendamentos a "
+        f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a}",
+        [di, df] + rad_params_a, fetch="one"
     )
     anterior = query(
-        f"SELECT COUNT(*) AS total FROM exames e "
-        f"WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql}",
-        [pi, pf] + rad_params, fetch="one"
+        f"SELECT COUNT(*) AS total FROM agendamentos a "
+        f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a}",
+        [pi, pf] + rad_params_a, fetch="one"
     )
 
     total_atual    = atual.get("total", 0) if atual else 0
     total_anterior = anterior.get("total", 0) if anterior else 0
 
-    # Dias úteis no período (aprox.: exclui domingos)
     dias = max(1, (df - di).days + 1)
     media_dia = round(total_atual / dias, 1)
 
     # Tipo mais realizado
     tipo_top = query(
-        f"SELECT te.label AS tipo, COUNT(*) AS qtd FROM exames e "
-        f"JOIN tipos_exame te ON te.id = e.tipo_exame_id "
-        f"WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql} "
+        f"SELECT te.label AS tipo, COUNT(*) AS qtd FROM agendamentos a "
+        f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+        f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a} "
         f"GROUP BY te.label ORDER BY qtd DESC LIMIT 1",
-        [di, df] + rad_params, fetch="one"
+        [di, df] + rad_params_a, fetch="one"
     )
 
-    # % referenciados (que possuem medico_id)
+    # % referenciados (agendamentos com medico_id preenchido)
     ref = query(
-        f"SELECT COUNT(*) AS total FROM exames e "
-        f"WHERE e.status='realizado' AND e.medico_id IS NOT NULL "
-        f"AND e.data_exame BETWEEN %s AND %s {rad_sql}",
-        [di, df] + rad_params, fetch="one"
+        f"SELECT COUNT(*) AS total FROM agendamentos a "
+        f"WHERE a.status='realizado' AND a.medico_id IS NOT NULL "
+        f"AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a}",
+        [di, df] + rad_params_a, fetch="one"
     )
     perc_ref = round((ref.get("total", 0) / total_atual * 100), 1) if total_atual else 0
 
@@ -1705,14 +1703,17 @@ def exames_evolucao():
     rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id)
 
     # Agrega por mês
+    rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
+
     rows = query(
-        f"SELECT DATE_FORMAT(e.data_exame, '%%b/%%y') AS label, "
+        f"SELECT DATE_FORMAT(a.data_agendamento, '%%b/%%y') AS label, "
         f"       r.id AS radiologiaId, r.nome AS nome, COUNT(*) AS dados "
-        f"FROM exames e JOIN radiologias r ON r.id = e.radiologia_id "
-        f"WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql} "
-        f"GROUP BY YEAR(e.data_exame), MONTH(e.data_exame), r.id, r.nome "
-        f"ORDER BY YEAR(e.data_exame), MONTH(e.data_exame)",
-        [di, df] + rad_params
+        f"FROM agendamentos a "
+        f"JOIN radiologias r ON r.id = a.radiologia_id "
+        f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a} "
+        f"GROUP BY YEAR(a.data_agendamento), MONTH(a.data_agendamento), r.id, r.nome "
+        f"ORDER BY YEAR(a.data_agendamento), MONTH(a.data_agendamento)",
+        [di, df] + rad_params_a
     )
 
     return ok(_format_series(rows))
@@ -1731,21 +1732,23 @@ def exames_comparativo():
     if radiologia_id == "all":
         agrupamento = "radiologia"
         rows = query(
-            "SELECT r.id, r.nome, COUNT(e.id) AS exames, COALESCE(SUM(e.valor),0) AS faturamento "
+            "SELECT r.id, r.nome, COUNT(a.id) AS exames, COALESCE(SUM(te.valor_base),0) AS faturamento "
             "FROM radiologias r "
-            "LEFT JOIN exames e ON e.radiologia_id = r.id "
-            "       AND e.status='realizado' AND e.data_exame BETWEEN %s AND %s "
+            "LEFT JOIN agendamentos a ON a.radiologia_id = r.id "
+            "       AND a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s "
+            "LEFT JOIN tipos_exame te ON te.id = a.tipo_exame_id "
             "GROUP BY r.id, r.nome ORDER BY exames DESC",
             (di, df)
         )
     else:
         agrupamento = "clinica"
         rows = query(
-            "SELECT c.id, c.nome, COUNT(e.id) AS exames, COALESCE(SUM(e.valor),0) AS faturamento "
+            "SELECT c.id, c.nome, COUNT(a.id) AS exames, COALESCE(SUM(te.valor_base),0) AS faturamento "
             "FROM clinicas c "
-            "LEFT JOIN exames e ON e.clinica_id = c.id "
-            "       AND e.radiologia_id = %s "
-            "       AND e.status='realizado' AND e.data_exame BETWEEN %s AND %s "
+            "LEFT JOIN agendamentos a ON a.clinica_id = c.id "
+            "       AND a.radiologia_id = %s "
+            "       AND a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s "
+            "LEFT JOIN tipos_exame te ON te.id = a.tipo_exame_id "
             "GROUP BY c.id, c.nome ORDER BY exames DESC",
             (radiologia_id, di, df)
         )
@@ -1765,12 +1768,14 @@ def exames_distribuicao_por_tipo():
 
     rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id)
 
+    rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
+
     rows = query(
         f"SELECT te.label AS tipo, COUNT(*) AS quantidade "
-        f"FROM exames e JOIN tipos_exame te ON te.id = e.tipo_exame_id "
-        f"WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql} "
+        f"FROM agendamentos a JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+        f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a} "
         f"GROUP BY te.label ORDER BY quantidade DESC",
-        [di, df] + rad_params
+        [di, df] + rad_params_a
     )
     return ok({"tipos": rows})
 
@@ -1788,15 +1793,17 @@ def exames_ranking_clinicas():
 
     rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id)
 
+    rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
+
     rows = query(
         f"SELECT c.id AS clinicaId, c.nome AS clinicaNome, r.nome AS radiologiaNome, "
-        f"       COUNT(e.id) AS totalExames "
+        f"       COUNT(a.id) AS totalExames "
         f"FROM clinicas c "
-        f"JOIN exames e ON e.clinica_id = c.id "
-        f"JOIN radiologias r ON r.id = e.radiologia_id "
-        f"WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql} "
+        f"JOIN agendamentos a ON a.clinica_id = c.id "
+        f"JOIN radiologias r ON r.id = a.radiologia_id "
+        f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a} "
         f"GROUP BY c.id, c.nome, r.nome ORDER BY totalExames DESC LIMIT %s",
-        [di, df] + rad_params + [limite]
+        [di, df] + rad_params_a + [limite]
     )
     return ok(rows)
 
@@ -1819,17 +1826,21 @@ def exames_ranking_medicos():
         cli_sql = " AND m.clinica_id = %s"
         cli_params = [clinica_id]
 
+    rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
+    cli_sql_a = cli_sql.replace("m.clinica_id", "m.clinica_id")  # mantém igual
+
     rows = query(
         f"SELECT m.id AS medicoId, m.nome AS medicoNome, c.nome AS clinicaNome, "
-        f"       r.nome AS radiologiaNome, COUNT(e.id) AS totalExames, "
-        f"       COALESCE(SUM(e.valor),0) AS faturamento "
+        f"       r.nome AS radiologiaNome, COUNT(a.id) AS totalExames, "
+        f"       COALESCE(SUM(te.valor_base),0) AS faturamento "
         f"FROM medicos m "
         f"JOIN clinicas c ON c.id = m.clinica_id "
-        f"JOIN exames e ON e.medico_id = m.id "
-        f"JOIN radiologias r ON r.id = e.radiologia_id "
-        f"WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql}{cli_sql} "
+        f"JOIN agendamentos a ON a.medico_id = m.id "
+        f"JOIN radiologias r ON r.id = a.radiologia_id "
+        f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+        f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a}{cli_sql} "
         f"GROUP BY m.id, m.nome, c.nome, r.nome ORDER BY totalExames DESC LIMIT %s",
-        [di, df] + rad_params + cli_params + [limite]
+        [di, df] + rad_params_a + cli_params + [limite]
     )
     return ok(rows)
 
@@ -1846,32 +1857,36 @@ def exames_destaques():
 
     rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id)
 
+    rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
+
     med_dest = query(
-        f"SELECT m.nome AS nome, COUNT(e.id) AS totalExames, c.nome AS clinicaNome "
-        f"FROM exames e JOIN medicos m ON m.id = e.medico_id JOIN clinicas c ON c.id = m.clinica_id "
-        f"WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql} "
+        f"SELECT m.nome AS nome, COUNT(a.id) AS totalExames, c.nome AS clinicaNome "
+        f"FROM agendamentos a "
+        f"JOIN medicos m ON m.id = a.medico_id "
+        f"JOIN clinicas c ON c.id = m.clinica_id "
+        f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a} "
         f"GROUP BY m.id, m.nome, c.nome ORDER BY totalExames DESC LIMIT 1",
-        [di, df] + rad_params, fetch="one"
+        [di, df] + rad_params_a, fetch="one"
     )
 
     cli_lider = query(
-        f"SELECT c.nome AS nome, COUNT(e.id) AS totalExames "
-        f"FROM exames e JOIN clinicas c ON c.id = e.clinica_id "
-        f"WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql} "
+        f"SELECT c.nome AS nome, COUNT(a.id) AS totalExames "
+        f"FROM agendamentos a JOIN clinicas c ON c.id = a.clinica_id "
+        f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a} "
         f"GROUP BY c.id, c.nome ORDER BY totalExames DESC LIMIT 1",
-        [di, df] + rad_params, fetch="one"
+        [di, df] + rad_params_a, fetch="one"
     )
 
     tipo_top = query(
         f"SELECT te.label AS tipo, COUNT(*) AS quantidade "
-        f"FROM exames e JOIN tipos_exame te ON te.id = e.tipo_exame_id "
-        f"WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql} "
+        f"FROM agendamentos a JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+        f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a} "
         f"GROUP BY te.label ORDER BY quantidade DESC LIMIT 1",
-        [di, df] + rad_params, fetch="one"
+        [di, df] + rad_params_a, fetch="one"
     )
 
-    total_atual    = query(f"SELECT COUNT(*) AS t FROM exames e WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql}", [di, df] + rad_params, fetch="one")
-    total_anterior = query(f"SELECT COUNT(*) AS t FROM exames e WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql}", [pi, pf] + rad_params, fetch="one")
+    total_atual    = query(f"SELECT COUNT(*) AS t FROM agendamentos a WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a}", [di, df] + rad_params_a, fetch="one")
+    total_anterior = query(f"SELECT COUNT(*) AS t FROM agendamentos a WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a}", [pi, pf] + rad_params_a, fetch="one")
 
     perc_lider = 0
     if tipo_top and cli_lider:
@@ -2150,11 +2165,15 @@ def financeiro_kpis():
 
     rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id)
 
+    rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
+
     def _fat(d_ini, d_fim):
         r = query(
-            f"SELECT COALESCE(SUM(e.valor),0) AS t, COUNT(e.id) AS c "
-            f"FROM exames e WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql}",
-            [d_ini, d_fim] + rad_params, fetch="one"
+            f"SELECT COALESCE(SUM(te.valor_base),0) AS t, COUNT(a.id) AS c "
+            f"FROM agendamentos a "
+            f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+            f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a}",
+            [d_ini, d_fim] + rad_params_a, fetch="one"
         )
         return r or {"t": 0, "c": 0}
 
@@ -2166,51 +2185,40 @@ def financeiro_kpis():
     exm_atual = atual.get("c", 0)
     exm_ant   = anterior.get("c", 0)
 
-    # Clínicas ativas no período
+    # Clínicas ativas no período (realizados)
     cli_ativas = query(
-        f"SELECT COUNT(DISTINCT e.clinica_id) AS c FROM exames e "
-        f"WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql}",
-        [di, df] + rad_params, fetch="one"
+        f"SELECT COUNT(DISTINCT a.clinica_id) AS c FROM agendamentos a "
+        f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a}",
+        [di, df] + rad_params_a, fetch="one"
     )
 
-    # Comissões
-    com = query(
-        f"SELECT COALESCE(SUM(co.valor_comissao),0) AS total, "
-        f"       COALESCE(SUM(CASE WHEN co.status='pendente' THEN co.valor_comissao ELSE 0 END),0) AS pendente "
-        f"FROM comissoes co JOIN exames e ON e.id = co.exame_id "
-        f"WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql}",
-        [di, df] + rad_params, fetch="one"
-    )
+    # Comissões — ainda sem dados (tabela comissoes vazia), retorna zero
+    com_total = 0.0
+    com_pend  = 0.0
+    com_ant_v = 0.0
 
-    # Exames agendados futuros
+    # Previsibilidade de caixa — agendamentos com status 'confirmado'
     agend = query(
-        f"SELECT COUNT(*) AS c FROM agendamentos a "
-        f"WHERE a.status IN ('agendado','confirmado') AND a.data_agendamento >= CURDATE()"
-        + (f" AND a.radiologia_id = %s" if radiologia_id != "all" else ""),
-        rad_params if radiologia_id != "all" else [], fetch="one"
+        f"SELECT COUNT(a.id) AS c, COALESCE(SUM(te.valor_base),0) AS valor "
+        f"FROM agendamentos a "
+        f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+        f"WHERE a.status='confirmado' {rad_sql_a}",
+        rad_params_a, fetch="one"
     )
 
     # Ticket médio
     fat_med_cli = query(
         f"SELECT COALESCE(AVG(sub.fat),0) AS avg_fat "
-        f"FROM (SELECT e.clinica_id, SUM(e.valor) AS fat FROM exames e "
-        f"      WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql} "
-        f"      GROUP BY e.clinica_id) sub",
-        [di, df] + rad_params, fetch="one"
+        f"FROM (SELECT a.clinica_id, SUM(te.valor_base) AS fat "
+        f"      FROM agendamentos a "
+        f"      JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+        f"      WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a} "
+        f"      GROUP BY a.clinica_id) sub",
+        [di, df] + rad_params_a, fetch="one"
     )
 
-    # Previsibilidade de caixa (agendados * ticket médio)
-    ticket = fat_atual / max(1, exm_atual)
-    previsao = to_decimal(agend.get("c", 0)) * ticket if agend else 0
-
-    com_total   = to_decimal(com.get("total", 0)) if com else 0
-    com_pend    = to_decimal(com.get("pendente", 0)) if com else 0
-    com_ant     = query(
-        f"SELECT COALESCE(SUM(co.valor_comissao),0) AS t "
-        f"FROM comissoes co JOIN exames e ON e.id = co.exame_id "
-        f"WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql}",
-        [pi, pf] + rad_params, fetch="one"
-    )
+    ticket   = fat_atual / max(1, exm_atual)
+    previsao = to_decimal(agend.get("valor", 0)) if agend else 0
 
     return ok({
         "faturamentoTotal":               fat_atual,
@@ -2318,15 +2326,19 @@ def financeiro_evolucao_faturamento():
 
     rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id)
 
+    rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
+
     rows = query(
-        f"SELECT DATE_FORMAT(e.data_exame,'%%b/%%y') AS label, "
+        f"SELECT DATE_FORMAT(a.data_agendamento,'%%b/%%y') AS label, "
         f"       r.id AS radiologiaId, r.nome AS nome, "
-        f"       COALESCE(SUM(e.valor),0) AS dados "
-        f"FROM exames e JOIN radiologias r ON r.id = e.radiologia_id "
-        f"WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql} "
-        f"GROUP BY YEAR(e.data_exame), MONTH(e.data_exame), r.id, r.nome "
-        f"ORDER BY YEAR(e.data_exame), MONTH(e.data_exame)",
-        [di, df] + rad_params
+        f"       COALESCE(SUM(te.valor_base),0) AS dados "
+        f"FROM agendamentos a "
+        f"JOIN radiologias r ON r.id = a.radiologia_id "
+        f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+        f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a} "
+        f"GROUP BY YEAR(a.data_agendamento), MONTH(a.data_agendamento), r.id, r.nome "
+        f"ORDER BY YEAR(a.data_agendamento), MONTH(a.data_agendamento)",
+        [di, df] + rad_params_a
     )
     return ok(_format_series(rows))
 
@@ -2394,39 +2406,44 @@ def financeiro_comparativo_faturamento():
     if radiologia_id == "all":
         agrupamento = "radiologia"
         rows = query(
-            "SELECT r.id, r.nome, COALESCE(SUM(e.valor),0) AS faturamento, COUNT(e.id) AS exames "
+            "SELECT r.id, r.nome, COALESCE(SUM(te.valor_base),0) AS faturamento, COUNT(a.id) AS exames "
             "FROM radiologias r "
-            "LEFT JOIN exames e ON e.radiologia_id = r.id "
-            "       AND e.status='realizado' AND e.data_exame BETWEEN %s AND %s "
+            "LEFT JOIN agendamentos a ON a.radiologia_id = r.id "
+            "       AND a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s "
+            "LEFT JOIN tipos_exame te ON te.id = a.tipo_exame_id "
             "GROUP BY r.id, r.nome ORDER BY faturamento DESC",
             (di, df)
         )
-        # breakdown por clínica para cada radiologia
         for row in rows:
             row["breakdown"] = query(
-                "SELECT c.id, c.nome, COALESCE(SUM(e.valor),0) AS faturamento, COUNT(e.id) AS exames "
-                "FROM clinicas c JOIN exames e ON e.clinica_id = c.id "
-                "WHERE e.radiologia_id = %s AND e.status='realizado' AND e.data_exame BETWEEN %s AND %s "
+                "SELECT c.id, c.nome, COALESCE(SUM(te.valor_base),0) AS faturamento, COUNT(a.id) AS exames "
+                "FROM clinicas c "
+                "JOIN agendamentos a ON a.clinica_id = c.id "
+                "JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+                "WHERE a.radiologia_id = %s AND a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s "
                 "GROUP BY c.id, c.nome ORDER BY faturamento DESC LIMIT 5",
                 (row["id"], di, df)
             )
     else:
         agrupamento = "clinica"
         rows = query(
-            "SELECT c.id, c.nome, COALESCE(SUM(e.valor),0) AS faturamento, COUNT(e.id) AS exames "
+            "SELECT c.id, c.nome, COALESCE(SUM(te.valor_base),0) AS faturamento, COUNT(a.id) AS exames "
             "FROM clinicas c "
-            "LEFT JOIN exames e ON e.clinica_id = c.id "
-            "       AND e.radiologia_id = %s "
-            "       AND e.status='realizado' AND e.data_exame BETWEEN %s AND %s "
+            "LEFT JOIN agendamentos a ON a.clinica_id = c.id "
+            "       AND a.radiologia_id = %s "
+            "       AND a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s "
+            "LEFT JOIN tipos_exame te ON te.id = a.tipo_exame_id "
             "GROUP BY c.id, c.nome ORDER BY faturamento DESC",
             (radiologia_id, di, df)
         )
         for row in rows:
             row["breakdown"] = query(
-                "SELECT m.id, m.nome, COALESCE(SUM(e.valor),0) AS faturamento, COUNT(e.id) AS exames "
-                "FROM medicos m JOIN exames e ON e.medico_id = m.id "
-                "WHERE e.clinica_id = %s AND e.radiologia_id = %s "
-                "AND e.status='realizado' AND e.data_exame BETWEEN %s AND %s "
+                "SELECT m.id, m.nome, COALESCE(SUM(te.valor_base),0) AS faturamento, COUNT(a.id) AS exames "
+                "FROM medicos m "
+                "JOIN agendamentos a ON a.medico_id = m.id "
+                "JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+                "WHERE a.clinica_id = %s AND a.radiologia_id = %s "
+                "AND a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s "
                 "GROUP BY m.id, m.nome ORDER BY faturamento DESC LIMIT 5",
                 (row["id"], radiologia_id, di, df)
             )
