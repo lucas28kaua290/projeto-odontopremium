@@ -2471,7 +2471,7 @@ const NewAppointmentModal = (() => {
     document.getElementById('newPaciente').value = '';
     document.getElementById('newCpf').value = '';
     document.getElementById('newTelefone').value = '';
-    document.getElementById('newIdade').value = '';
+    document.getElementById('newNascimento').value = '';
     document.getElementById('newRadiologia').value = '';
     document.getElementById('newTipoExame').value = '';
     document.getElementById('newDate').value = today;
@@ -2697,7 +2697,7 @@ const NewAppointmentModal = (() => {
 
   function openEdit(ag) {
     editingAppointment = ag;
-    resetForm();
+    
     _populateRadiologiaSelect();
     _populateTipoExameSelect();
     fillFormForEdit(ag);
