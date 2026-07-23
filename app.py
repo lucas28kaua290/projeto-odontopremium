@@ -1207,33 +1207,60 @@ def atualizar_agendamento(agendamento_id):
     if not existe:
         return not_found("Agendamento não encontrado.")
 
-    campos = {
-        "status":       "status",
-        "observacoes":  "observacoes",
-        "data":         "data_agendamento",
-        "horarioInicio":"hora_agendamento",
-    }
     sets, params = [], []
-    for chave, coluna in campos.items():
+
+    # Campos escalares diretos
+    campos_diretos = {
+        "status":        "status",
+        "observacoes":   "observacoes",
+        "data":          "data_agendamento",
+        "horarioInicio": "hora_agendamento",
+        "radiologiaId":  "radiologia_id",   # ← adicionado: edição de radiologia
+    }
+    for chave, coluna in campos_diretos.items():
         if chave in data and data[chave] is not None:
             sets.append(f"{coluna} = %s")
             params.append(data[chave])
 
-    # Suporte a mudança de médico, clínica e tipo de exame
+    # Médico (aceita null para remover vínculo)
     if "medicoId" in data:
         sets.append("medico_id = %s")
         params.append(data["medicoId"] or None)
+
+    # Clínica (aceita null para remover vínculo)
     if "clinicaId" in data:
         sets.append("clinica_id = %s")
         params.append(data["clinicaId"] or None)
-    if "tipoExameId" in data:
+
+    # Tipo de exame — prefere ID; fallback para label
+    if "tipoExameId" in data and data["tipoExameId"]:
         sets.append("tipo_exame_id = %s")
-        params.append(data["tipoExameId"] or None)
-    elif "tipoExame" in data:
+        params.append(data["tipoExameId"])
+    elif "tipoExame" in data and data["tipoExame"]:
         te = query("SELECT id FROM tipos_exame WHERE label = %s", (data["tipoExame"],), fetch="one")
         if te:
             sets.append("tipo_exame_id = %s")
             params.append(te["id"])
+
+    # Atualiza paciente (nome/telefone) se o agendamento não usa pacienteId externo
+    if data.get("paciente") or data.get("pacienteTelefone"):
+        paciente_row = query(
+            "SELECT paciente_id FROM agendamentos WHERE id = %s", (agendamento_id,), fetch="one"
+        )
+        if paciente_row:
+            p_sets, p_params = [], []
+            if data.get("paciente"):
+                p_sets.append("nome = %s"); p_params.append(data["paciente"])
+            if data.get("pacienteTelefone"):
+                p_sets.append("telefone = %s"); p_params.append(data["pacienteTelefone"])
+            if data.get("pacienteCpf"):
+                p_sets.append("cpf = %s"); p_params.append(data["pacienteCpf"])
+            if p_sets:
+                p_params.append(paciente_row["paciente_id"])
+                query(
+                    f"UPDATE pacientes SET {', '.join(p_sets)} WHERE id = %s",
+                    p_params, fetch="none"
+                )
 
     if not sets:
         return err("Nenhum campo para atualizar.", 400)

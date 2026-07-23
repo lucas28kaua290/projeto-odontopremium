@@ -2247,20 +2247,22 @@ const NewAppointmentModal = (() => {
     selCli.disabled = true;
     hintCli.textContent = '';
 
-    onClinicaChange(); // reset médico
+    // Reset médico sem aguardar (não precisa de await aqui)
+    onClinicaChange();
 
     if (!radId) {
       selCli.innerHTML = '<option value="">Selecione a clínica...</option>';
       hintCli.textContent = '— selecione uma radiologia primeiro';
-      return;
+      return; // Promise<void> resolvida com selCli vazio
     }
 
     try {
       const clinicas = await Api.getClinicasPorRadiologia(radId);
       selCli.innerHTML = '<option value="">Selecione a clínica...</option>';
-      clinicas.data.forEach(c => {
+      (clinicas.data || []).forEach(c => {
         const opt = document.createElement('option');
-        opt.value = c.id ?? c.nome; opt.textContent = c.nome;
+        opt.value = c.id ?? c.nome;
+        opt.textContent = c.nome;
         selCli.appendChild(opt);
       });
       selCli.disabled = false;
@@ -2271,6 +2273,9 @@ const NewAppointmentModal = (() => {
     }
 
     tryUpdateHorarios();
+    // A Promise retornada por esta função async resolve aqui,
+    // depois que as clínicas estão no DOM — o .then() em fillFormForEdit
+    // só executa a partir deste ponto.
   }
 
   /* ------------------------------------------------------------------
@@ -2286,17 +2291,17 @@ const NewAppointmentModal = (() => {
     selMed.disabled = true;
     hintMed.textContent = '— selecione uma clínica primeiro';
 
-    if (!clinicaId) return;
+    if (!clinicaId) return; // Promise<void> resolvida com selMed vazio
 
     selMed.innerHTML = '<option value="">Carregando médicos...</option>';
 
     try {
       const medicos = await Api.getMedicos({ clinicaId, radiologiaId: radId, semPeriodo: true });
       selMed.innerHTML = '<option value="">Selecione o médico...</option>';
-      medicos.data.forEach(m => {
+      (medicos.data || []).forEach(m => {
         const opt = document.createElement('option');
         opt.value = m.id ?? m.name;
-        opt.textContent = m.name || m.nome; // ← aceita os dois
+        opt.textContent = m.name || m.nome;
         selMed.appendChild(opt);
       });
       selMed.disabled = false;
@@ -2306,6 +2311,7 @@ const NewAppointmentModal = (() => {
       selMed.innerHTML = '<option value="">Erro ao carregar</option>';
       hintMed.textContent = 'Erro ao carregar médicos.';
     }
+    // A Promise resolve aqui — médicos já estão no DOM quando .then() executa
   }
 
   /* ------------------------------------------------------------------
@@ -2485,54 +2491,68 @@ const NewAppointmentModal = (() => {
   }
 
   function fillFormForEdit(ag) {
+    // 1. Campos simples — sem dependência de cascata
     document.getElementById('newPaciente').value = ag.paciente || '';
     document.getElementById('newCpf').value = ag.pacienteCpf || '';
     document.getElementById('newTelefone').value = ag.pacienteTelefone || '';
     document.getElementById('newIdade').value = ag.pacienteIdade || '';
-    // tipoExameId é o id do banco (ex: 'tomografia'); tipoExame é o label
-    document.getElementById('newTipoExame').value = ag.tipoExameId || ag.tipoExame || '';
     document.getElementById('newDate').value = ag.data || '';
     document.getElementById('newStatus').value = ag.status || 'agendado';
     document.getElementById('newObservacoes').value = ag.observacoes || '';
 
-    /* Dispara cascatas em sequência */
-    document.getElementById('newRadiologia').value = ag.radiologiaId || '';
-    onRadiologiaChange();
+    // 2. Tipo de exame (select já populado por _populateTipoExameSelect em openEdit)
+    document.getElementById('newTipoExame').value = ag.tipoExameId || ag.tipoExame || '';
+    updateValuePreview();
 
-    if (ag.clinicaId) {
-      const selCli = document.getElementById('newClinica');
-      setTimeout(() => {
+    // 3. Radiologia (select já populado por _populateRadiologiaSelect em openEdit)
+    //    Setamos o valor e depois disparamos a cascata ASSINCRONAMENTE,
+    //    esperando onRadiologiaChange() popular o select de clínicas antes
+    //    de tentar selecionar a clínica do agendamento.
+    const selRad = document.getElementById('newRadiologia');
+    selRad.value = ag.radiologiaId || '';
+
+    // 4. Cascata Radiologia → Clínica → Médico
+    //    onRadiologiaChange() é async — aguardamos ela terminar para setar clínica/médico
+    onRadiologiaChange().then(() => {
+      if (ag.clinicaId) {
+        const selCli = document.getElementById('newClinica');
         selCli.value = String(ag.clinicaId);
-        onClinicaChange();
-        setTimeout(() => {
+        // Dispara cascata Clínica → Médico e aguarda para setar o médico
+        onClinicaChange().then(() => {
           if (ag.medicoId) {
             document.getElementById('newMedico').value = String(ag.medicoId);
           }
-        }, 600);
-      }, 600);
-    }
+        });
+      }
+    });
 
-    updateValuePreview();
-
-    /* Dispara cálculo de horários e pré-seleciona o slot do agendamento */
+    // 5. Horários: dispara o cálculo e, após o debounce (850ms) + margem,
+    //    injeta o horário atual do agendamento como opção selecionada.
+    //    Fazemos isso independente da cascata de clínica/médico.
     tryUpdateHorarios();
     setTimeout(() => {
       const selTime = document.getElementById('newTimeStart');
-      if (ag.horarioInicio) {
-        const match = [...selTime.options].find(o => o.value === ag.horarioInicio);
-        if (match) { match.selected = true; onHorarioChange(); }
-        else {
-          const opt = document.createElement('option');
-          opt.value = ag.horarioInicio;
-          const dur = DURACAO_POR_EXAME[ag.tipoExameId] || DURACAO_POR_EXAME[ag.tipoExame] || 30;
-          opt.textContent = `${ag.horarioInicio} → ${ag.horarioFim}  (${dur}min) — atual`;
-          opt.selected = true;
-          selTime.insertBefore(opt, selTime.options[1]);
-          selTime.disabled = false;
-          document.getElementById('newTimeEnd').value = ag.horarioFim;
-        }
+      if (!ag.horarioInicio) return;
+
+      // Tenta encontrar o slot já listado
+      const match = [...selTime.options].find(o => o.value === ag.horarioInicio);
+      if (match) {
+        match.selected = true;
+        onHorarioChange();
+      } else {
+        // Slot não disponível (ocupado ou fora da grade) — injeta como opção "atual"
+        const dur = DURACAO_POR_EXAME[ag.tipoExameId] || DURACAO_POR_EXAME[ag.tipoExame] || 30;
+        const opt = document.createElement('option');
+        opt.value = ag.horarioInicio;
+        opt.textContent = `${ag.horarioInicio} → ${ag.horarioFim} (${dur}min) — atual`;
+        opt.selected = true;
+        // Insere logo após o placeholder vazio
+        const placeholder = selTime.options[0];
+        selTime.insertBefore(opt, placeholder ? placeholder.nextSibling : null);
+        selTime.disabled = false;
+        document.getElementById('newTimeEnd').value = ag.horarioFim || '';
       }
-    }, 950);
+    }, 1100); // 850ms debounce + 250ms de margem
   }
 
   /* ------------------------------------------------------------------
