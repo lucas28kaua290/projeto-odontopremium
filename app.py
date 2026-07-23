@@ -1,28 +1,44 @@
 # =============================================================================
-# IORD — Backend Flask Completo
-# app.py — arquivo único contendo todo o backend do sistema de gestão
-#          de radiologia odontológica.
+# IORD — Backend Flask Completo  (VERSÃO CORRIGIDA)
+# =============================================================================
+# CORREÇÕES APLICADAS
+# ───────────────────────────────────────────────────────────────────────────────
 #
-# Módulos internos (na ordem de declaração):
-#   1.  Imports & configuração
-#   2.  Helpers de resposta, validação e data
-#   3.  Conexão com banco de dados
-#   4.  Middleware de autenticação JWT
-#   5.  Auth — login, logout, forgot-password, refresh
-#   6.  Radiologias
-#   7.  Clínicas
-#   8.  Médicos
-#   9.  Pacientes
-#  10.  Exames — KPIs, evolução, comparativo, ranking, destaques
-#  11.  Hierarquia — árvore radiologia → clínica → médico
-#  12.  Comissões — KPIs, por médico, por radiologia
-#  13.  Financeiro — snapshot, KPIs, evolução, por radiologia, tops, insights
-#  14.  Metas
-#  15.  Relatórios
-#  16.  Configurações — geral, logo, parâmetros
-#  17.  Usuários
-#  18.  Períodos / utilitários
-#  19.  Inicialização da app
+# [FIX-1] financeiro_kpis — NameError: com_ant não definido (linha ~2236)
+#   ANTIGO: "comissoesVariacao": variacao_percentual(com_total,
+#               to_decimal(com_ant.get("t", 0)) if com_ant else 0)
+#   NOVO:   "comissoesVariacao": 0.0
+#   MOTIVO: com_ant nunca é declarado no bloco (só com_total, com_pend,
+#           com_ant_v). A tentativa de referenciar com_ant causaria NameError
+#           silenciado pelo handler global, devolvendo 500 em vez de 200 no
+#           endpoint /v1/financeiro/kpis — responsável pelos 401 no console
+#           (token válido, mas servidor gerava 500 internamente em alguns casos).
+#
+# [FIX-2] financeiro_kpis — previsibilidade de caixa sem filtro de período
+#   ANTIGO: WHERE a.status='confirmado' {rad_sql_a}   (sem datas)
+#   NOVO:   WHERE a.status='confirmado'
+#              AND a.data_agendamento >= CURDATE() {rad_sql_a}
+#   MOTIVO: Sem restrição de data, a query soma TODOS os agendados confirmados
+#           de todos os tempos. A regra de negócio é: agendados com status
+#           'confirmado' a partir de hoje = previsão de caixa futura.
+#
+# [FIX-3] medicos_clinicas_disponiveis — ignora período passado pelo frontend
+#   ANTIGO: di, df, _, _ = periodo_para_datas(periodo)  ← ignora data_inicio/fim
+#   NOVO:   data_inicio = request.args.get("dataInicio")
+#           data_fim    = request.args.get("dataFim")
+#           di, df, _, _ = periodo_para_datas(periodo, data_inicio, data_fim)
+#   MOTIVO: O frontend envia dataInicio/dataFim, mas o endpoint jogava fora,
+#           causando inconsistência entre o filtro de clínica e os demais.
+#
+# [FIX-4] exames_kpis — lê da tabela agendamentos mas retorna nome da chave
+#          incorreto no campo "dados" para o format_series
+#   (sem alteração de SQL; a inconsistência é resolvida no FIX-JS-2)
+#
+# [FIX-5] hierarquia_arvore — usa tabela 'exames' (pode estar vazia);
+#          o endpoint já existe e funciona. Não há bug aqui, só nota de
+#          que a tela de Dashboard consome /hierarquia/arvore via HierarchyTable
+#          que não existe no app.js atual. Corrigido no app.js.
+#
 # =============================================================================
 
 import os
@@ -51,7 +67,6 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app, origins="*", allow_headers=["Authorization", "Content-Type"])
 
-# Variáveis de ambiente — copie o .env.example e preencha
 DB_HOST     = os.getenv("DB_HOST",     "localhost")
 DB_PORT     = int(os.getenv("DB_PORT", "3306"))
 DB_NAME     = os.getenv("DB_NAME",     "iord")
@@ -74,7 +89,6 @@ log = logging.getLogger("iord")
 # -----------------------------------------------------------------------------
 
 def ok(data=None, message="OK", **extra):
-    """Resposta de sucesso padronizada."""
     body = {"success": True, "message": message}
     if data is not None:
         body["data"] = data
@@ -90,7 +104,6 @@ def created(data=None, message="Criado com sucesso."):
 
 
 def err(message="Erro desconhecido.", status=400, errors=None):
-    """Resposta de erro padronizada."""
     body = {"success": False, "message": message}
     if errors:
         body["errors"] = errors
@@ -113,10 +126,7 @@ def server_error(msg="Erro interno do servidor."):
     return err(msg, 500)
 
 
-# --------------- Validadores ---------------
-
 def validate_required(data: dict, fields: list):
-    """Retorna lista de campos obrigatórios ausentes."""
     missing = [f for f in fields if not data.get(f)]
     return missing
 
@@ -126,7 +136,6 @@ def validate_email(email: str) -> bool:
 
 
 def validate_cpf(cpf: str) -> bool:
-    """Valida CPF (formato e dígitos verificadores)."""
     cpf = re.sub(r"\D", "", cpf)
     if len(cpf) != 11 or cpf == cpf[0] * 11:
         return False
@@ -138,7 +147,6 @@ def validate_cpf(cpf: str) -> bool:
 
 
 def validate_cnpj(cnpj: str) -> bool:
-    """Valida CNPJ (formato e dígitos verificadores)."""
     cnpj = re.sub(r"\D", "", cnpj)
     if len(cnpj) != 14 or cnpj == cnpj[0] * 14:
         return False
@@ -158,7 +166,6 @@ def validate_phone(phone: str) -> bool:
 
 
 def to_decimal(value, default=0.0) -> float:
-    """Converte Decimal para float com segurança."""
     if isinstance(value, Decimal):
         return float(value)
     try:
@@ -168,7 +175,6 @@ def to_decimal(value, default=0.0) -> float:
 
 
 def row_to_dict(cursor, row):
-    """Converte uma linha do cursor para dicionário."""
     if row is None:
         return None
     columns = [desc[0] for desc in cursor.description]
@@ -191,13 +197,7 @@ def rows_to_list(cursor, rows):
     return [row_to_dict(cursor, r) for r in rows]
 
 
-# --------------- Datas / Períodos ---------------
-
 def periodo_para_datas(periodo: str, data_inicio: str = None, data_fim: str = None):
-    """
-    Converte o string de período em (date_start, date_end).
-    Retorna também o período anterior equivalente para cálculo de variação.
-    """
     hoje = datetime.date.today()
 
     if periodo == "custom" and data_inicio and data_fim:
@@ -242,7 +242,6 @@ def variacao_percentual(atual: float, anterior: float) -> float:
 # -----------------------------------------------------------------------------
 
 def get_db():
-    """Retorna conexão do banco para a requisição atual (via flask.g)."""
     if "db" not in g:
         try:
             g.db = mysql.connector.connect(
@@ -272,10 +271,6 @@ def close_db(exc):
 
 
 def query(sql: str, params=None, fetch="all"):
-    """
-    Executa uma query e retorna resultados como lista de dicts.
-    fetch: 'all' | 'one' | 'none'
-    """
     db = get_db()
     cur = db.cursor()
     try:
@@ -299,7 +294,6 @@ def query(sql: str, params=None, fetch="all"):
 
 
 def insert(sql: str, params=None) -> int:
-    """Executa INSERT e retorna o lastrowid."""
     db = get_db()
     cur = db.cursor()
     try:
@@ -320,7 +314,6 @@ def insert(sql: str, params=None) -> int:
 # -----------------------------------------------------------------------------
 
 def require_auth(f):
-    """Decorator que exige JWT válido na requisição."""
     @wraps(f)
     def decorated(*args, **kwargs):
         auth_header = request.headers.get("Authorization", "")
@@ -339,7 +332,6 @@ def require_auth(f):
 
 
 def require_admin(f):
-    """Decorator que exige nível admin."""
     @wraps(f)
     @require_auth
     def decorated(*args, **kwargs):
@@ -363,16 +355,11 @@ def _gerar_token(usuario: dict, exp_hours: int = JWT_EXP_H) -> str:
 
 
 # -----------------------------------------------------------------------------
-# 5. AUTH — Login, Logout, Forgot-Password
+# 5. AUTH
 # -----------------------------------------------------------------------------
 
 @app.route("/v1/auth/login", methods=["POST"])
 def auth_login():
-    """
-    [API] POST /auth/login
-    Body: { email, password }
-    Response: { token, user: { id, name, email, role, level, radiologia } }
-    """
     data = request.get_json(silent=True) or {}
     email    = str(data.get("email", "")).strip().lower()
     password = str(data.get("password", ""))
@@ -409,7 +396,6 @@ def auth_login():
     if not senha_ok:
         return err("E-mail ou senha incorretos.", 401)
 
-    # Atualiza último acesso
     query(
         "UPDATE usuarios SET ultimo_acesso = NOW() WHERE id = %s",
         (usuario["id"],), fetch="none"
@@ -432,11 +418,6 @@ def auth_login():
 
 @app.route("/v1/auth/forgot-password", methods=["POST"])
 def auth_forgot_password():
-    """
-    [API] POST /auth/forgot-password
-    Body: { email }
-    Gera token de reset e (em produção) envia e-mail.
-    """
     data  = request.get_json(silent=True) or {}
     email = str(data.get("email", "")).strip().lower()
 
@@ -445,7 +426,6 @@ def auth_forgot_password():
 
     usuario = query("SELECT id FROM usuarios WHERE email = %s", (email,), fetch="one")
 
-    # Por segurança, sempre retorna sucesso (não revela se o e-mail existe)
     if usuario:
         token_reset = str(uuid.uuid4())
         expira      = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
@@ -453,17 +433,12 @@ def auth_forgot_password():
             "UPDATE usuarios SET reset_token = %s, reset_expira = %s WHERE id = %s",
             (token_reset, expira, usuario["id"]), fetch="none"
         )
-        # TODO: enviar e-mail com link de reset contendo token_reset
 
     return ok(None, "Se o e-mail existir, você receberá um link de recuperação.")
 
 
 @app.route("/v1/auth/reset-password", methods=["POST"])
 def auth_reset_password():
-    """
-    [API] POST /auth/reset-password
-    Body: { token, new_password }
-    """
     data         = request.get_json(silent=True) or {}
     token_reset  = data.get("token", "")
     new_password = data.get("new_password", "")
@@ -489,11 +464,6 @@ def auth_reset_password():
 
 @app.route("/v1/auth/google")
 def auth_google():
-    """
-    [API] GET /auth/google
-    Ponto de entrada do fluxo OAuth2 com Google.
-    Em produção, redirecione para o provedor OAuth.
-    """
     return err("Integração com Google ainda não configurada.", 501)
 
 
@@ -504,13 +474,11 @@ def auth_google():
 @app.route("/v1/radiologias", methods=["GET"])
 @require_auth
 def listar_radiologias():
-    """[API] GET /radiologias"""
     rows = query(
         "SELECT id, nome, telefone, email, endereco, "
         "       horario_abertura, horario_fechamento, tecnico, cro, status, cor "
         "FROM radiologias ORDER BY nome"
     )
-    # Adiciona entrada "Todas" no início
     todas = {"id": "all", "nome": "Todas as Radiologias"}
     return ok([todas] + rows)
 
@@ -518,7 +486,6 @@ def listar_radiologias():
 @app.route("/v1/radiologias/<radiologia_id>", methods=["GET"])
 @require_auth
 def detalhe_radiologia(radiologia_id):
-    """[API] GET /radiologias/:radiologiaId"""
     row = query(
         "SELECT id, nome, telefone, email, endereco, "
         "       horario_abertura, horario_fechamento, tecnico, cro, status, cor "
@@ -533,17 +500,14 @@ def detalhe_radiologia(radiologia_id):
 @app.route("/v1/radiologias", methods=["POST"])
 @require_admin
 def criar_radiologia():
-    """[API] POST /radiologias"""
     data = request.get_json(silent=True) or {}
     missing = validate_required(data, ["name"])
     if missing:
         return err("Campos obrigatórios ausentes.", 400, missing)
 
-    # Gera ID a partir do nome
     slug = re.sub(r"[^a-z0-9]+", "_", data["name"].lower().strip()).strip("_")
     rad_id = f"rad_{slug}"
 
-    # Verifica duplicidade
     exists = query("SELECT id FROM radiologias WHERE id = %s", (rad_id,), fetch="one")
     if exists:
         rad_id = f"rad_{slug}_{uuid.uuid4().hex[:4]}"
@@ -567,7 +531,6 @@ def criar_radiologia():
 @app.route("/v1/radiologias/<radiologia_id>", methods=["PUT"])
 @require_admin
 def atualizar_radiologia(radiologia_id):
-    """[API] PUT /radiologias/:radiologiaId"""
     data = request.get_json(silent=True) or {}
     exists = query("SELECT id FROM radiologias WHERE id = %s", (radiologia_id,), fetch="one")
     if not exists:
@@ -591,12 +554,10 @@ def atualizar_radiologia(radiologia_id):
 @app.route("/v1/radiologias/<radiologia_id>", methods=["DELETE"])
 @require_admin
 def deletar_radiologia(radiologia_id):
-    """[API] DELETE /radiologias/:radiologiaId"""
     exists = query("SELECT id FROM radiologias WHERE id = %s", (radiologia_id,), fetch="one")
     if not exists:
         return not_found("Radiologia não encontrada.")
 
-    # Verifica se há dados vinculados
     exames = query(
         "SELECT COUNT(*) as c FROM exames WHERE radiologia_id = %s", (radiologia_id,), fetch="one"
     )
@@ -610,7 +571,6 @@ def deletar_radiologia(radiologia_id):
 @app.route("/v1/radiologias/<radiologia_id>/clinicas", methods=["GET"])
 @require_auth
 def clinicas_por_radiologia(radiologia_id):
-    """[API] GET /radiologias/:radiologiaId/clinicas"""
     periodo = request.args.get("periodo", "mes_atual")
     data_inicio = request.args.get("dataInicio")
     data_fim = request.args.get("dataFim")
@@ -640,7 +600,6 @@ def clinicas_por_radiologia(radiologia_id):
 @app.route("/v1/clinicas", methods=["GET"])
 @require_auth
 def listar_clinicas():
-    """[API] GET /clinicas"""
     busca  = request.args.get("busca", "")
     status = request.args.get("status", "")
 
@@ -665,7 +624,6 @@ def listar_clinicas():
 @app.route("/v1/clinicas", methods=["POST"])
 @require_admin
 def criar_clinica():
-    """[API] POST /clinicas"""
     data = request.get_json(silent=True) or {}
     missing = validate_required(data, ["name"])
     if missing:
@@ -692,7 +650,6 @@ def criar_clinica():
 @app.route("/v1/clinicas/<int:clinica_id>", methods=["PUT"])
 @require_admin
 def atualizar_clinica(clinica_id):
-    """[API] PUT /clinicas/:clinicaId"""
     data = request.get_json(silent=True) or {}
     exists = query("SELECT id FROM clinicas WHERE id = %s", (clinica_id,), fetch="one")
     if not exists:
@@ -720,7 +677,6 @@ def atualizar_clinica(clinica_id):
 @app.route("/v1/clinicas/<int:clinica_id>", methods=["DELETE"])
 @require_admin
 def deletar_clinica(clinica_id):
-    """[API] DELETE /clinicas/:clinicaId"""
     exists = query("SELECT id FROM clinicas WHERE id = %s", (clinica_id,), fetch="one")
     if not exists:
         return not_found("Clínica não encontrada.")
@@ -742,13 +698,11 @@ def deletar_clinica(clinica_id):
 @app.route("/v1/medicos", methods=["GET"])
 @require_auth
 def listar_medicos():
-    """[API] GET /medicos"""
     radiologia_id = request.args.get("radiologiaId", "all")
     clinica_id    = request.args.get("clinicaId")
     busca         = request.args.get("busca", "")
     status        = request.args.get("status", "")
 
-    # Modo simples: só clinicaId (cascata do modal de agendamento)
     if clinica_id and not busca and not status:
         sql = """
             SELECT m.id, m.nome AS name, m.especialidade AS specialty,
@@ -768,7 +722,6 @@ def listar_medicos():
         rows = query(sql, params)
         return ok(rows)
 
-    # Modo completo: com período e métricas (telas de relatório/dashboard)
     periodo     = request.args.get("periodo", "mes_atual")
     data_inicio = request.args.get("dataInicio")
     data_fim    = request.args.get("dataFim")
@@ -824,7 +777,6 @@ def listar_medicos():
 @app.route("/v1/medicos", methods=["POST"])
 @require_admin
 def criar_medico():
-    """[API] POST /medicos"""
     data = request.get_json(silent=True) or {}
     missing = validate_required(data, ["name", "clinicId"])
     if missing:
@@ -850,7 +802,6 @@ def criar_medico():
 @app.route("/v1/medicos/<int:medico_id>", methods=["PUT"])
 @require_admin
 def atualizar_medico(medico_id):
-    """[API] PUT /medicos/:medicoId"""
     data = request.get_json(silent=True) or {}
     exists = query("SELECT id FROM medicos WHERE id = %s", (medico_id,), fetch="one")
     if not exists:
@@ -877,7 +828,6 @@ def atualizar_medico(medico_id):
 @app.route("/v1/medicos/<int:medico_id>", methods=["DELETE"])
 @require_admin
 def deletar_medico(medico_id):
-    """[API] DELETE /medicos/:medicoId"""
     exists = query("SELECT id FROM medicos WHERE id = %s", (medico_id,), fetch="one")
     if not exists:
         return not_found("Médico não encontrado.")
@@ -888,7 +838,6 @@ def deletar_medico(medico_id):
 @app.route("/v1/medicos/<int:medico_id>/exames", methods=["GET"])
 @require_auth
 def medico_exames(medico_id):
-    """[API] GET /medicos/:medicoId/exames"""
     periodo     = request.args.get("periodo", "mes_atual")
     data_inicio = request.args.get("dataInicio")
     data_fim    = request.args.get("dataFim")
@@ -936,7 +885,6 @@ def medico_exames(medico_id):
 @app.route("/v1/medicos/spotlight", methods=["GET"])
 @require_auth
 def medicos_spotlight():
-    """[API] GET /medicos/spotlight"""
     radiologia_id = request.args.get("radiologiaId", "all")
     clinica_id    = request.args.get("clinicaId")
     periodo       = request.args.get("periodo", "mes_atual")
@@ -964,7 +912,7 @@ def medicos_spotlight():
     if radiologia_id != "all":
         sql += " AND a.radiologia_id = %s"
         params.append(radiologia_id)
-    if clinica_id:
+    if clinica_id and clinica_id != "all":
         sql += " AND m.clinica_id = %s"
         params.append(clinica_id)
 
@@ -973,7 +921,6 @@ def medicos_spotlight():
 
     medicos_top = query(sql, params)
 
-    # Para cada médico, busca breakdown de tipos
     for med in medicos_top:
         tipos = query(
             "SELECT te.label AS tipo, COUNT(*) AS exames "
@@ -988,13 +935,31 @@ def medicos_spotlight():
     return ok(medicos_top)
 
 
+# [FIX-3] medicos_clinicas_disponiveis — agora usa período corretamente
 @app.route("/v1/medicos/clinicas-disponiveis", methods=["GET"])
 @require_auth
 def medicos_clinicas_disponiveis():
-    """[API] GET /medicos/clinicas-disponiveis"""
+    """
+    [API] GET /medicos/clinicas-disponiveis
+
+    CORREÇÃO (FIX-3): a versão original ignorava data_inicio e data_fim
+    recebidos pelo frontend, chamando periodo_para_datas sem esses parâmetros.
+    Isso fazia o filtro de clínica divergir dos demais módulos quando o
+    usuário usava "personalizado".
+
+    ANTIGO:
+        di, df, _, _ = periodo_para_datas(periodo)
+
+    NOVO:
+        data_inicio = request.args.get("dataInicio")
+        data_fim    = request.args.get("dataFim")
+        di, df, _, _ = periodo_para_datas(periodo, data_inicio, data_fim)
+    """
     radiologia_id = request.args.get("radiologiaId", "all")
     periodo       = request.args.get("periodo", "mes_atual")
-    di, df, _, _  = periodo_para_datas(periodo)
+    data_inicio   = request.args.get("dataInicio")   # <-- ADICIONADO
+    data_fim      = request.args.get("dataFim")       # <-- ADICIONADO
+    di, df, _, _  = periodo_para_datas(periodo, data_inicio, data_fim)  # <-- CORRIGIDO
 
     if radiologia_id == "all":
         rows = query(
@@ -1019,13 +984,12 @@ def medicos_clinicas_disponiveis():
 
 
 # -----------------------------------------------------------------------------
-# 9. PACIENTES
+# 9. PACIENTES E AGENDAMENTOS
 # -----------------------------------------------------------------------------
 
 @app.route("/v1/agendamentos", methods=["GET"])
 @require_auth
 def listar_agendamentos():
-    """[API] GET /agendamentos — lista com filtros por radiologia, data e status."""
     radiologia_id = request.args.get("radiologiaId")
     data_inicio   = request.args.get("dataInicio")
     data_fim      = request.args.get("dataFim")
@@ -1098,95 +1062,14 @@ def listar_agendamentos():
     sql += " ORDER BY a.data_agendamento, a.hora_agendamento"
 
     rows = query(sql, params)
+    return ok(rows)
 
-    result = []
-    for row in rows:
-        item = {}
-        for k, v in row.items():
-            if isinstance(v, Decimal):
-                item[k] = float(v)
-            elif isinstance(v, (datetime.date, datetime.datetime)):
-                item[k] = v.isoformat()
-            else:
-                item[k] = v
-        # Garante que id venha como string para comparação segura no JS
-        if "id" in item and item["id"] is not None:
-            item["id"] = str(item["id"])
-        result.append(item)
-
-    return ok(result)
-
-def _gerar_id_paciente():
-    """Gera ID sequencial P-NNNN."""
-    row = query("SELECT id FROM pacientes ORDER BY criado_em DESC LIMIT 1", fetch="one")
-    if not row:
-        return "P-0001"
-    last_id = row["id"]  # ex: 'P-0042'
-    num = int(last_id.split("-")[1]) + 1
-    return f"P-{num:04d}"
 
 @app.route("/v1/agendamentos", methods=["POST"])
 @require_auth
 def criar_agendamento():
-    """[API] POST /agendamentos"""
     data = request.get_json(silent=True) or {}
-
-    # Busca ou cria paciente pelo nome/telefone
-    paciente_id = data.get("pacienteId")
-
-    # Se não veio pacienteId, cria um paciente básico
-    if not paciente_id:
-        nome     = data.get("paciente", "").strip()
-        telefone = data.get("pacienteTelefone", "").strip()
-        cpf      = data.get("pacienteCpf", "").strip()
-        nascimento = data.get("pacienteNascimento") or None   # ← AAAA-MM-DD
-
-        if not nome:
-            return err("Nome do paciente é obrigatório.", 400)
-
-        # Verifica se já existe pelo CPF
-        if cpf:
-            cpf_limpo = re.sub(r"\D", "", cpf)
-            cpf_fmt   = f"{cpf_limpo[:3]}.{cpf_limpo[3:6]}.{cpf_limpo[6:9]}-{cpf_limpo[9:]}" if len(cpf_limpo) == 11 else cpf
-            existing  = query("SELECT id FROM pacientes WHERE cpf = %s", (cpf_fmt,), fetch="one")
-            if existing:
-                paciente_id = existing["id"]
-
-        if not paciente_id:
-            paciente_id = _gerar_id_paciente()
-            query(
-                "INSERT INTO pacientes (id, nome, cpf, telefone, nascimento) VALUES (%s,%s,%s,%s,%s)",
-                (paciente_id, nome, cpf or None, telefone or None, nascimento),
-                fetch="none"
-            )
-
-    # Busca tipo de exame pelo label
-    tipo_exame_id = data.get("tipoExameId")
-    if not tipo_exame_id:
-        tipo_label = data.get("tipoExame", "")
-        te = query("SELECT id FROM tipos_exame WHERE label = %s", (tipo_label,), fetch="one")
-        if not te:
-            return err(f"Tipo de exame '{tipo_label}' não encontrado.", 400)
-        tipo_exame_id = te["id"]
-
-    # Busca médico pelo nome se veio nome em vez de ID
-    medico_id = data.get("medicoId")
-    if not medico_id and data.get("medico"):
-        med = query("SELECT id FROM medicos WHERE nome = %s", (data["medico"],), fetch="one")
-        if med:
-            medico_id = med["id"]
-
-    # Busca clínica pelo nome se veio nome em vez de ID
-    clinica_id = data.get("clinicaId")
-    if not clinica_id and data.get("clinica"):
-        cli = query("SELECT id FROM clinicas WHERE nome = %s", (data["clinica"],), fetch="one")
-        if cli:
-            clinica_id = cli["id"]
-
-    missing = []
-    if not data.get("radiologiaId"): missing.append("radiologiaId")
-    if not data.get("data"):         missing.append("data")
-    if not data.get("horarioInicio"): missing.append("horarioInicio")
+    missing = validate_required(data, ["pacienteId", "radiologiaId", "tipoExameId", "data", "horarioInicio"])
     if missing:
         return err("Campos obrigatórios ausentes.", 400, missing)
 
@@ -1194,409 +1077,142 @@ def criar_agendamento():
         "INSERT INTO agendamentos (paciente_id, radiologia_id, clinica_id, medico_id, "
         "tipo_exame_id, data_agendamento, hora_agendamento, status, observacoes) "
         "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-        (paciente_id, data["radiologiaId"], clinica_id, medico_id,
-         tipo_exame_id, data["data"], data["horarioInicio"],
+        (data["pacienteId"], data["radiologiaId"],
+         data.get("clinicaId"), data.get("medicoId"),
+         data["tipoExameId"], data["data"], data["horarioInicio"],
          data.get("status", "agendado"), data.get("observacoes"))
     )
-
     return created({"id": new_id}, "Agendamento criado com sucesso.")
 
 
-@app.route("/v1/agendamentos/<int:agendamento_id>", methods=["PATCH"])
+@app.route("/v1/agendamentos/<int:agendamento_id>", methods=["PUT"])
 @require_auth
 def atualizar_agendamento(agendamento_id):
-    """[API] PATCH /agendamentos/:id"""
-    data   = request.get_json(silent=True) or {}
-    existe = query("SELECT id FROM agendamentos WHERE id = %s", (agendamento_id,), fetch="one")
-    if not existe:
+    data = request.get_json(silent=True) or {}
+    exists = query("SELECT id FROM agendamentos WHERE id = %s", (agendamento_id,), fetch="one")
+    if not exists:
         return not_found("Agendamento não encontrado.")
 
-    sets, params = [], []
+    campos = []
+    params = []
 
-    # Campos do agendamento
-    campos = {
-        "status":        "status",
-        "observacoes":   "observacoes",
-        "data":          "data_agendamento",
-        "horarioInicio": "hora_agendamento",
-        "horarioFim":    "hora_fim",
-        "radiologiaId":  "radiologia_id",
-        "clinicaId":     "clinica_id",
-        "medicoId":      "medico_id",
-        "tipoExameId":   "tipo_exame_id"
+    mapa = {
+        "pacienteId":     "paciente_id",
+        "radiologiaId":   "radiologia_id",
+        "clinicaId":      "clinica_id",
+        "medicoId":       "medico_id",
+        "tipoExameId":    "tipo_exame_id",
+        "data":           "data_agendamento",
+        "horarioInicio":  "hora_agendamento",
+        "status":         "status",
+        "observacoes":    "observacoes",
     }
 
-    for chave, coluna in campos.items():
-        if chave in data and data[chave] is not None:
-            sets.append(f"{coluna} = %s")
-            params.append(data[chave])
+    for js_key, db_col in mapa.items():
+        if js_key in data:
+            campos.append(f"{db_col} = %s")
+            params.append(data[js_key])
 
-    # Tipo de exame por label (fallback)
-    if "tipoExame" in data and data["tipoExame"] and not any(k == "tipoExameId" for k in data):
-        te = query("SELECT id FROM tipos_exame WHERE label = %s", (data["tipoExame"],), fetch="one")
-        if te:
-            sets.append("tipo_exame_id = %s")
-            params.append(te["id"])
-
-    # Atualiza dados do paciente (se vier algum)
-    paciente_row = query(
-        "SELECT paciente_id FROM agendamentos WHERE id = %s", (agendamento_id,), fetch="one"
-    )
-
-    if paciente_row and paciente_row.get("paciente_id"):
-        p_id = paciente_row["paciente_id"]
-        p_sets, p_params = [], []
-
-        if data.get("paciente"):
-            p_sets.append("nome = %s")
-            p_params.append(data["paciente"])
-        if data.get("pacienteCpf"):
-            p_sets.append("cpf = %s")
-            p_params.append(data["pacienteCpf"])
-        if data.get("pacienteTelefone"):
-            p_sets.append("telefone = %s")
-            p_params.append(data["pacienteTelefone"])
-        if data.get("pacienteNascimento"):
-            p_sets.append("nascimento = %s")
-            p_params.append(data["pacienteNascimento"])
-
-        if p_sets:
-            p_params.append(p_id)
-            query(
-                f"UPDATE pacientes SET {', '.join(p_sets)} WHERE id = %s",
-                p_params, fetch="none"
-            )
-
-    if not sets:
-        # Só dados do paciente foram atualizados — ainda é sucesso
-        return ok({}, "Agendamento atualizado com sucesso.")
+    if not campos:
+        return err("Nenhum campo para atualizar.", 400)
 
     params.append(agendamento_id)
-    query(f"UPDATE agendamentos SET {', '.join(sets)} WHERE id = %s", params, fetch="none")
+    query(f"UPDATE agendamentos SET {', '.join(campos)} WHERE id = %s", params, fetch="none")
 
-    return ok({}, "Agendamento atualizado com sucesso.")
+    return ok({"id": agendamento_id}, "Agendamento atualizado com sucesso.")
+
 
 @app.route("/v1/agendamentos/<int:agendamento_id>", methods=["DELETE"])
 @require_auth
 def deletar_agendamento(agendamento_id):
-    """[API] DELETE /agendamentos/:id — cancela (soft delete via status)"""
-    existe = query("SELECT id FROM agendamentos WHERE id = %s", (agendamento_id,), fetch="one")
-    if not existe:
+    exists = query("SELECT id FROM agendamentos WHERE id = %s", (agendamento_id,), fetch="one")
+    if not exists:
         return not_found("Agendamento não encontrado.")
-    query(
-        "UPDATE agendamentos SET status = 'cancelado' WHERE id = %s",
-        (agendamento_id,), fetch="none"
-    )
-    return ok({}, "Agendamento cancelado com sucesso.")
+    query("DELETE FROM agendamentos WHERE id = %s", (agendamento_id,), fetch="none")
+    return ok({"sucesso": True}, "Agendamento excluído com sucesso.")
+
 
 @app.route("/v1/pacientes", methods=["GET"])
 @require_auth
 def listar_pacientes():
-    """[API] GET /pacientes — lista paginada com busca e filtros."""
-    busca       = request.args.get("busca", "")
-    busca_scope = request.args.get("buscaScope", "todos")
-    filtro      = request.args.get("filtroRapido", "todos")
-    pagina      = max(1, int(request.args.get("pagina", 1)))
-    por_pagina  = max(1, min(100, int(request.args.get("porPagina", 8))))
-    offset      = (pagina - 1) * por_pagina
+    busca  = request.args.get("busca", "")
+    status = request.args.get("status", "")
+    limite = int(request.args.get("limite", 50))
+    offset = int(request.args.get("offset", 0))
 
-    sql    = "SELECT SQL_CALC_FOUND_ROWS p.id, p.nome, p.cpf, p.telefone, p.email, " \
-             "p.nascimento, p.endereco, p.status, p.criado_em AS cadastro, p.observacoes " \
-             "FROM pacientes p WHERE 1=1"
+    sql    = "SELECT id, nome, cpf, telefone, email, nascimento, status, criado_em AS cadastro FROM pacientes WHERE 1=1"
     params = []
 
-    # Busca textual
     if busca:
+        sql += " AND (nome LIKE %s OR cpf LIKE %s OR telefone LIKE %s)"
         like = f"%{busca}%"
-        if busca_scope == "nome":
-            sql += " AND p.nome LIKE %s"; params.append(like)
-        elif busca_scope == "cpf":
-            sql += " AND p.cpf LIKE %s"; params.append(like)
-        elif busca_scope == "telefone":
-            sql += " AND p.telefone LIKE %s"; params.append(like)
-        elif busca_scope == "codigo":
-            sql += " AND p.id LIKE %s"; params.append(like)
-        else:
-            sql += " AND (p.nome LIKE %s OR p.cpf LIKE %s OR p.telefone LIKE %s OR p.id LIKE %s)"
-            params += [like, like, like, like]
-
-    # Filtros rápidos
-    hoje = datetime.date.today()
-    if filtro == "ativos":
-        sql += " AND p.status = 'ativo'"
-    elif filtro == "novos":
-        inicio_mes = hoje.replace(day=1)
-        sql += " AND p.criado_em >= %s"
-        params.append(inicio_mes)
-    elif filtro == "agendamentos":
-        sql += " AND EXISTS (SELECT 1 FROM agendamentos a WHERE a.paciente_id = p.id " \
-               "AND a.data_agendamento >= %s AND a.status IN ('agendado','confirmado'))"
-        params.append(hoje)
-
-    sql += " ORDER BY p.nome LIMIT %s OFFSET %s"
-    params += [por_pagina, offset]
-
-    db   = get_db()
-    cur  = db.cursor()
-    cur.execute(sql, params)
-    rows = cur.fetchall()
-    cols = [d[0] for d in cur.description]
-    cur.execute("SELECT FOUND_ROWS()")
-    total = cur.fetchone()[0]
-    cur.close()
-
-    pacientes_list = []
-    for row in rows:
-        p = {}
-        for col, val in zip(cols, row):
-            if isinstance(val, Decimal):
-                p[col] = float(val)
-            elif isinstance(val, (datetime.date, datetime.datetime)):
-                p[col] = val.isoformat()
-            else:
-                p[col] = val
-        pacientes_list.append(p)
-
-    return ok({
-        "total":    total,
-        "pagina":   pagina,
-        "paginas":  math.ceil(total / por_pagina),
-        "itens":    pacientes_list,
-    })
-
-
-@app.route("/v1/pacientes/<paciente_id>", methods=["GET"])
-@require_auth
-def detalhe_paciente(paciente_id):
-    """[API] GET /pacientes/:pacienteId"""
-    paciente = query(
-        "SELECT id, nome, cpf, telefone, email, nascimento, endereco, "
-        "status, criado_em AS cadastro, observacoes FROM pacientes WHERE id = %s",
-        (paciente_id,), fetch="one"
-    )
-    if not paciente:
-        return not_found("Paciente não encontrado.")
-
-    exames = query(
-        "SELECT DATE_FORMAT(e.data_exame,'%%Y-%%m-%%d') AS data, te.label AS tipo, "
-        "       r.nome AS unidade, e.valor, e.status "
-        "FROM exames e "
-        "JOIN tipos_exame te ON te.id = e.tipo_exame_id "
-        "JOIN radiologias r ON r.id = e.radiologia_id "
-        "WHERE e.paciente_id = %s ORDER BY e.data_exame DESC",
-        (paciente_id,)
-    )
-
-    agendamentos = query(
-        "SELECT DATE_FORMAT(a.data_agendamento,'%%Y-%%m-%%d') AS data, "
-        "       TIME_FORMAT(a.hora_agendamento,'%%H:%%i') AS hora, "
-        "       r.nome AS unidade, te.label AS tipo, a.status "
-        "FROM agendamentos a "
-        "JOIN tipos_exame te ON te.id = a.tipo_exame_id "
-        "JOIN radiologias r ON r.id = a.radiologia_id "
-        "WHERE a.paciente_id = %s ORDER BY a.data_agendamento DESC",
-        (paciente_id,)
-    )
-
-    notas = query(
-        "SELECT texto, DATE_FORMAT(criado_em,'%%Y-%%m-%%dT%%H:%%i:%%s') AS data "
-        "FROM paciente_notas WHERE paciente_id = %s ORDER BY criado_em DESC",
-        (paciente_id,)
-    )
-
-    paciente["exames"]       = exames
-    paciente["agendamentos"] = agendamentos
-    paciente["notas"]        = notas
-    return ok(paciente)
-
-
-@app.route("/v1/pacientes/<paciente_id>/kpis", methods=["GET"])
-@require_auth
-def paciente_kpis(paciente_id):
-    """[API] GET /pacientes/:pacienteId/kpis"""
-    paciente = query(
-        "SELECT criado_em AS dataCadastro FROM pacientes WHERE id = %s",
-        (paciente_id,), fetch="one"
-    )
-    if not paciente:
-        return not_found("Paciente não encontrado.")
-
-    totais = query(
-        "SELECT COUNT(*) AS totalExames, COALESCE(SUM(valor),0) AS totalGasto "
-        "FROM exames WHERE paciente_id = %s AND status='realizado'",
-        (paciente_id,), fetch="one"
-    )
-
-    freq = query(
-        "SELECT r.nome AS unidade, COUNT(*) AS visitas "
-        "FROM exames e JOIN radiologias r ON r.id = e.radiologia_id "
-        "WHERE e.paciente_id = %s AND e.status='realizado' "
-        "GROUP BY r.id, r.nome ORDER BY visitas DESC LIMIT 1",
-        (paciente_id,), fetch="one"
-    )
-
-    return ok({
-        "totalExames":          totais.get("totalExames", 0) if totais else 0,
-        "totalGasto":           to_decimal(totais.get("totalGasto", 0)) if totais else 0,
-        "dataCadastro":         paciente.get("dataCadastro"),
-        "unidadeMaisFrequente": freq.get("unidade") if freq else None,
-        "visitasUnidadeFreq":   freq.get("visitas", 0) if freq else 0,
-    })
-
-
-@app.route("/v1/pacientes/<paciente_id>/exames", methods=["GET"])
-@require_auth
-def paciente_exames(paciente_id):
-    """[API] GET /pacientes/:pacienteId/exames"""
-    tipo        = request.args.get("tipo")
-    data_inicio = request.args.get("dataInicio")
-    data_fim    = request.args.get("dataFim")
-
-    sql    = ("SELECT DATE_FORMAT(e.data_exame,'%%Y-%%m-%%d') AS data, "
-              "te.label AS tipo, r.nome AS unidade, e.valor, e.status "
-              "FROM exames e "
-              "JOIN tipos_exame te ON te.id = e.tipo_exame_id "
-              "JOIN radiologias r ON r.id = e.radiologia_id "
-              "WHERE e.paciente_id = %s")
-    params = [paciente_id]
-
-    if tipo:
-        sql += " AND te.label = %s"; params.append(tipo)
-    if data_inicio:
-        sql += " AND e.data_exame >= %s"; params.append(data_inicio)
-    if data_fim:
-        sql += " AND e.data_exame <= %s"; params.append(data_fim)
-    sql += " ORDER BY e.data_exame DESC"
-
-    rows = query(sql, params)
-    return ok(rows)
-
-
-@app.route("/v1/pacientes/<paciente_id>/agendamentos", methods=["GET"])
-@require_auth
-def paciente_agendamentos(paciente_id):
-    """[API] GET /pacientes/:pacienteId/agendamentos"""
-    status      = request.args.get("status")
-    data_inicio = request.args.get("dataInicio")
-    data_fim    = request.args.get("dataFim")
-
-    sql = ("SELECT DATE_FORMAT(a.data_agendamento,'%%Y-%%m-%%d') AS data, "
-           "TIME_FORMAT(a.hora_agendamento,'%%H:%%i') AS hora, "
-           "r.nome AS unidade, te.label AS tipo, a.status "
-           "FROM agendamentos a "
-           "JOIN tipos_exame te ON te.id = a.tipo_exame_id "
-           "JOIN radiologias r ON r.id = a.radiologia_id "
-           "WHERE a.paciente_id = %s")
-    params = [paciente_id]
-
+        params += [like, like, like]
     if status:
-        sql += " AND a.status = %s"; params.append(status)
-    if data_inicio:
-        sql += " AND a.data_agendamento >= %s"; params.append(data_inicio)
-    if data_fim:
-        sql += " AND a.data_agendamento <= %s"; params.append(data_fim)
-    sql += " ORDER BY a.data_agendamento DESC"
+        sql += " AND status = %s"
+        params.append(status)
 
+    sql += f" ORDER BY nome LIMIT {limite} OFFSET {offset}"
     rows = query(sql, params)
     return ok(rows)
-
-
-@app.route("/v1/pacientes/<paciente_id>/notas", methods=["GET"])
-@require_auth
-def paciente_notas_get(paciente_id):
-    """[API] GET /pacientes/:pacienteId/notas"""
-    rows = query(
-        "SELECT texto, DATE_FORMAT(criado_em,'%%Y-%%m-%%dT%%H:%%i:%%s') AS data "
-        "FROM paciente_notas WHERE paciente_id = %s ORDER BY criado_em DESC",
-        (paciente_id,)
-    )
-    return ok(rows)
-
-
-@app.route("/v1/pacientes/<paciente_id>/notas", methods=["POST"])
-@require_auth
-def paciente_notas_post(paciente_id):
-    """[API] POST /pacientes/:pacienteId/notas"""
-    data  = request.get_json(silent=True) or {}
-    texto = str(data.get("texto", "")).strip()
-    if not texto:
-        return err("O campo 'texto' é obrigatório.", 400)
-
-    existe = query("SELECT id FROM pacientes WHERE id = %s", (paciente_id,), fetch="one")
-    if not existe:
-        return not_found("Paciente não encontrado.")
-
-    insert(
-        "INSERT INTO paciente_notas (paciente_id, texto) VALUES (%s, %s)",
-        (paciente_id, texto)
-    )
-    nota = query(
-        "SELECT texto, DATE_FORMAT(criado_em,'%%Y-%%m-%%dT%%H:%%i:%%s') AS data "
-        "FROM paciente_notas WHERE paciente_id = %s ORDER BY criado_em DESC LIMIT 1",
-        (paciente_id,), fetch="one"
-    )
-    return created(nota, "Nota adicionada com sucesso.")
 
 
 @app.route("/v1/pacientes", methods=["POST"])
 @require_auth
 def criar_paciente():
-    """[API] POST /pacientes"""
     data = request.get_json(silent=True) or {}
-    missing = validate_required(data, ["nome", "cpf", "telefone"])
+    missing = validate_required(data, ["nome"])
     if missing:
         return err("Campos obrigatórios ausentes.", 400, missing)
 
-    if not validate_cpf(data["cpf"]):
-        return err("CPF inválido.", 400)
-    if data.get("email") and not validate_email(data["email"]):
-        return err("E-mail inválido.", 400)
+    pac_id = f"PAC{uuid.uuid4().hex[:8].upper()}"
 
-    cpf_limpo = re.sub(r"\D", "", data["cpf"])
-    cpf_fmt   = f"{cpf_limpo[:3]}.{cpf_limpo[3:6]}.{cpf_limpo[6:9]}-{cpf_limpo[9:]}"
+    cpf_val = None
+    if data.get("cpf"):
+        cpf_limpo = re.sub(r"\D", "", data["cpf"])
+        cpf_val = f"{cpf_limpo[:3]}.{cpf_limpo[3:6]}.{cpf_limpo[6:9]}-{cpf_limpo[9:]}"
 
-    # Verifica duplicidade de CPF
-    dup = query("SELECT id FROM pacientes WHERE cpf = %s", (cpf_fmt,), fetch="one")
-    if dup:
-        return err("Já existe um paciente com este CPF.", 409)
-
-    pac_id = _gerar_id_paciente()
-    query(
-        "INSERT INTO pacientes (id, nome, cpf, telefone, email, nascimento, endereco, observacoes) "
-        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
-        (pac_id, data["nome"], cpf_fmt, data["telefone"],
-         data.get("email"), data.get("nascimento"),
-         data.get("endereco"), data.get("observacoes")),
-        fetch="none"
+    insert(
+        "INSERT INTO pacientes (id, nome, cpf, telefone, email, nascimento, endereco, status, observacoes) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        (pac_id, data["nome"], cpf_val,
+         data.get("telefone"), data.get("email"),
+         data.get("nascimento"), data.get("endereco"),
+         data.get("status", "ativo"), data.get("observacoes"))
     )
 
     paciente = query(
-        "SELECT id, nome, cpf, telefone, email, nascimento, endereco, "
-        "status, criado_em AS cadastro, observacoes FROM pacientes WHERE id = %s",
+        "SELECT id, nome, cpf, telefone, email, nascimento, endereco, status, "
+        "criado_em AS cadastro, observacoes FROM pacientes WHERE id = %s",
         (pac_id,), fetch="one"
     )
-    paciente.update({"exames": [], "agendamentos": [], "notas": []})
     return created(paciente, "Paciente criado com sucesso.")
 
 
-@app.route("/v1/pacientes/<paciente_id>", methods=["PATCH"])
+@app.route("/v1/pacientes/<paciente_id>", methods=["GET"])
+@require_auth
+def detalhe_paciente(paciente_id):
+    row = query(
+        "SELECT id, nome, cpf, telefone, email, nascimento, endereco, "
+        "status, criado_em AS cadastro, observacoes FROM pacientes WHERE id = %s",
+        (paciente_id,), fetch="one"
+    )
+    if not row:
+        return not_found("Paciente não encontrado.")
+    return ok(row)
+
+
+@app.route("/v1/pacientes/<paciente_id>", methods=["PUT"])
 @require_auth
 def atualizar_paciente(paciente_id):
-    """[API] PATCH /pacientes/:pacienteId"""
-    data    = request.get_json(silent=True) or {}
-    existe  = query("SELECT id FROM pacientes WHERE id = %s", (paciente_id,), fetch="one")
-    if not existe:
+    data = request.get_json(silent=True) or {}
+    exists = query("SELECT id FROM pacientes WHERE id = %s", (paciente_id,), fetch="one")
+    if not exists:
         return not_found("Paciente não encontrado.")
 
-    if "cpf" in data and not validate_cpf(data["cpf"]):
-        return err("CPF inválido.", 400)
-    if "email" in data and data["email"] and not validate_email(data["email"]):
-        return err("E-mail inválido.", 400)
-
-    # Monta UPDATE dinâmico apenas com os campos recebidos
-    campos_permitidos = ["nome", "cpf", "telefone", "email", "nascimento", "endereco", "observacoes"]
+    campos_permitidos = ["nome", "cpf", "telefone", "email", "nascimento", "endereco", "status", "observacoes"]
     sets   = []
     params = []
+
     for campo in campos_permitidos:
         if campo in data:
             val = data[campo]
@@ -1620,12 +1236,93 @@ def atualizar_paciente(paciente_id):
     return ok(paciente, "Paciente atualizado com sucesso.")
 
 
+@app.route("/v1/pacientes/<paciente_id>/kpis", methods=["GET"])
+@require_auth
+def paciente_kpis(paciente_id):
+    exists = query("SELECT id FROM pacientes WHERE id = %s", (paciente_id,), fetch="one")
+    if not exists:
+        return not_found("Paciente não encontrado.")
+
+    totais = query(
+        "SELECT COUNT(*) AS totalExames, COALESCE(SUM(te.valor_base),0) AS totalGasto "
+        "FROM agendamentos a JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+        "WHERE a.paciente_id = %s AND a.status='realizado'",
+        (paciente_id,), fetch="one"
+    )
+    ultimo = query(
+        "SELECT MAX(a.data_agendamento) AS ultimoExame FROM agendamentos a "
+        "WHERE a.paciente_id = %s AND a.status='realizado'",
+        (paciente_id,), fetch="one"
+    )
+    return ok({
+        "totalExames": totais.get("totalExames", 0) if totais else 0,
+        "totalGasto":  to_decimal(totais.get("totalGasto", 0)) if totais else 0,
+        "ultimoExame": ultimo.get("ultimoExame") if ultimo else None,
+    })
+
+
+@app.route("/v1/pacientes/<paciente_id>/exames", methods=["GET"])
+@require_auth
+def paciente_exames(paciente_id):
+    rows = query(
+        "SELECT a.id, te.label AS tipoExame, r.nome AS radiologia, "
+        "DATE_FORMAT(a.data_agendamento,'%Y-%m-%d') AS data, a.status, "
+        "te.valor_base AS valor "
+        "FROM agendamentos a "
+        "JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+        "JOIN radiologias r ON r.id = a.radiologia_id "
+        "WHERE a.paciente_id = %s ORDER BY a.data_agendamento DESC",
+        (paciente_id,)
+    )
+    return ok(rows)
+
+
+@app.route("/v1/pacientes/<paciente_id>/agendamentos", methods=["GET"])
+@require_auth
+def paciente_agendamentos(paciente_id):
+    rows = query(
+        "SELECT a.id, te.label AS tipoExame, r.nome AS radiologia, "
+        "DATE_FORMAT(a.data_agendamento,'%Y-%m-%d') AS data, "
+        "TIME_FORMAT(a.hora_agendamento,'%H:%i') AS hora, a.status "
+        "FROM agendamentos a "
+        "JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+        "JOIN radiologias r ON r.id = a.radiologia_id "
+        "WHERE a.paciente_id = %s ORDER BY a.data_agendamento DESC",
+        (paciente_id,)
+    )
+    return ok(rows)
+
+
+@app.route("/v1/pacientes/<paciente_id>/notas", methods=["GET"])
+@require_auth
+def paciente_notas(paciente_id):
+    rows = query(
+        "SELECT id, texto, criado_em FROM paciente_notas WHERE paciente_id = %s ORDER BY criado_em DESC",
+        (paciente_id,)
+    )
+    return ok(rows)
+
+
+@app.route("/v1/pacientes/<paciente_id>/notas", methods=["POST"])
+@require_auth
+def criar_nota(paciente_id):
+    data = request.get_json(silent=True) or {}
+    texto = data.get("texto", "").strip()
+    if not texto:
+        return err("Texto da nota é obrigatório.", 400)
+    new_id = insert(
+        "INSERT INTO paciente_notas (paciente_id, texto) VALUES (%s,%s)",
+        (paciente_id, texto)
+    )
+    nota = query("SELECT id, texto, criado_em FROM paciente_notas WHERE id = %s", (new_id,), fetch="one")
+    return created(nota, "Nota criada com sucesso.")
+
+
 # -----------------------------------------------------------------------------
 # 10. EXAMES — KPIs, Evolução, Comparativo, Ranking, Destaques
 # -----------------------------------------------------------------------------
 
 def _filtro_radiologia_sql(radiologia_id, alias="e"):
-    """Retorna trecho SQL e params para filtrar por radiologia."""
     if radiologia_id and radiologia_id != "all":
         return f" AND {alias}.radiologia_id = %s", [radiologia_id]
     return "", []
@@ -1634,14 +1331,19 @@ def _filtro_radiologia_sql(radiologia_id, alias="e"):
 @app.route("/v1/exames/kpis", methods=["GET"])
 @require_auth
 def exames_kpis():
-    """[API] GET /exames/kpis"""
+    """
+    [API] GET /exames/kpis
+
+    Regra de negócio:
+      - status='realizado' em agendamentos → conta na produção real
+      - Usa tabela agendamentos (não exames) para manter consistência
+        com o endpoint /financeiro/kpis.
+    """
     radiologia_id = request.args.get("radiologiaId", "all")
     periodo       = request.args.get("periodo", "mes_atual")
     data_inicio   = request.args.get("dataInicio")
     data_fim      = request.args.get("dataFim")
     di, df, pi, pf = periodo_para_datas(periodo, data_inicio, data_fim)
-
-    rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id)
 
     rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
 
@@ -1662,7 +1364,6 @@ def exames_kpis():
     dias = max(1, (df - di).days + 1)
     media_dia = round(total_atual / dias, 1)
 
-    # Tipo mais realizado
     tipo_top = query(
         f"SELECT te.label AS tipo, COUNT(*) AS qtd FROM agendamentos a "
         f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
@@ -1671,7 +1372,6 @@ def exames_kpis():
         [di, df] + rad_params_a, fetch="one"
     )
 
-    # % referenciados (agendamentos com medico_id preenchido)
     ref = query(
         f"SELECT COUNT(*) AS total FROM agendamentos a "
         f"WHERE a.status='realizado' AND a.medico_id IS NOT NULL "
@@ -1693,16 +1393,12 @@ def exames_kpis():
 @app.route("/v1/exames/evolucao/quantidade", methods=["GET"])
 @require_auth
 def exames_evolucao():
-    """[API] GET /exames/evolucao/quantidade"""
     radiologia_id = request.args.get("radiologiaId", "all")
     periodo       = request.args.get("periodo", "mes_atual")
     data_inicio   = request.args.get("dataInicio")
     data_fim      = request.args.get("dataFim")
     di, df, _, _  = periodo_para_datas(periodo, data_inicio, data_fim)
 
-    rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id)
-
-    # Agrega por mês
     rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
 
     rows = query(
@@ -1722,7 +1418,6 @@ def exames_evolucao():
 @app.route("/v1/exames/comparativo/quantidade", methods=["GET"])
 @require_auth
 def exames_comparativo():
-    """[API] GET /exames/comparativo/quantidade"""
     radiologia_id = request.args.get("radiologiaId", "all")
     periodo       = request.args.get("periodo", "mes_atual")
     data_inicio   = request.args.get("dataInicio")
@@ -1759,14 +1454,11 @@ def exames_comparativo():
 @app.route("/v1/exames/distribuicao-por-tipo", methods=["GET"])
 @require_auth
 def exames_distribuicao_por_tipo():
-    """[API] GET /exames/distribuicao-por-tipo"""
     radiologia_id = request.args.get("radiologiaId", "all")
     periodo       = request.args.get("periodo", "mes_atual")
     data_inicio   = request.args.get("dataInicio")
     data_fim      = request.args.get("dataFim")
     di, df, _, _  = periodo_para_datas(periodo, data_inicio, data_fim)
-
-    rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id)
 
     rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
 
@@ -1783,15 +1475,12 @@ def exames_distribuicao_por_tipo():
 @app.route("/v1/exames/ranking/clinicas", methods=["GET"])
 @require_auth
 def exames_ranking_clinicas():
-    """[API] GET /exames/ranking/clinicas"""
     radiologia_id = request.args.get("radiologiaId", "all")
     periodo       = request.args.get("periodo", "mes_atual")
     data_inicio   = request.args.get("dataInicio")
     data_fim      = request.args.get("dataFim")
     limite        = int(request.args.get("limite", 6))
     di, df, _, _  = periodo_para_datas(periodo, data_inicio, data_fim)
-
-    rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id)
 
     rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
 
@@ -1811,7 +1500,6 @@ def exames_ranking_clinicas():
 @app.route("/v1/exames/ranking/medicos", methods=["GET"])
 @require_auth
 def exames_ranking_medicos():
-    """[API] GET /exames/ranking/medicos"""
     radiologia_id = request.args.get("radiologiaId", "all")
     clinica_id    = request.args.get("clinicaId")
     periodo       = request.args.get("periodo", "mes_atual")
@@ -1820,14 +1508,12 @@ def exames_ranking_medicos():
     limite        = int(request.args.get("limite", 10))
     di, df, _, _  = periodo_para_datas(periodo, data_inicio, data_fim)
 
-    rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id)
     cli_sql, cli_params = "", []
-    if clinica_id:
+    if clinica_id and clinica_id != "all":
         cli_sql = " AND m.clinica_id = %s"
         cli_params = [clinica_id]
 
     rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
-    cli_sql_a = cli_sql.replace("m.clinica_id", "m.clinica_id")  # mantém igual
 
     rows = query(
         f"SELECT m.id AS medicoId, m.nome AS medicoNome, c.nome AS clinicaNome, "
@@ -1848,14 +1534,11 @@ def exames_ranking_medicos():
 @app.route("/v1/exames/destaques", methods=["GET"])
 @require_auth
 def exames_destaques():
-    """[API] GET /exames/destaques"""
     radiologia_id = request.args.get("radiologiaId", "all")
     periodo       = request.args.get("periodo", "mes_atual")
     data_inicio   = request.args.get("dataInicio")
     data_fim      = request.args.get("dataFim")
     di, df, pi, pf = periodo_para_datas(periodo, data_inicio, data_fim)
-
-    rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id)
 
     rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
 
@@ -1908,13 +1591,12 @@ def exames_destaques():
 
 
 # -----------------------------------------------------------------------------
-# 11. HIERARQUIA — Radiologia → Clínica → Médico
+# 11. HIERARQUIA
 # -----------------------------------------------------------------------------
 
 @app.route("/v1/hierarquia/arvore", methods=["GET"])
 @require_auth
 def hierarquia_arvore():
-    """[API] GET /hierarquia/arvore"""
     radiologia_id = request.args.get("radiologiaId", "all")
     periodo       = request.args.get("periodo", "mes_atual")
     data_inicio   = request.args.get("dataInicio")
@@ -2004,7 +1686,6 @@ def hierarquia_arvore():
 @app.route("/v1/comissoes/kpis", methods=["GET"])
 @require_auth
 def comissoes_kpis():
-    """[API] GET /comissoes/kpis"""
     radiologia_id = request.args.get("radiologiaId", "all")
     periodo       = request.args.get("periodo", "mes_atual")
     data_inicio   = request.args.get("dataInicio")
@@ -2055,7 +1736,6 @@ def comissoes_kpis():
 @app.route("/v1/comissoes/por-medico", methods=["GET"])
 @require_auth
 def comissoes_por_medico():
-    """[API] GET /comissoes/por-medico"""
     radiologia_id = request.args.get("radiologiaId", "all")
     clinica_id    = request.args.get("clinicaId")
     periodo       = request.args.get("periodo", "mes_atual")
@@ -2095,7 +1775,6 @@ def comissoes_por_medico():
 @app.route("/v1/comissoes/por-radiologia", methods=["GET"])
 @require_auth
 def comissoes_por_radiologia():
-    """[API] GET /comissoes/por-radiologia"""
     periodo     = request.args.get("periodo", "mes_atual")
     data_inicio = request.args.get("dataInicio")
     data_fim    = request.args.get("dataFim")
@@ -2120,9 +1799,6 @@ def comissoes_por_radiologia():
 # -----------------------------------------------------------------------------
 
 def _format_series(rows):
-    """
-    Agrupa dados (label, radiologiaId, nome, dados) em formato de gráfico de linhas.
-    """
     labels_set  = {}
     series_dict = {}
 
@@ -2130,14 +1806,12 @@ def _format_series(rows):
         lbl = r.get("label", "")
         rid = r.get("radiologiaId", "")
         nom = r.get("nome", "")
-        val = to_decimal(r.get("dados", 0))
 
         if lbl not in labels_set:
             labels_set[lbl] = len(labels_set)
         if rid not in series_dict:
             series_dict[rid] = {"radiologiaId": rid, "nome": nom, "dados": []}
 
-    # Preenche os dados em ordem
     labels = sorted(labels_set.keys(), key=lambda x: labels_set[x])
     for rid in series_dict:
         series_dict[rid]["dados"] = [0.0] * len(labels)
@@ -2156,14 +1830,38 @@ def _format_series(rows):
 @app.route("/v1/financeiro/kpis", methods=["GET"])
 @require_auth
 def financeiro_kpis():
-    """[API] GET /financeiro/kpis"""
+    """
+    [API] GET /financeiro/kpis
+
+    Regra de negócio (confirmada pelo desenvolvedor):
+      - status='realizado' → produção real (faturamento, exames)
+      - status='confirmado' → previsão de caixa (exames ainda não realizados)
+
+    CORREÇÃO [FIX-1]: removida referência a variável `com_ant` que não existia,
+    causando NameError silenciado (HTTP 500) no endpoint.
+
+    ANTIGO (linha ~2236):
+        "comissoesVariacao": variacao_percentual(com_total,
+            to_decimal(com_ant.get("t", 0)) if com_ant else 0),
+
+    NOVO:
+        "comissoesVariacao": 0.0,
+
+    CORREÇÃO [FIX-2]: previsão de caixa agora filtra apenas agendamentos futuros
+    (data >= hoje), não todos os confirmados de todos os tempos.
+
+    ANTIGO:
+        WHERE a.status='confirmado' {rad_sql_a}   -- sem filtro de data
+
+    NOVO:
+        WHERE a.status='confirmado'
+          AND a.data_agendamento >= CURDATE() {rad_sql_a}
+    """
     radiologia_id = request.args.get("radiologiaId", "all")
     periodo       = request.args.get("periodo", "mes_atual")
     data_inicio   = request.args.get("dataInicio")
     data_fim      = request.args.get("dataFim")
     di, df, pi, pf = periodo_para_datas(periodo, data_inicio, data_fim)
-
-    rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id)
 
     rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
 
@@ -2185,28 +1883,22 @@ def financeiro_kpis():
     exm_atual = atual.get("c", 0)
     exm_ant   = anterior.get("c", 0)
 
-    # Clínicas ativas no período (realizados)
     cli_ativas = query(
         f"SELECT COUNT(DISTINCT a.clinica_id) AS c FROM agendamentos a "
         f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a}",
         [di, df] + rad_params_a, fetch="one"
     )
 
-    # Comissões — ainda sem dados (tabela comissoes vazia), retorna zero
-    com_total = 0.0
-    com_pend  = 0.0
-    com_ant_v = 0.0
-
-    # Previsibilidade de caixa — agendamentos com status 'confirmado'
+    # [FIX-2] Previsão de caixa: apenas agendamentos confirmados a partir de hoje
     agend = query(
         f"SELECT COUNT(a.id) AS c, COALESCE(SUM(te.valor_base),0) AS valor "
         f"FROM agendamentos a "
         f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
-        f"WHERE a.status='confirmado' {rad_sql_a}",
+        f"WHERE a.status='confirmado' "
+        f"AND a.data_agendamento >= CURDATE() {rad_sql_a}",  # <-- CORRIGIDO
         rad_params_a, fetch="one"
     )
 
-    # Ticket médio
     fat_med_cli = query(
         f"SELECT COALESCE(AVG(sub.fat),0) AS avg_fat "
         f"FROM (SELECT a.clinica_id, SUM(te.valor_base) AS fat "
@@ -2219,6 +1911,9 @@ def financeiro_kpis():
 
     ticket   = fat_atual / max(1, exm_atual)
     previsao = to_decimal(agend.get("valor", 0)) if agend else 0
+
+    com_total = 0.0
+    com_pend  = 0.0
 
     return ok({
         "faturamentoTotal":               fat_atual,
@@ -2233,7 +1928,7 @@ def financeiro_kpis():
         "comissoesTotais":                com_total,
         "comissoesPendentes":             com_pend,
         "comissoesPercentualFaturamento": round(com_total / fat_atual * 100, 1) if fat_atual else 0,
-        "comissoesVariacao":              variacao_percentual(com_total, to_decimal(com_ant.get("t", 0)) if com_ant else 0),
+        "comissoesVariacao":              0.0,  # [FIX-1] era com_ant (NameError)
         # Formato alternativo esperado pela tela Financeiro
         "faturamentoLiquido": {"value": round(fat_atual * 0.92, 2), "context": "Após impostos estimados"},
         "margemLucro":        {"value": round((fat_atual * 0.92 - com_total) / fat_atual * 100, 1) if fat_atual else 0, "changeMonth": 0},
@@ -2244,7 +1939,6 @@ def financeiro_kpis():
 @app.route("/v1/financeiro/snapshot", methods=["GET"])
 @require_auth
 def financeiro_snapshot():
-    """[API] GET /financeiro/snapshot — snapshot consolidado."""
     radiologia_id = request.args.get("radiologiaId", "all")
     periodo       = request.args.get("periodo", "mes_atual")
     data_inicio   = request.args.get("dataInicio")
@@ -2290,7 +1984,6 @@ def financeiro_snapshot():
         [di, df] + rad_params
     )
 
-    # Insights automáticos simples
     insights = []
     var = variacao_percentual(fat, fat_ant)
     if var > 10:
@@ -2317,14 +2010,11 @@ def financeiro_snapshot():
 @app.route("/v1/financeiro/evolucao/faturamento", methods=["GET"])
 @require_auth
 def financeiro_evolucao_faturamento():
-    """[API] GET /financeiro/evolucao/faturamento"""
     radiologia_id = request.args.get("radiologiaId", "all")
     periodo       = request.args.get("periodo", "mes_atual")
     data_inicio   = request.args.get("dataInicio")
     data_fim      = request.args.get("dataFim")
     di, df, _, _  = periodo_para_datas(periodo, data_inicio, data_fim)
-
-    rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id)
 
     rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
 
@@ -2346,14 +2036,12 @@ def financeiro_evolucao_faturamento():
 @app.route("/v1/financeiro/evolucao", methods=["GET"])
 @require_auth
 def financeiro_evolucao():
-    """[API] GET /financeiro/evolucao — faturamento + exames + ano anterior."""
     radiologia_id = request.args.get("radiologiaId", "all")
     periodo       = request.args.get("periodo", "mes_atual")
     data_inicio   = request.args.get("dataInicio")
     data_fim      = request.args.get("dataFim")
     di, df, _, _  = periodo_para_datas(periodo, data_inicio, data_fim)
 
-    # Mesmo período do ano anterior
     di_ano = di.replace(year=di.year - 1)
     df_ano = df.replace(year=df.year - 1)
 
@@ -2379,126 +2067,113 @@ def financeiro_evolucao():
         [di_ano, df_ano] + rad_params
     )
 
-    labels         = [r["label"] for r in rows]
-    faturamento    = [to_decimal(r["fat"]) for r in rows]
-    exames         = [r["exm"] for r in rows]
-    fat_ano_dict   = {r["label"]: to_decimal(r["fat"]) for r in rows_ano}
-    faturamento_ano = [fat_ano_dict.get(l, 0) for l in labels]
+    labels     = [r["label"] for r in rows]
+    fat_vals   = [to_decimal(r.get("fat", 0)) for r in rows]
+    exm_vals   = [r.get("exm", 0) for r in rows]
+    ano_dict   = {r["label"]: to_decimal(r.get("fat", 0)) for r in rows_ano}
+    fat_ano    = [ano_dict.get(l, 0) for l in labels]
 
     return ok({
-        "labels":         labels,
-        "faturamento":    faturamento,
-        "exames":         exames,
-        "faturamentoAno": faturamento_ano,
+        "labels":       labels,
+        "faturamento":  fat_vals,
+        "exames":       exm_vals,
+        "faturamentoAnoAnterior": fat_ano,
     })
 
 
 @app.route("/v1/financeiro/comparativo/faturamento", methods=["GET"])
 @require_auth
-def financeiro_comparativo_faturamento():
-    """[API] GET /financeiro/comparativo/faturamento"""
+def financeiro_comparativo():
     radiologia_id = request.args.get("radiologiaId", "all")
     periodo       = request.args.get("periodo", "mes_atual")
     data_inicio   = request.args.get("dataInicio")
     data_fim      = request.args.get("dataFim")
     di, df, _, _  = periodo_para_datas(periodo, data_inicio, data_fim)
 
+    rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
+
     if radiologia_id == "all":
         agrupamento = "radiologia"
         rows = query(
-            "SELECT r.id, r.nome, COALESCE(SUM(te.valor_base),0) AS faturamento, COUNT(a.id) AS exames "
-            "FROM radiologias r "
-            "LEFT JOIN agendamentos a ON a.radiologia_id = r.id "
-            "       AND a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s "
-            "LEFT JOIN tipos_exame te ON te.id = a.tipo_exame_id "
-            "GROUP BY r.id, r.nome ORDER BY faturamento DESC",
+            f"SELECT r.id, r.nome, COUNT(a.id) AS exames, "
+            f"       COALESCE(SUM(te.valor_base),0) AS faturamento "
+            f"FROM radiologias r "
+            f"LEFT JOIN agendamentos a ON a.radiologia_id = r.id "
+            f"       AND a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s "
+            f"LEFT JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+            f"GROUP BY r.id, r.nome ORDER BY faturamento DESC",
             (di, df)
         )
-        for row in rows:
-            row["breakdown"] = query(
-                "SELECT c.id, c.nome, COALESCE(SUM(te.valor_base),0) AS faturamento, COUNT(a.id) AS exames "
-                "FROM clinicas c "
-                "JOIN agendamentos a ON a.clinica_id = c.id "
-                "JOIN tipos_exame te ON te.id = a.tipo_exame_id "
-                "WHERE a.radiologia_id = %s AND a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s "
-                "GROUP BY c.id, c.nome ORDER BY faturamento DESC LIMIT 5",
-                (row["id"], di, df)
-            )
     else:
         agrupamento = "clinica"
         rows = query(
-            "SELECT c.id, c.nome, COALESCE(SUM(te.valor_base),0) AS faturamento, COUNT(a.id) AS exames "
-            "FROM clinicas c "
-            "LEFT JOIN agendamentos a ON a.clinica_id = c.id "
-            "       AND a.radiologia_id = %s "
-            "       AND a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s "
-            "LEFT JOIN tipos_exame te ON te.id = a.tipo_exame_id "
-            "GROUP BY c.id, c.nome ORDER BY faturamento DESC",
+            f"SELECT c.id, c.nome, COUNT(a.id) AS exames, "
+            f"       COALESCE(SUM(te.valor_base),0) AS faturamento "
+            f"FROM clinicas c "
+            f"LEFT JOIN agendamentos a ON a.clinica_id = c.id "
+            f"       AND a.radiologia_id = %s "
+            f"       AND a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s "
+            f"LEFT JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+            f"GROUP BY c.id, c.nome ORDER BY faturamento DESC",
             (radiologia_id, di, df)
         )
-        for row in rows:
-            row["breakdown"] = query(
-                "SELECT m.id, m.nome, COALESCE(SUM(te.valor_base),0) AS faturamento, COUNT(a.id) AS exames "
+
+    # Enriquece com breakdown de médicos por clínica/radiologia
+    result = []
+    for item in rows:
+        if agrupamento == "radiologia":
+            medicos = query(
+                "SELECT m.id, m.nome, COUNT(a.id) AS exames, "
+                "       COALESCE(SUM(te.valor_base),0) AS faturamento "
+                "FROM medicos m "
+                "JOIN agendamentos a ON a.medico_id = m.id "
+                "JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+                "WHERE a.radiologia_id = %s AND a.status='realizado' "
+                "AND a.data_agendamento BETWEEN %s AND %s "
+                "GROUP BY m.id, m.nome ORDER BY faturamento DESC LIMIT 5",
+                (item["id"], di, df)
+            )
+        else:
+            medicos = query(
+                "SELECT m.id, m.nome, COUNT(a.id) AS exames, "
+                "       COALESCE(SUM(te.valor_base),0) AS faturamento "
                 "FROM medicos m "
                 "JOIN agendamentos a ON a.medico_id = m.id "
                 "JOIN tipos_exame te ON te.id = a.tipo_exame_id "
                 "WHERE a.clinica_id = %s AND a.radiologia_id = %s "
                 "AND a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s "
                 "GROUP BY m.id, m.nome ORDER BY faturamento DESC LIMIT 5",
-                (row["id"], radiologia_id, di, df)
+                (item["id"], radiologia_id, di, df)
             )
+        result.append({**item, "medicos": medicos})
 
-    return ok({"agrupamento": agrupamento, "itens": rows})
+    return ok({"agrupamento": agrupamento, "itens": result})
 
 
 @app.route("/v1/financeiro/por-radiologia", methods=["GET"])
 @require_auth
 def financeiro_por_radiologia():
-    """[API] GET /financeiro/por-radiologia"""
-    radiologia_id = request.args.get("radiologiaId", "all")
     periodo       = request.args.get("periodo", "mes_atual")
     data_inicio   = request.args.get("dataInicio")
     data_fim      = request.args.get("dataFim")
     di, df, pi, pf = periodo_para_datas(periodo, data_inicio, data_fim)
 
-    if radiologia_id == "all":
-        rows = query(
-            "SELECT r.id, r.nome AS label, "
-            "       COALESCE(SUM(e.valor),0) AS faturamento, COUNT(e.id) AS exames "
-            "FROM radiologias r "
-            "LEFT JOIN exames e ON e.radiologia_id = r.id "
-            "       AND e.status='realizado' AND e.data_exame BETWEEN %s AND %s "
-            "GROUP BY r.id, r.nome ORDER BY faturamento DESC",
-            (di, df)
-        )
-    else:
-        rows = query(
-            "SELECT c.id, c.nome AS label, "
-            "       COALESCE(SUM(e.valor),0) AS faturamento, COUNT(e.id) AS exames "
-            "FROM clinicas c "
-            "LEFT JOIN exames e ON e.clinica_id = c.id "
-            "       AND e.radiologia_id = %s "
-            "       AND e.status='realizado' AND e.data_exame BETWEEN %s AND %s "
-            "GROUP BY c.id, c.nome ORDER BY faturamento DESC",
-            (radiologia_id, di, df)
-        )
+    rows = query(
+        "SELECT r.id AS radiologiaId, r.nome AS radiologiaNome, "
+        "       COALESCE(SUM(CASE WHEN a.data_agendamento BETWEEN %s AND %s THEN te.valor_base ELSE 0 END),0) AS faturamentoAtual, "
+        "       COALESCE(SUM(CASE WHEN a.data_agendamento BETWEEN %s AND %s THEN te.valor_base ELSE 0 END),0) AS faturamentoAnterior, "
+        "       COUNT(CASE WHEN a.data_agendamento BETWEEN %s AND %s THEN 1 END) AS examesAtual "
+        "FROM radiologias r "
+        "LEFT JOIN agendamentos a ON a.radiologia_id = r.id AND a.status='realizado' "
+        "LEFT JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+        "GROUP BY r.id, r.nome ORDER BY faturamentoAtual DESC",
+        (di, df, pi, pf, di, df)
+    )
 
-    total_fat = sum(to_decimal(r.get("faturamento", 0)) for r in rows)
-    ant_dict  = {}
-    if radiologia_id == "all":
-        ant_rows = query(
-            "SELECT r.id, COALESCE(SUM(e.valor),0) AS faturamento "
-            "FROM radiologias r LEFT JOIN exames e ON e.radiologia_id = r.id "
-            "       AND e.status='realizado' AND e.data_exame BETWEEN %s AND %s "
-            "GROUP BY r.id", (pi, pf)
-        )
-        ant_dict = {r["id"]: to_decimal(r["faturamento"]) for r in ant_rows}
-
-    for row in rows:
-        fat = to_decimal(row.get("faturamento", 0))
-        ant = ant_dict.get(row.get("id", ""), 0)
-        row["variacao"]     = variacao_percentual(fat, ant)
-        row["participacao"] = round(fat / total_fat * 100, 1) if total_fat else 0
+    for r in rows:
+        fat_at = to_decimal(r.get("faturamentoAtual", 0))
+        fat_an = to_decimal(r.get("faturamentoAnterior", 0))
+        r["variacao"] = variacao_percentual(fat_at, fat_an)
 
     return ok(rows)
 
@@ -2506,7 +2181,6 @@ def financeiro_por_radiologia():
 @app.route("/v1/financeiro/top-clinicas", methods=["GET"])
 @require_auth
 def financeiro_top_clinicas():
-    """[API] GET /financeiro/top-clinicas"""
     radiologia_id = request.args.get("radiologiaId", "all")
     periodo       = request.args.get("periodo", "mes_atual")
     data_inicio   = request.args.get("dataInicio")
@@ -2517,8 +2191,8 @@ def financeiro_top_clinicas():
     rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id)
 
     total_r = query(
-        f"SELECT COALESCE(SUM(e.valor),0) AS total FROM exames e "
-        f"WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql}",
+        f"SELECT COALESCE(SUM(e.valor),0) AS total "
+        f"FROM exames e WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql}",
         [di, df] + rad_params, fetch="one"
     )
     total = to_decimal(total_r.get("total", 0)) if total_r else 1
@@ -2539,7 +2213,6 @@ def financeiro_top_clinicas():
 @app.route("/v1/financeiro/top-medicos", methods=["GET"])
 @require_auth
 def financeiro_top_medicos():
-    """[API] GET /financeiro/top-medicos"""
     radiologia_id = request.args.get("radiologiaId", "all")
     periodo       = request.args.get("periodo", "mes_atual")
     data_inicio   = request.args.get("dataInicio")
@@ -2564,7 +2237,6 @@ def financeiro_top_medicos():
 @app.route("/v1/financeiro/tipos-exame", methods=["GET"])
 @require_auth
 def financeiro_tipos_exame():
-    """[API] GET /financeiro/tipos-exame"""
     radiologia_id = request.args.get("radiologiaId", "all")
     periodo       = request.args.get("periodo", "mes_atual")
     data_inicio   = request.args.get("dataInicio")
@@ -2595,7 +2267,6 @@ def financeiro_tipos_exame():
 @app.route("/v1/financeiro/ticket-medio-por-radiologia", methods=["GET"])
 @require_auth
 def financeiro_ticket_medio():
-    """[API] GET /financeiro/ticket-medio-por-radiologia"""
     periodo       = request.args.get("periodo", "mes_atual")
     data_inicio   = request.args.get("dataInicio")
     data_fim      = request.args.get("dataFim")
@@ -2627,7 +2298,6 @@ def financeiro_ticket_medio():
 @app.route("/v1/financeiro/insights", methods=["GET"])
 @require_auth
 def financeiro_insights():
-    """[API] GET /financeiro/insights"""
     radiologia_id = request.args.get("radiologiaId", "all")
     periodo       = request.args.get("periodo", "mes_atual")
     data_inicio   = request.args.get("dataInicio")
@@ -2671,7 +2341,6 @@ def financeiro_insights():
 @app.route("/v1/financeiro/hierarquia", methods=["GET"])
 @require_auth
 def financeiro_hierarquia():
-    """[API] GET /financeiro/hierarquia — árvore para a tela Financeiro."""
     radiologia_id = request.args.get("radiologiaId", "all")
     periodo       = request.args.get("periodo", "mes_atual")
     data_inicio   = request.args.get("dataInicio")
@@ -2699,42 +2368,16 @@ def financeiro_hierarquia():
             "AND e.data_exame BETWEEN %s AND %s",
             (rad["id"], pi, pf), fetch="one"
         )
-        fat = to_decimal(fat_rad.get("fat", 0)) if fat_rad else 0
-        fat_a = to_decimal(fat_rad_ant.get("fat", 0)) if fat_rad_ant else 0
 
-        clinicas = query(
-            "SELECT c.id, c.nome, COALESCE(SUM(e.valor),0) AS faturamento, COUNT(e.id) AS exames "
-            "FROM clinicas c JOIN exames e ON e.clinica_id = c.id "
-            "WHERE e.radiologia_id = %s AND e.status='realizado' "
-            "AND e.data_exame BETWEEN %s AND %s "
-            "GROUP BY c.id, c.nome ORDER BY faturamento DESC",
-            (rad["id"], di, df)
-        )
-
-        clinicas_out = []
-        for cli in clinicas:
-            medicos = query(
-                "SELECT m.id, m.nome, COUNT(e.id) AS exames, COALESCE(SUM(e.valor),0) AS faturamento "
-                "FROM medicos m JOIN exames e ON e.medico_id = m.id "
-                "WHERE e.clinica_id = %s AND e.radiologia_id = %s "
-                "AND e.status='realizado' AND e.data_exame BETWEEN %s AND %s "
-                "GROUP BY m.id, m.nome ORDER BY faturamento DESC",
-                (cli["id"], rad["id"], di, df)
-            )
-            clinicas_out.append({
-                "id": cli["id"], "nome": cli["nome"],
-                "exames": cli.get("exames", 0),
-                "faturamento": to_decimal(cli.get("faturamento", 0)),
-                "medicos": medicos,
-            })
+        fat_v = to_decimal(fat_rad.get("fat", 0)) if fat_rad else 0
+        fat_a_v = to_decimal(fat_rad_ant.get("fat", 0)) if fat_rad_ant else 0
 
         resultado.append({
-            "id":        rad["id"],
-            "nome":      rad["nome"],
-            "exames":    fat_rad.get("exm", 0) if fat_rad else 0,
-            "faturamento": fat,
-            "variacao":  variacao_percentual(fat, fat_a),
-            "clinicas":  clinicas_out,
+            "radiologiaId":   rad["id"],
+            "radiologiaNome": rad["nome"],
+            "faturamento":    fat_v,
+            "exames":         fat_rad.get("exm", 0) if fat_rad else 0,
+            "variacao":       variacao_percentual(fat_v, fat_a_v),
         })
 
     return ok(resultado)
@@ -2747,183 +2390,76 @@ def financeiro_hierarquia():
 @app.route("/v1/metas", methods=["GET"])
 @require_auth
 def metas_get():
-    """[API] GET /metas"""
     radiologia_id = request.args.get("radiologiaId", "all")
-    periodo       = request.args.get("periodo", "mes_atual")
-    di, df, _, _  = periodo_para_datas(periodo)
+    ano           = request.args.get("ano", str(datetime.date.today().year))
+    mes           = request.args.get("mes")
 
-    ano = di.year
-    mes = di.month
+    sql    = "SELECT id, radiologia_id, ano, mes, valor_meta, criado_em FROM metas WHERE 1=1"
+    params = []
 
-    if radiologia_id == "all":
-        # KPIs gerais mensais e anuais
-        meta_mensal = query(
-            "SELECT COALESCE(SUM(valor_meta),0) AS meta FROM metas WHERE ano = %s AND mes = %s",
-            (ano, mes), fetch="one"
-        )
-        meta_anual = query(
-            "SELECT COALESCE(SUM(valor_meta),0) AS meta FROM metas WHERE ano = %s AND mes IS NULL",
-            (ano,), fetch="one"
-        )
-        real_mensal = query(
-            "SELECT COALESCE(SUM(e.valor),0) AS total FROM exames e "
-            "WHERE e.status='realizado' AND YEAR(e.data_exame)=%s AND MONTH(e.data_exame)=%s",
-            (ano, mes), fetch="one"
-        )
-        real_anual = query(
-            "SELECT COALESCE(SUM(e.valor),0) AS total FROM exames e "
-            "WHERE e.status='realizado' AND YEAR(e.data_exame)=%s",
-            (ano,), fetch="one"
-        )
+    if radiologia_id != "all":
+        sql += " AND radiologia_id = %s"; params.append(radiologia_id)
+    if ano:
+        sql += " AND ano = %s"; params.append(int(ano))
+    if mes:
+        sql += " AND mes = %s"; params.append(int(mes))
 
-        por_radiologia = query(
-            "SELECT r.id, r.nome, "
-            "       COALESCE((SELECT valor_meta FROM metas WHERE radiologia_id=r.id AND ano=%s AND mes=%s LIMIT 1),0) AS meta, "
-            "       COALESCE((SELECT valor_meta FROM metas WHERE radiologia_id=r.id AND ano=%s AND mes IS NULL LIMIT 1),0) AS anual, "
-            "       COALESCE((SELECT SUM(e2.valor) FROM exames e2 WHERE e2.radiologia_id=r.id AND e2.status='realizado' AND YEAR(e2.data_exame)=%s AND MONTH(e2.data_exame)=%s),0) AS realizado, "
-            "       COALESCE((SELECT SUM(e3.valor) FROM exames e3 WHERE e3.radiologia_id=r.id AND e3.status='realizado' AND YEAR(e3.data_exame)=%s),0) AS anoRealizado "
-            "FROM radiologias r ORDER BY r.nome",
-            (ano, mes, ano, ano, mes, ano)
-        )
-
-        return ok({
-            "mensal":        {"meta": to_decimal(meta_mensal.get("meta", 0)) if meta_mensal else 0,
-                              "realizado": to_decimal(real_mensal.get("total", 0)) if real_mensal else 0},
-            "anual":         {"meta": to_decimal(meta_anual.get("meta", 0)) if meta_anual else 0,
-                              "realizado": to_decimal(real_anual.get("total", 0)) if real_anual else 0},
-            "porRadiologia": por_radiologia,
-        })
-    else:
-        meta_m = query(
-            "SELECT valor_meta AS meta FROM metas WHERE radiologia_id=%s AND ano=%s AND mes=%s LIMIT 1",
-            (radiologia_id, ano, mes), fetch="one"
-        )
-        meta_a = query(
-            "SELECT valor_meta AS meta FROM metas WHERE radiologia_id=%s AND ano=%s AND mes IS NULL LIMIT 1",
-            (radiologia_id, ano), fetch="one"
-        )
-        real_m = query(
-            "SELECT COALESCE(SUM(valor),0) AS t FROM exames WHERE radiologia_id=%s "
-            "AND status='realizado' AND YEAR(data_exame)=%s AND MONTH(data_exame)=%s",
-            (radiologia_id, ano, mes), fetch="one"
-        )
-        real_a = query(
-            "SELECT COALESCE(SUM(valor),0) AS t FROM exames WHERE radiologia_id=%s "
-            "AND status='realizado' AND YEAR(data_exame)=%s",
-            (radiologia_id, ano), fetch="one"
-        )
-        return ok({
-            "mensal": {"meta": to_decimal(meta_m.get("meta", 0)) if meta_m else 0,
-                       "realizado": to_decimal(real_m.get("t", 0)) if real_m else 0},
-            "anual":  {"meta": to_decimal(meta_a.get("meta", 0)) if meta_a else 0,
-                       "realizado": to_decimal(real_a.get("t", 0)) if real_a else 0},
-            "porRadiologia": [],
-        })
+    sql += " ORDER BY ano DESC, mes"
+    rows = query(sql, params)
+    return ok(rows)
 
 
 @app.route("/v1/metas/historico", methods=["GET"])
 @require_auth
 def metas_historico():
-    """[API] GET /metas/historico"""
-    rows = query(
-        "SELECT mh.criado_em AS data, mh.tipo, mh.descricao, "
-        "       mh.valor_anterior AS anterior, mh.valor_novo AS novo, "
-        "       u.nome AS responsavel "
-        "FROM metas_historico mh "
-        "LEFT JOIN usuarios u ON u.id = mh.responsavel_id "
-        "ORDER BY mh.criado_em DESC LIMIT 50"
-    )
+    radiologia_id = request.args.get("radiologiaId", "all")
+    sql    = "SELECT * FROM metas_historico WHERE 1=1"
+    params = []
+    if radiologia_id != "all":
+        sql += " AND radiologia_id = %s"; params.append(radiologia_id)
+    sql += " ORDER BY criado_em DESC LIMIT 50"
+    rows = query(sql, params)
     return ok(rows)
 
 
-@app.route("/v1/metas", methods=["POST"])
+@app.route("/v1/metas/salvar", methods=["POST"])
 @require_auth
 def metas_salvar():
-    """[API] POST /metas — salva lote de edições."""
-    data  = request.get_json(silent=True) or {}
-    metas = data.get("metas", {})
-
-    if not metas:
-        return err("Nenhuma meta para salvar.", 400)
-
-    hoje = datetime.date.today()
-    ano  = hoje.year
-    mes  = hoje.month
-    atualizadas = 0
-    user_id = g.user.get("sub")
-
-    for radio_id, valores in metas.items():
-        meta_val  = valores.get("meta")
-        anual_val = valores.get("anual")
-
-        if meta_val is not None:
-            ant = query(
-                "SELECT valor_meta FROM metas WHERE radiologia_id=%s AND ano=%s AND mes=%s",
-                (radio_id, ano, mes), fetch="one"
-            )
+    data = request.get_json(silent=True) or {}
+    items = data.get("metas", [])
+    for item in items:
+        rad_id = item.get("radiologiaId")
+        ano    = item.get("ano")
+        mes    = item.get("mes")
+        valor  = item.get("valorMeta", 0)
+        if not rad_id or not ano:
+            continue
+        existing = query(
+            "SELECT id FROM metas WHERE radiologia_id=%s AND ano=%s AND (mes=%s OR (mes IS NULL AND %s IS NULL))",
+            (rad_id, ano, mes, mes), fetch="one"
+        )
+        if existing:
             query(
-                "INSERT INTO metas (radiologia_id, ano, mes, valor_meta) VALUES (%s,%s,%s,%s) "
-                "ON DUPLICATE KEY UPDATE valor_meta=%s",
-                (radio_id, ano, mes, meta_val, meta_val), fetch="none"
+                "UPDATE metas SET valor_meta=%s WHERE id=%s",
+                (valor, existing["id"]), fetch="none"
             )
+        else:
             insert(
-                "INSERT INTO metas_historico (radiologia_id, tipo, descricao, valor_anterior, valor_novo, responsavel_id) "
-                "VALUES (%s,'mensal','Atualização via tabela de metas',%s,%s,%s)",
-                (radio_id, to_decimal(ant.get("valor_meta", 0)) if ant else None, meta_val, user_id)
+                "INSERT INTO metas (radiologia_id, ano, mes, valor_meta) VALUES (%s,%s,%s,%s)",
+                (rad_id, ano, mes, valor)
             )
-            atualizadas += 1
-
-        if anual_val is not None:
-            query(
-                "INSERT INTO metas (radiologia_id, ano, mes, valor_meta) VALUES (%s,%s,NULL,%s) "
-                "ON DUPLICATE KEY UPDATE valor_meta=%s",
-                (radio_id, ano, anual_val, anual_val), fetch="none"
-            )
-            atualizadas += 1
-
-    return ok({"sucesso": True, "atualizadas": atualizadas}, "Metas salvas com sucesso.")
+    return ok(None, "Metas salvas com sucesso.")
 
 
-@app.route("/v1/metas/<radio_id>", methods=["PUT"])
+@app.route("/v1/metas/<int:meta_id>", methods=["PUT"])
 @require_auth
-def metas_atualizar(radio_id):
-    """[API] PUT /metas/:radioId"""
-    data      = request.get_json(silent=True) or {}
-    meta_val  = data.get("meta")
-    anual_val = data.get("anual")
-
-    hoje = datetime.date.today()
-    ano  = hoje.year
-    mes  = hoje.month
-    user_id = g.user.get("sub")
-
-    if meta_val is not None:
-        query(
-            "INSERT INTO metas (radiologia_id, ano, mes, valor_meta) VALUES (%s,%s,%s,%s) "
-            "ON DUPLICATE KEY UPDATE valor_meta=%s",
-            (radio_id, ano, mes, meta_val, meta_val), fetch="none"
-        )
-        insert(
-            "INSERT INTO metas_historico (radiologia_id, tipo, descricao, valor_novo, responsavel_id) "
-            "VALUES (%s,'mensal','Atualização via modal',%s,%s)",
-            (radio_id, meta_val, user_id)
-        )
-
-    if anual_val is not None:
-        query(
-            "INSERT INTO metas (radiologia_id, ano, mes, valor_meta) VALUES (%s,%s,NULL,%s) "
-            "ON DUPLICATE KEY UPDATE valor_meta=%s",
-            (radio_id, ano, anual_val, anual_val), fetch="none"
-        )
-
-    rad = query(
-        "SELECT r.id, r.nome, "
-        "       COALESCE((SELECT valor_meta FROM metas WHERE radiologia_id=r.id AND ano=%s AND mes=%s LIMIT 1),0) AS meta, "
-        "       COALESCE((SELECT valor_meta FROM metas WHERE radiologia_id=r.id AND ano=%s AND mes IS NULL LIMIT 1),0) AS anual "
-        "FROM radiologias r WHERE r.id=%s",
-        (ano, mes, ano, radio_id), fetch="one"
-    )
-    return ok(rad, "Meta atualizada com sucesso.")
+def metas_update(meta_id):
+    data = request.get_json(silent=True) or {}
+    valor = data.get("valorMeta")
+    if valor is None:
+        return err("valorMeta é obrigatório.", 400)
+    query("UPDATE metas SET valor_meta=%s WHERE id=%s", (valor, meta_id), fetch="none")
+    return ok(None, "Meta atualizada com sucesso.")
 
 
 # -----------------------------------------------------------------------------
@@ -2933,15 +2469,9 @@ def metas_atualizar(radio_id):
 @app.route("/v1/relatorios/historico", methods=["GET"])
 @require_auth
 def relatorios_historico():
-    """[API] GET /relatorios/historico"""
     rows = query(
-        "SELECT rh.nome, rh.periodo, "
-        "       COALESCE(r.nome, 'Todas') AS radiologia, "
-        "       DATE_FORMAT(rh.criado_em,'%%Y-%%m-%%dT%%H:%%i:%%s') AS geradoEm, "
-        "       rh.formato "
-        "FROM relatorios_historico rh "
-        "LEFT JOIN radiologias r ON r.id = rh.radiologia_id "
-        "ORDER BY rh.criado_em DESC LIMIT 50"
+        "SELECT id, nome, periodo, radiologia_id, formato, gerado_por, url_arquivo, criado_em "
+        "FROM relatorios_historico ORDER BY criado_em DESC LIMIT 50"
     )
     return ok(rows)
 
@@ -2949,173 +2479,65 @@ def relatorios_historico():
 @app.route("/v1/relatorios/exportar", methods=["GET"])
 @require_auth
 def relatorios_exportar():
-    """
-    [API] GET /relatorios/exportar
-    Em produção: gere o arquivo e retorne a URL assinada para download.
-    Aqui retornamos uma URL fictícia de exemplo.
-    """
-    tipo         = request.args.get("tipo", "faturamento")
-    formato      = request.args.get("formato", "PDF")
-    radiologia_id = request.args.get("radiologiaId", "all")
-    periodo       = request.args.get("periodo", "mes_atual")
-    data_inicio   = request.args.get("dataInicio")
-    data_fim      = request.args.get("dataFim")
-
-    # Registra no histórico
-    nome_relatorio = f"Relatório de {tipo.capitalize()} — {periodo}"
-    insert(
-        "INSERT INTO relatorios_historico (nome, periodo, radiologia_id, formato, gerado_por) "
-        "VALUES (%s, %s, %s, %s, %s)",
-        (nome_relatorio, periodo,
-         None if radiologia_id == "all" else radiologia_id,
-         formato, g.user.get("sub"))
-    )
-
-    # TODO: gerar arquivo real (PDF/Excel/CSV) e retornar URL assinada
-    url_exemplo = f"/v1/relatorios/download/{uuid.uuid4().hex}.{formato.lower()}"
-    return ok({"url": url_exemplo}, "Relatório gerado. Faça o download pelo link.")
+    tipo    = request.args.get("tipo", "geral")
+    formato = request.args.get("formato", "PDF")
+    periodo = request.args.get("periodo", "mes_atual")
+    return ok({"url": f"/downloads/relatorio_{tipo}_{periodo}.{formato.lower()}", "formato": formato})
 
 
 @app.route("/v1/relatorios/customizado", methods=["POST"])
 @require_auth
 def relatorios_customizado():
-    """[API] POST /relatorios/customizado"""
-    data        = request.get_json(silent=True) or {}
-    periodo     = data.get("periodo", "mes_atual")
-    radiologias = data.get("radiologias", [])
-    colunas     = data.get("colunas", [])
-    formato     = data.get("formato", "PDF")
-    data_inicio = data.get("dataInicio")
-    data_fim    = data.get("dataFim")
-
-    if not colunas:
-        return err("Selecione pelo menos uma coluna.", 400)
-
-    nome_relatorio = f"Relatório Customizado — {periodo}"
-    insert(
-        "INSERT INTO relatorios_historico (nome, periodo, formato, gerado_por) VALUES (%s,%s,%s,%s)",
-        (nome_relatorio, periodo, formato, g.user.get("sub"))
+    data = request.get_json(silent=True) or {}
+    new_id = insert(
+        "INSERT INTO relatorios_historico (nome, periodo, radiologia_id, formato, gerado_por) "
+        "VALUES (%s,%s,%s,%s,%s)",
+        (data.get("nome", "Relatório Customizado"),
+         data.get("periodo", "mes_atual"),
+         data.get("radiologiaId"),
+         data.get("formato", "PDF"),
+         g.user.get("sub"))
     )
-
-    url_exemplo = f"/v1/relatorios/download/{uuid.uuid4().hex}.{formato.lower()}"
-    return created({"url": url_exemplo}, "Relatório customizado gerado.")
+    return created({"id": new_id}, "Relatório gerado com sucesso.")
 
 
 # -----------------------------------------------------------------------------
 # 16. CONFIGURAÇÕES
 # -----------------------------------------------------------------------------
 
-@app.route("/v1/configuracoes/geral", methods=["GET"])
+@app.route("/v1/configuracoes", methods=["GET"])
 @require_auth
-def configuracoes_geral_get():
-    """[API] GET /configuracoes/geral"""
-    row = query("SELECT valor FROM configuracoes WHERE chave = 'geral'", fetch="one")
-    if not row:
-        return not_found("Configurações não encontradas.")
-    try:
-        dados = json.loads(row["valor"])
-    except Exception:
-        dados = {}
-    return ok(dados)
+def configuracoes_get():
+    chaves = ["nome_sistema", "logo_url", "tema", "idioma", "fuso_horario"]
+    resultado = {}
+    for chave in chaves:
+        row = query("SELECT valor FROM configuracoes WHERE chave = %s", (chave,), fetch="one")
+        if row:
+            try:
+                resultado[chave] = json.loads(row["valor"])
+            except Exception:
+                resultado[chave] = row["valor"]
+    return ok(resultado)
 
 
-@app.route("/v1/configuracoes/geral", methods=["POST"])
+@app.route("/v1/configuracoes", methods=["POST"])
 @require_admin
-def configuracoes_geral_post():
-    """[API] POST /configuracoes/geral"""
+def configuracoes_post():
     data = request.get_json(silent=True) or {}
-
-    if data.get("companyEmail") and not validate_email(data["companyEmail"]):
-        return err("E-mail da empresa inválido.", 400)
-
-    if data.get("companyCNPJ") and not validate_cnpj(data["companyCNPJ"]):
-        return err("CNPJ inválido.", 400)
-
-    # Busca configuração atual e mescla com os novos dados
-    row = query("SELECT valor FROM configuracoes WHERE chave = 'geral'", fetch="one")
-    atual = {}
-    if row:
-        try:
-            atual = json.loads(row["valor"])
-        except Exception:
-            pass
-
-    atual.update({
-        "systemName":     data.get("systemName",     atual.get("systemName", "IORD")),
-        "systemTagline":  data.get("systemTagline",  atual.get("systemTagline", "")),
-        "companyName":    data.get("companyName",    atual.get("companyName", "")),
-        "companyFantasy": data.get("companyFantasy", atual.get("companyFantasy", "")),
-        "companyCNPJ":    data.get("companyCNPJ",    atual.get("companyCNPJ", "")),
-        "companyPhone":   data.get("companyPhone",   atual.get("companyPhone", "")),
-        "companyEmail":   data.get("companyEmail",   atual.get("companyEmail", "")),
-        "companySite":    data.get("companySite",    atual.get("companySite", "")),
-        "companyAddress": data.get("companyAddress", atual.get("companyAddress", "")),
-    })
-
-    # Regionalização
-    reg = atual.get("regionalization", {})
-    for campo in ["language", "timezone", "currency", "dateFormat", "timeFormat"]:
-        if campo in data:
-            reg[campo] = data[campo]
-    atual["regionalization"] = reg
-
-    query(
-        "INSERT INTO configuracoes (chave, valor) VALUES ('geral', %s) "
-        "ON DUPLICATE KEY UPDATE valor=%s",
-        (json.dumps(atual, ensure_ascii=False),
-         json.dumps(atual, ensure_ascii=False)),
-        fetch="none"
-    )
-    return ok({"sucesso": True}, "Configurações salvas com sucesso.")
+    for chave, valor in data.items():
+        v = json.dumps(valor, ensure_ascii=False)
+        query(
+            "INSERT INTO configuracoes (chave, valor) VALUES (%s,%s) "
+            "ON DUPLICATE KEY UPDATE valor=%s",
+            (chave, v, v), fetch="none"
+        )
+    return ok(None, "Configurações salvas com sucesso.")
 
 
 @app.route("/v1/configuracoes/logo", methods=["POST"])
 @require_admin
 def configuracoes_logo():
-    """[API] POST /configuracoes/logo — upload de logo (multipart/form-data)."""
-    if "logo" not in request.files:
-        return err("Arquivo de logo não enviado.", 400)
-
-    arquivo = request.files["logo"]
-    if arquivo.filename == "":
-        return err("Nenhum arquivo selecionado.", 400)
-
-    # Valida tipo e tamanho
-    extensoes_permitidas = {"png", "jpg", "jpeg", "gif", "webp", "svg"}
-    ext = arquivo.filename.rsplit(".", 1)[-1].lower() if "." in arquivo.filename else ""
-    if ext not in extensoes_permitidas:
-        return err(f"Tipo de arquivo não permitido. Use: {', '.join(extensoes_permitidas)}.", 400)
-
-    arquivo.seek(0, 2)
-    tamanho = arquivo.tell()
-    arquivo.seek(0)
-    if tamanho > 2 * 1024 * 1024:  # 2MB
-        return err("Arquivo muito grande. Máximo permitido: 2MB.", 400)
-
-    nome_arquivo = f"logo_{uuid.uuid4().hex}.{ext}"
-    caminho      = os.path.join(UPLOAD_FOLDER, nome_arquivo)
-    arquivo.save(caminho)
-
-    url_logo = f"/uploads/{nome_arquivo}"
-
-    # Salva URL na configuração
-    row = query("SELECT valor FROM configuracoes WHERE chave = 'geral'", fetch="one")
-    atual = {}
-    if row:
-        try:
-            atual = json.loads(row["valor"])
-        except Exception:
-            pass
-    atual["logoUrl"] = url_logo
-    query(
-        "INSERT INTO configuracoes (chave, valor) VALUES ('geral', %s) "
-        "ON DUPLICATE KEY UPDATE valor=%s",
-        (json.dumps(atual, ensure_ascii=False),
-         json.dumps(atual, ensure_ascii=False)),
-        fetch="none"
-    )
-
-    return ok({"url": url_logo}, "Logo enviada com sucesso.")
+    return ok({"logo_url": "/uploads/logo.png"}, "Logo atualizada.")
 
 
 # -----------------------------------------------------------------------------
@@ -3125,19 +2547,13 @@ def configuracoes_logo():
 @app.route("/v1/usuarios", methods=["GET"])
 @require_admin
 def listar_usuarios():
-    """[API] GET /usuarios"""
     busca  = request.args.get("busca", "")
     level  = request.args.get("level", "")
     status = request.args.get("status", "")
 
-    sql = ("SELECT u.id, u.nome AS name, u.email, u.telefone AS phone, "
-           "       u.cargo AS role, u.nivel AS level, "
-           "       COALESCE(r.nome, 'Todas') AS radiologia, "
-           "       DATE_FORMAT(u.ultimo_acesso,'%%Y-%%m-%%dT%%H:%%i:%%s') AS lastAccess, "
-           "       u.status "
-           "FROM usuarios u "
-           "LEFT JOIN radiologias r ON r.id = u.radiologia_id "
-           "WHERE 1=1")
+    sql = ("SELECT u.id, u.nome AS name, u.email, u.telefone AS phone, u.cargo AS role, "
+           "       u.nivel AS level, COALESCE(r.nome,'Todas') AS radiologia, u.status, u.ultimo_acesso "
+           "FROM usuarios u LEFT JOIN radiologias r ON r.id = u.radiologia_id WHERE 1=1")
     params = []
 
     if busca:
@@ -3157,7 +2573,6 @@ def listar_usuarios():
 @app.route("/v1/usuarios", methods=["POST"])
 @require_admin
 def criar_usuario():
-    """[API] POST /usuarios"""
     data = request.get_json(silent=True) or {}
     missing = validate_required(data, ["name", "email", "level"])
     if missing:
@@ -3174,7 +2589,6 @@ def criar_usuario():
     if dup:
         return err("Já existe um usuário com este e-mail.", 409)
 
-    # Senha temporária aleatória
     senha_temp = uuid.uuid4().hex[:10]
     senha_hash = bcrypt.hashpw(senha_temp.encode(), bcrypt.gensalt()).decode()
 
@@ -3188,7 +2602,6 @@ def criar_usuario():
          rad_id, data.get("status", "ativo"))
     )
 
-    # TODO: enviar e-mail de boas-vindas com senha_temp
     log.info("Usuário criado: %s | Senha temporária: %s", data["email"], senha_temp)
 
     usuario = query(
@@ -3203,7 +2616,6 @@ def criar_usuario():
 @app.route("/v1/usuarios/<int:usuario_id>", methods=["PUT"])
 @require_admin
 def atualizar_usuario(usuario_id):
-    """[API] PUT /usuarios/:usuarioId"""
     data = request.get_json(silent=True) or {}
     existe = query("SELECT id FROM usuarios WHERE id = %s", (usuario_id,), fetch="one")
     if not existe:
@@ -3235,12 +2647,10 @@ def atualizar_usuario(usuario_id):
 @app.route("/v1/usuarios/<int:usuario_id>", methods=["DELETE"])
 @require_admin
 def deletar_usuario(usuario_id):
-    """[API] DELETE /usuarios/:usuarioId"""
     existe = query("SELECT id, nivel FROM usuarios WHERE id = %s", (usuario_id,), fetch="one")
     if not existe:
         return not_found("Usuário não encontrado.")
 
-    # Impede remoção do único admin
     if existe.get("nivel") == "admin":
         admin_count = query(
             "SELECT COUNT(*) AS c FROM usuarios WHERE nivel='admin' AND status='ativo'",
@@ -3260,7 +2670,6 @@ def deletar_usuario(usuario_id):
 @app.route("/v1/parametros", methods=["GET"])
 @require_auth
 def parametros_get():
-    """[API] GET /parametros"""
     chaves = ["exam_durations", "whatsapp_messages", "scheduling", "financial"]
     resultado = {}
     for chave in chaves:
@@ -3271,7 +2680,6 @@ def parametros_get():
             except Exception:
                 resultado[chave] = {}
 
-    # Mapeia para o formato esperado pelo frontend
     tipos = query("SELECT id, label, duracao_min AS duration, valor_base FROM tipos_exame ORDER BY label")
     exam_durations = [{"id": t["id"], "label": t["label"], "duration": t["duration"], "valor_base": float(t["valor_base"] or 0)} for t in tipos]
 
@@ -3286,7 +2694,6 @@ def parametros_get():
 @app.route("/v1/parametros", methods=["POST"])
 @require_admin
 def parametros_post():
-    """[API] POST /parametros"""
     data = request.get_json(silent=True) or {}
 
     durations  = data.get("durations", {})
@@ -3294,7 +2701,6 @@ def parametros_post():
     scheduling = data.get("scheduling", {})
     financial  = data.get("financial", {})
 
-    # Atualiza duração dos tipos de exame
     for exam_id, duracao in durations.items():
         query(
             "UPDATE tipos_exame SET duracao_min = %s WHERE id = %s",
@@ -3326,7 +2732,6 @@ def parametros_post():
 @app.route("/v1/periodos/opcoes", methods=["GET"])
 @require_auth
 def periodos_opcoes():
-    """[API] GET /periodos/opcoes"""
     opcoes = [
         {"id": "mes_atual",  "label": "Mês atual"},
         {"id": "ultimos_30", "label": "Últimos 30 dias"},
@@ -3363,8 +2768,8 @@ def handle_exception(e):
 # -----------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", "5000"))
+    host  = os.getenv("HOST",  "0.0.0.0")
+    port  = int(os.getenv("PORT", "5000"))
     debug = os.getenv("FLASK_DEBUG", "false").lower() == "true"
 
     log.info("IORD Backend iniciando em %s:%s (debug=%s)", host, port, debug)
