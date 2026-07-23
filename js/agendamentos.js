@@ -2576,7 +2576,8 @@ const NewAppointmentModal = (() => {
       pacienteCpf: document.getElementById('newCpf').value.trim(),
       pacienteTelefone: document.getElementById('newTelefone').value.trim(),
       pacienteIdade: parseInt(document.getElementById('newIdade').value) || null,
-      tipoExame,
+      tipoExameId: tipoExame,   // ← campo que o backend consome direto (linha 1160)
+      tipoExame, // ← mantém como fallback (mas agora não vai ser usado)
       valor: VALOR_POR_EXAME[tipoExame] || 0,
       medicoId: document.getElementById('newMedico').value.trim() || null,
       medico: document.getElementById('newMedico').options[document.getElementById('newMedico').selectedIndex]?.text || '',
