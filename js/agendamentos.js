@@ -3010,7 +3010,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const needsFetch = changedKeys.some(k => FETCH_KEYS.has(k));
 
     if (!needsFetch) {
-      // Re-renderiza as views que expõem render() — as demais são auto-gerenciadas via subscribe
       CalendarView.render(state);
       KanbanView.render(state);
       DayView.render(state);
@@ -3021,10 +3020,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     clearTimeout(_fetchDebounce);
     _fetchDebounce = setTimeout(async () => {
       try {
-        await DataStore.loadAgendamentos(state);
-        CalendarView.render(state);
-        KanbanView.render(state);
-        DayView.render(state);
+        await DataStore.loadAgendamentos(AppState.getState()); 
+        AppState.update({});
       } catch (err) {
         console.error('[Init] Erro ao atualizar agendamentos:', err);
         showToast('Erro ao atualizar dados. Verifique sua conexão.', 'error');
