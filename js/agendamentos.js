@@ -36,16 +36,16 @@
 const AppCache = (() => {
   // Configurações estáticas (nunca mudam em runtime)
   const statusConfig = {
-    agendado:  { label: 'Agendado',  kanbanColumn: 'agendado'  },
-    confirmado:{ label: 'Confirmado',kanbanColumn: 'confirmado'},
+    agendado: { label: 'Agendado', kanbanColumn: 'agendado' },
+    confirmado: { label: 'Confirmado', kanbanColumn: 'confirmado' },
     realizado: { label: 'Realizado', kanbanColumn: 'realizado' },
     cancelado: { label: 'Cancelado', kanbanColumn: 'cancelado' },
   };
   const kanbanColumns = [
-    { id: 'agendado',   label: 'Agendado'   },
+    { id: 'agendado', label: 'Agendado' },
     { id: 'confirmado', label: 'Confirmado' },
-    { id: 'realizado',  label: 'Realizado'  },
-    { id: 'cancelado',  label: 'Cancelado'  },
+    { id: 'realizado', label: 'Realizado' },
+    { id: 'cancelado', label: 'Cancelado' },
   ];
 
   function pad(n) { return String(n).padStart(2, '0'); }
@@ -63,13 +63,13 @@ const AppCache = (() => {
 ================================================================= */
 const DataStore = (() => {
   // Dados em memória (apenas para o ciclo de render atual)
-  let _radiologias   = [];
-  let _agendamentos  = [];
-  let _tiposExame    = [];
+  let _radiologias = [];
+  let _agendamentos = [];
+  let _tiposExame = [];
 
   // ── getters ──────────────────────────────────────────────
   function getRadiologias() { return _radiologias; }
-  function getTiposExame()  { return _tiposExame;  }
+  function getTiposExame() { return _tiposExame; }
 
   function nomeRadiologiaPorId(id) {
     return (_radiologias.find(r => r.id === id) || {}).nome || id;
@@ -97,13 +97,13 @@ const DataStore = (() => {
     const list = res.data?.examDurations || [];
     _tiposExame = list;
     // Rebuild das lookups globais de valor e duração
-    VALOR_POR_EXAME   = {};
+    VALOR_POR_EXAME = {};
     DURACAO_POR_EXAME = {};
     list.forEach(e => {
-      VALOR_POR_EXAME[e.id]    = e.valor_base || 0;
-      DURACAO_POR_EXAME[e.id]  = e.duration   || 30;
-      VALOR_POR_EXAME[e.label]    = e.valor_base || 0;
-      DURACAO_POR_EXAME[e.label]  = e.duration   || 30;
+      VALOR_POR_EXAME[e.id] = e.valor_base || 0;
+      DURACAO_POR_EXAME[e.id] = e.duration || 30;
+      VALOR_POR_EXAME[e.label] = e.valor_base || 0;
+      DURACAO_POR_EXAME[e.label] = e.duration || 30;
     });
   }
 
@@ -247,12 +247,12 @@ const Filters = (() => {
     bindEvents();
 
     AppState.subscribe((state) => {
-    const subtitle = document.getElementById('pageHeadingSubtitle');
-    const nome = DataStore.nomeRadiologiaPorId(state.radiologiaSelecionada);
-    subtitle.textContent = state.radiologiaSelecionada === 'all'
-      ? 'Visão completa dos agendamentos — todas as radiologias'
-      : `Visão completa dos agendamentos — ${nome}`;
-  });
+      const subtitle = document.getElementById('pageHeadingSubtitle');
+      const nome = DataStore.nomeRadiologiaPorId(state.radiologiaSelecionada);
+      subtitle.textContent = state.radiologiaSelecionada === 'all'
+        ? 'Visão completa dos agendamentos — todas as radiologias'
+        : `Visão completa dos agendamentos — ${nome}`;
+    });
   }
 
   return { init };
@@ -378,14 +378,14 @@ const Kpis = (() => {
     const mediaOcupacao = radsParaOcupacao.reduce((acc, r) => {
       const ags = state.radiologiaSelecionada === 'all'
         ? todosNoPeriodo.filter(a =>
-            a.radiologiaId === r.id ||
-            a.radioId === r.id ||
-            a.radiologia === r.id ||
-            a.radiologiaNome === r.nome
-          )
+          a.radiologiaId === r.id ||
+          a.radioId === r.id ||
+          a.radiologia === r.id ||
+          a.radiologiaNome === r.nome
+        )
         : AgendaData.getFiltered(state).filter(a =>
-            DateUtils.isWithinRange(a.data, ocStart, ocEnd)
-          );
+          DateUtils.isWithinRange(a.data, ocStart, ocEnd)
+        );
       const ativos = ags.filter(a => a.status !== 'cancelado' && a.status !== 'faltou').length;
       const capacidade = diasNoPeriodo * SLOTS_POR_DIA;
       const pct = capacidade ? Math.min(100, Math.round((ativos / capacidade) * 100)) : 0;
@@ -931,62 +931,68 @@ const AppointmentModal = (() => {
     overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !overlay.hidden) close(); });
     statusSelect.addEventListener('change', async (e) => {
-  const newStatus = e.target.value;
-  if (!currentAppointment) return;
-  const oldStatus = currentAppointment.status;
+      const newStatus = e.target.value;
+      if (!currentAppointment) return;
+      const oldStatus = currentAppointment.status;
 
-  // Atualiza o modal otimisticamente para feedback imediato
-  currentAppointment.status = newStatus;
-  fill(currentAppointment);
+      // Atualiza o modal otimisticamente para feedback imediato
+      currentAppointment.status = newStatus;
+      fill(currentAppointment);
 
-  try {
-    await Api.updateAgendamento(currentAppointment.id, { status: newStatus });
-    showToast('Status atualizado com sucesso!');
-    // Busca dados frescos e dispara re-render de todos os componentes via AppState
-    const st = AppState.getState();
-    await DataStore.refresh(st);
-    AppState.update({});   // notifica todos os subscribers (KPIs, gráficos, listas…)
-    notifyStatusChange(currentAppointment);
-  } catch (err) {
-    // Reverte o modal ao status original
-    currentAppointment.status = oldStatus;
-    fill(currentAppointment);
-    console.error('Erro ao salvar status:', err);
-    showToast('Erro ao salvar status. Tente novamente.', 'error');
-  }
-});
+      try {
+        await Api.updateAgendamento(currentAppointment.id, { status: newStatus });
+        showToast('Status atualizado com sucesso!');
+        // Busca dados frescos e dispara re-render de todos os componentes via AppState
+        const st = AppState.getState();
+        await DataStore.refresh(st);
+        AppState.update({});   // notifica todos os subscribers (KPIs, gráficos, listas…)
+        notifyStatusChange(currentAppointment);
+      } catch (err) {
+        // Reverte o modal ao status original
+        currentAppointment.status = oldStatus;
+        fill(currentAppointment);
+        console.error('Erro ao salvar status:', err);
+        showToast('Erro ao salvar status. Tente novamente.', 'error');
+      }
+    });
 
     async function applyStatusChange(newStatus) {
-  if (!currentAppointment) return;
-  const oldStatus = currentAppointment.status;
-  if (oldStatus === newStatus) return;
+      if (!currentAppointment) return;
+      const oldStatus = currentAppointment.status;
+      if (oldStatus === newStatus) return;
 
-  // Feedback imediato no modal
-  currentAppointment.status = newStatus;
-  fill(currentAppointment);
+      // Feedback imediato no modal
+      currentAppointment.status = newStatus;
+      fill(currentAppointment);
 
-  try {
-    await Api.updateAgendamento(currentAppointment.id, { status: newStatus });
-    showToast('Status atualizado com sucesso!');
-    const st = AppState.getState();
-    await DataStore.refresh(st);
-    AppState.update({});   // notifica todos os subscribers (KPIs, gráficos, listas…)
-    notifyStatusChange(currentAppointment);
-  } catch (err) {
-    // Reverte o modal
-    currentAppointment.status = oldStatus;
-    fill(currentAppointment);
-    showToast('Erro ao salvar status. Tente novamente.', 'error');
-  }
-}
+      try {
+        await Api.updateAgendamento(currentAppointment.id, { status: newStatus });
+        showToast('Status atualizado com sucesso!');
+        const st = AppState.getState();
+        await DataStore.refresh(st);
+        AppState.update({});   // notifica todos os subscribers (KPIs, gráficos, listas…)
+        notifyStatusChange(currentAppointment);
+      } catch (err) {
+        // Reverte o modal
+        currentAppointment.status = oldStatus;
+        fill(currentAppointment);
+        showToast('Erro ao salvar status. Tente novamente.', 'error');
+      }
+    }
 
     document.getElementById('modalBtnDone').addEventListener('click', () => applyStatusChange('realizado'));
     document.getElementById('modalBtnCancel').addEventListener('click', () => applyStatusChange('cancelado'));
     document.getElementById('modalBtnPrint').addEventListener('click', () => window.print());
     document.getElementById('modalBtnEdit').addEventListener('click', () => {
-      if (!currentAppointment) return;
-      close();
-      NewAppointmentModal.openEdit(currentAppointment);
+      if (!currentAppointment) {
+        showToast('Agendamento não encontrado.', 'error');
+        return;
+      }
+      const ag = currentAppointment;   // garantia
+      close();                         // fecha modal de detalhes primeiro
+      setTimeout(() => {
+        NewAppointmentModal.openEdit(ag);
+      }, 300); // pequena espera pra evitar conflito de modais
     });
   }
 
@@ -2349,7 +2355,7 @@ const NewAppointmentModal = (() => {
           tipoExame
         );
 
-        
+
 
         // Primeiro: remove horários ocupados
         let disponiveis = allSlots().filter(slot =>
@@ -2444,8 +2450,8 @@ const NewAppointmentModal = (() => {
     const tipoExameId = document.getElementById('newTipoExame').value;
     const preview = document.getElementById('newValuePreview');
     if (!tipoExameId) { preview.hidden = true; return; }
-    const valor   = VALOR_POR_EXAME[tipoExameId]    || 0;
-    const duracao = DURACAO_POR_EXAME[tipoExameId]  || 30;
+    const valor = VALOR_POR_EXAME[tipoExameId] || 0;
+    const duracao = DURACAO_POR_EXAME[tipoExameId] || 30;
     document.getElementById('newValueAmount').textContent =
       valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     document.getElementById('newValueDuration').textContent =
@@ -2670,8 +2676,8 @@ const NewAppointmentModal = (() => {
   function open() {
     editingAppointment = null;
     resetForm();
-    _populateRadiologiaSelect();          
-    _populateTipoExameSelect();           
+    _populateRadiologiaSelect();
+    _populateTipoExameSelect();
     document.querySelector('.new-appointment-modal__title').textContent = 'Novo Agendamento';
     saveBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Salvar Agendamento`;
     overlay.hidden = false;
@@ -2682,8 +2688,8 @@ const NewAppointmentModal = (() => {
   function openEdit(ag) {
     editingAppointment = ag;
     resetForm();
-    _populateRadiologiaSelect();          
-    _populateTipoExameSelect();           
+    _populateRadiologiaSelect();
+    _populateTipoExameSelect();
     fillFormForEdit(ag);
     document.querySelector('.new-appointment-modal__title').textContent = 'Editar Agendamento';
     saveBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Salvar Alterações`;
@@ -3005,7 +3011,7 @@ const PendingList = (() => {
 // Variáveis globais de tipos de exame
 // Lookups globais de valor e duração por tipo de exame
 // (preenchidos pelo DataStore.loadTiposExame)
-let VALOR_POR_EXAME   = {};
+let VALOR_POR_EXAME = {};
 let DURACAO_POR_EXAME = {};
 
 /* =================================================================
