@@ -26,17 +26,22 @@
    Substitui o MockData. Preenchido assincronamente no Init.
    Módulos lêem via getters; nunca escrevem diretamente.
 ================================================================= */
+// ============================================================
+// CÓDIGO NOVO
+// ============================================================
+/* =================================================================
+   1. APP CACHE — somente constantes e helpers puros
+   NÃO armazena dados. Toda leitura de dados vai ao DataStore.
+================================================================= */
 const AppCache = (() => {
-  let _radiologias = [];
-  let _agendamentos = [];
-  let _tiposExame = [];
-  let _statusConfig = {
+  // Configurações estáticas (nunca mudam em runtime)
+  const statusConfig = {
     agendado:  { label: 'Agendado',  kanbanColumn: 'agendado'  },
     confirmado:{ label: 'Confirmado',kanbanColumn: 'confirmado'},
     realizado: { label: 'Realizado', kanbanColumn: 'realizado' },
     cancelado: { label: 'Cancelado', kanbanColumn: 'cancelado' },
   };
-  let _kanbanColumns = [
+  const kanbanColumns = [
     { id: 'agendado',   label: 'Agendado'   },
     { id: 'confirmado', label: 'Confirmado' },
     { id: 'realizado',  label: 'Realizado'  },
@@ -48,12 +53,23 @@ const AppCache = (() => {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   }
 
-  function setRadiologias(list) { _radiologias = list; }
-  function setAgendamentos(list) { _agendamentos = list; }
-  function setTiposExame(list) { _tiposExame = list; }
+  return { pad, toISODate, statusConfig, kanbanColumns };
+})();
 
+/* =================================================================
+   1b. DATA STORE — fonte única de verdade, sem cache
+   Sempre lê do servidor. Expõe os dados carregados para os módulos
+   de render (que só lêem, nunca escrevem).
+================================================================= */
+const DataStore = (() => {
+  // Dados em memória (apenas para o ciclo de render atual)
+  let _radiologias   = [];
+  let _agendamentos  = [];
+  let _tiposExame    = [];
+
+  // ── getters ──────────────────────────────────────────────
   function getRadiologias() { return _radiologias; }
-  function getTiposExame() { return _tiposExame; }
+  function getTiposExame()  { return _tiposExame;  }
 
   function nomeRadiologiaPorId(id) {
     return (_radiologias.find(r => r.id === id) || {}).nome || id;
@@ -64,26 +80,55 @@ const AppCache = (() => {
     return _agendamentos.filter(a => a.radiologiaId === radiologiaId);
   }
 
-  function addAgendamento(appt) {
-    _agendamentos.push(appt);
+  // ── loaders (buscam do servidor e atualizam memória) ─────
+  async function loadRadiologias() {
+    const res = await Api.getRadiologias();
+    _radiologias = res.data || [];
   }
 
-  function updateAgendamento(id, patch) {
-    // Converte id para o mesmo tipo para comparação segura
-    const sid = String(id);
-    const idx = _agendamentos.findIndex(a => String(a.id) === sid);
-    if (idx !== -1) Object.assign(_agendamentos[idx], patch);
+  async function loadTiposExame() {
+    const res = await Api.getParametros();
+    const list = res.data?.examDurations || [];
+    _tiposExame = list;
+    // Rebuild das lookups globais de valor e duração
+    VALOR_POR_EXAME   = {};
+    DURACAO_POR_EXAME = {};
+    list.forEach(e => {
+      VALOR_POR_EXAME[e.id]    = e.valor_base || 0;
+      DURACAO_POR_EXAME[e.id]  = e.duration   || 30;
+      VALOR_POR_EXAME[e.label]    = e.valor_base || 0;
+      DURACAO_POR_EXAME[e.label]  = e.duration   || 30;
+    });
+  }
+
+  async function loadAgendamentos(state) {
+    const { start, end } = DateUtils.getPeriodRange(state);
+    const res = await Api.getAgendamentos({
+      radiologiaId: state.radiologiaSelecionada,
+      dataInicio: AppCache.toISODate(start),
+      dataFim: AppCache.toISODate(end),
+    });
+    _agendamentos = res.data || [];
+  }
+
+  /**
+   * Recarrega agendamentos do servidor e dispara re-render de toda a UI.
+   * Chamar isso após qualquer mutação (update de status, criar, editar).
+   */
+  async function refresh(state) {
+    await loadAgendamentos(state);
+    Kpis.render(state);
+    OccupancyChart.render(state);
+    CalendarView.render(state);
+    KanbanView.render(state);
+    DayView.render(state);
+    PendingList.render(state);
   }
 
   return {
-    pad, toISODate,
-    setRadiologias, setAgendamentos, setTiposExame,
-    getRadiologias, getTiposExame, nomeRadiologiaPorId,
-    statusConfig: _statusConfig,
-    kanbanColumns: _kanbanColumns,
-    getAgendamentos,
-    addAgendamento,
-    updateAgendamento,
+    getRadiologias, getTiposExame, nomeRadiologiaPorId, getAgendamentos,
+    loadRadiologias, loadTiposExame, loadAgendamentos,
+    refresh,
   };
 })();
 
@@ -134,7 +179,7 @@ const Filters = (() => {
 
   function renderRadiologyPills() {
     radPillsContainer.innerHTML = '';
-    AppCache.getRadiologias().forEach((rad) => {
+    DataStore.getRadiologias().forEach((rad) => {
       const isActive = rad.id === AppState.getState().radiologiaSelecionada;
       const pill = document.createElement('button');
       pill.type = 'button';
@@ -201,12 +246,12 @@ const Filters = (() => {
     bindEvents();
 
     AppState.subscribe((state) => {
-      const subtitle = document.getElementById('pageHeadingSubtitle');
-      const nome = AppCache.nomeRadiologiaPorId(state.radiologiaSelecionada);
-      subtitle.textContent = state.radiologiaSelecionada === 'all'
-        ? 'Visão completa dos agendamentos — todas as radiologias'
-        : `Visão completa dos agendamentos — ${nome}`;
-    });
+    const subtitle = document.getElementById('pageHeadingSubtitle');
+    const nome = DataStore.nomeRadiologiaPorId(state.radiologiaSelecionada);
+    subtitle.textContent = state.radiologiaSelecionada === 'all'
+      ? 'Visão completa dos agendamentos — todas as radiologias'
+      : `Visão completa dos agendamentos — ${nome}`;
+  });
   }
 
   return { init };
@@ -254,7 +299,7 @@ const DateUtils = (() => {
 const AgendaData = (() => {
   function getFiltered(state) {
     const { start, end } = DateUtils.getPeriodRange(state);
-    const base = AppCache.getAgendamentos({ radiologiaId: state.radiologiaSelecionada });
+    const base = DataStore.getAgendamentos({ radiologiaId: state.radiologiaSelecionada });
     const buscaLower = state.busca.trim().toLowerCase();
     return base.filter((a) => {
       if (!DateUtils.isWithinRange(a.data, start, end)) return false;
@@ -268,7 +313,7 @@ const AgendaData = (() => {
   }
 
   function getFilteredNoPeriod(state) {
-    const base = AppCache.getAgendamentos({ radiologiaId: state.radiologiaSelecionada });
+    const base = DataStore.getAgendamentos({ radiologiaId: state.radiologiaSelecionada });
     const buscaLower = state.busca.trim().toLowerCase();
     return base.filter((a) => {
       if (state.status !== 'all' && a.status !== state.status) return false;
@@ -308,23 +353,29 @@ const Kpis = (() => {
   function render(state) {
     const agendamentos = AgendaData.getFiltered(state);
     const hojeISO = AppCache.toISODate(new Date());
-    const todosDaRadiologia = AppCache.getAgendamentos({ radiologiaId: state.radiologiaSelecionada });
+    const todosDaRadiologia = DataStore.getAgendamentos({ radiologiaId: state.radiologiaSelecionada });
 
     const total = agendamentos.length;
     const kpiTotal = document.getElementById('kpiTotalAgendamentos');
     kpiTotal.querySelector('[data-field="value"]').textContent = formatNumber(total);
     renderChangeEl(kpiTotal.querySelector('[data-field="change"]'), total > 0 ? 6.4 : 0);
 
-    // Ocupação calculada localmente a partir dos dados em cache
-    const todasRads = AppCache.getRadiologias().filter(r => r.id !== 'all');
+    // Taxa de ocupação: agendamentos ativos / capacidade do período
+    const { start: ocStart, end: ocEnd } = DateUtils.getPeriodRange(state);
+    const diasNoPeriodo = Math.max(1, Math.round((ocEnd - ocStart) / 86400000) + 1);
+    const SLOTS_POR_DIA = 12;
+
+    const todasRads = DataStore.getRadiologias().filter(r => r.id !== 'all');
     const radsParaOcupacao = state.radiologiaSelecionada === 'all'
       ? todasRads
       : todasRads.filter(r => r.id === state.radiologiaSelecionada);
 
     const mediaOcupacao = radsParaOcupacao.reduce((acc, r) => {
-      const ags = AppCache.getAgendamentos({ radiologiaId: r.id });
-      const ativos = ags.filter(a => a.status !== 'cancelado').length;
-      const pct = ags.length ? Math.min(100, Math.round((ativos / ags.length) * 100)) : 0;
+      const ags = DataStore.getAgendamentos({ radiologiaId: r.id })
+        .filter(a => DateUtils.isWithinRange(a.data, ocStart, ocEnd));
+      const ativos = ags.filter(a => a.status !== 'cancelado' && a.status !== 'faltou').length;
+      const capacidade = diasNoPeriodo * SLOTS_POR_DIA;
+      const pct = capacidade ? Math.min(100, Math.round((ativos / capacidade) * 100)) : 0;
       return acc + pct;
     }, 0) / (radsParaOcupacao.length || 1);
 
@@ -343,13 +394,13 @@ const Kpis = (() => {
     const janela7 = todosDaRadiologia.filter(a =>
       DateUtils.isWithinRange(a.data, DateUtils.startOfDay(new Date()), proximos7)
     );
-    const preenchimento = Math.min(100, Math.round((janela7.length / (24 * 7)) * 100 * 3));
+    const preenchimento = Math.min(100, Math.round((janela7.length / (SLOTS_POR_DIA * 7)) * 100));
     document.getElementById('kpiPreenchimento')
       .querySelector('[data-field="value"]').textContent = `${preenchimento}%`;
 
     const faturamentoPrevisto = agendamentos
       .filter(a => a.status === 'confirmado' || a.status === 'realizado')
-      .reduce((s, a) => s + a.valor, 0);
+      .reduce((s, a) => s + (Number(a.valor) || 0), 0);
     document.getElementById('kpiFaturamentoPrevisto')
       .querySelector('[data-field="value"]').textContent = formatCurrency(faturamentoPrevisto);
 
@@ -394,7 +445,7 @@ const OccupancyChart = (() => {
       const dia = new Date(hoje);
       dia.setDate(dia.getDate() - i);
       const iso = AppCache.toISODate(dia);
-      const ags = AppCache.getAgendamentos({ radiologiaId: radId })
+      const ags = DataStore.getAgendamentos({ radiologiaId: radId })
         .filter(a => a.data === iso && a.status !== 'cancelado' && a.status !== 'faltou');
       pts.push(ags.length);
     }
@@ -536,20 +587,26 @@ const OccupancyChart = (() => {
     };
   }
 
-  function getOcupacaoGeral() {
-    return AppCache.getRadiologias()
+  function getOcupacaoGeral(state) {
+    const { start, end } = DateUtils.getPeriodRange(state || AppState.getState());
+    const diasNoPeriodo = Math.max(1, Math.round((end - start) / 86400000) + 1);
+    const SLOTS_POR_DIA = 12;
+
+    return DataStore.getRadiologias()
       .filter(r => r.id !== 'all')
       .map(r => {
-        const ags = AppCache.getAgendamentos({ radiologiaId: r.id });
-        const ativos = ags.filter(a => a.status !== 'cancelado').length;
-        const pct = ags.length ? Math.min(100, Math.round((ativos / ags.length) * 100)) : 0;
-        return { id: r.id, nome: r.nome, ocupacao: pct };
+        const ags = DataStore.getAgendamentos({ radiologiaId: r.id })
+          .filter(a => DateUtils.isWithinRange(a.data, start, end));
+        const ativos = ags.filter(a => a.status !== 'cancelado' && a.status !== 'faltou').length;
+        const capacidade = diasNoPeriodo * SLOTS_POR_DIA;
+        const pct = capacidade ? Math.min(100, Math.round((ativos / capacidade) * 100)) : 0;
+        return { id: r.id, nome: r.nome, ocupacao: pct, ativos, total: ags.length };
       });
   }
 
   function getOcupacaoInterna(radiologiaId) {
     const dias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-    const ags = AppCache.getAgendamentos({ radiologiaId });
+    const ags = DataStore.getAgendamentos({ radiologiaId });
     const porDia = [0, 0, 0, 0, 0, 0, 0];
     ags.forEach(a => { porDia[new Date(`${a.data}T00:00:00`).getDay()]++; });
     const max = Math.max(...porDia, 1);
@@ -562,9 +619,9 @@ const OccupancyChart = (() => {
       .filter(d => d.nome !== 'Domingo');
   }
 
-  function renderAllRadiologies() {
+  function renderAllRadiologies(state) {
     const ctx = document.getElementById('occupancyChart');
-    const data = getOcupacaoGeral();
+    const data = getOcupacaoGeral(state);
     document.getElementById('occupancyChartTitle').textContent = 'Ocupação das Radiologias';
     document.getElementById('occupancyChartSubtitle').textContent = 'Comparativo entre as 4 unidades · últimos 7 dias de tendência';
 
@@ -721,7 +778,7 @@ const OccupancyChart = (() => {
   }
 
   function render(state) {
-    if (state.radiologiaSelecionada === 'all') renderAllRadiologies();
+    if (state.radiologiaSelecionada === 'all') renderAllRadiologies(state);
     else renderInternalOccupancy(state);
   }
 
@@ -840,7 +897,6 @@ const AppointmentModal = (() => {
   function setStatus(newStatus) {
     if (!currentAppointment) return;
     currentAppointment.status = newStatus;
-    AppCache.updateAgendamento(currentAppointment.id, { status: newStatus });
     fill(currentAppointment);
     notifyStatusChange(currentAppointment);
   }
@@ -853,24 +909,21 @@ const AppointmentModal = (() => {
       const newStatus = e.target.value;
       if (!currentAppointment) return;
       const oldStatus = currentAppointment.status;
+
+      // Atualiza o modal otimisticamente para feedback imediato
       currentAppointment.status = newStatus;
-      AppCache.updateAgendamento(currentAppointment.id, { status: newStatus });
       fill(currentAppointment);
-      notifyStatusChange(currentAppointment);
-      // Força re-render dos KPIs e gráfico imediatamente
-      Kpis.render(AppState.getState());
-      OccupancyChart.render(AppState.getState());
+
       try {
         await Api.updateAgendamento(currentAppointment.id, { status: newStatus });
         showToast('Status atualizado com sucesso!');
-      } catch (err) {
-        // Reverte em caso de erro
-        currentAppointment.status = oldStatus;
-        AppCache.updateAgendamento(currentAppointment.id, { status: oldStatus });
-        fill(currentAppointment);
+        // Busca dados frescos do servidor e re-renderiza tudo
+        await DataStore.refresh(AppState.getState());
         notifyStatusChange(currentAppointment);
-        Kpis.render(AppState.getState());
-        OccupancyChart.render(AppState.getState());
+      } catch (err) {
+        // Reverte o modal ao status original
+        currentAppointment.status = oldStatus;
+        fill(currentAppointment);
         console.error('Erro ao salvar status:', err);
         showToast('Erro ao salvar status. Tente novamente.', 'error');
       }
@@ -880,22 +933,20 @@ const AppointmentModal = (() => {
       if (!currentAppointment) return;
       const oldStatus = currentAppointment.status;
       if (oldStatus === newStatus) return;
+
+      // Feedback imediato no modal
       currentAppointment.status = newStatus;
-      AppCache.updateAgendamento(currentAppointment.id, { status: newStatus });
       fill(currentAppointment);
-      notifyStatusChange(currentAppointment);
-      Kpis.render(AppState.getState());
-      OccupancyChart.render(AppState.getState());
+
       try {
         await Api.updateAgendamento(currentAppointment.id, { status: newStatus });
         showToast('Status atualizado com sucesso!');
-      } catch (err) {
-        currentAppointment.status = oldStatus;
-        AppCache.updateAgendamento(currentAppointment.id, { status: oldStatus });
-        fill(currentAppointment);
+        await DataStore.refresh(AppState.getState());
         notifyStatusChange(currentAppointment);
-        Kpis.render(AppState.getState());
-        OccupancyChart.render(AppState.getState());
+      } catch (err) {
+        // Reverte o modal
+        currentAppointment.status = oldStatus;
+        fill(currentAppointment);
         showToast('Erro ao salvar status. Tente novamente.', 'error');
       }
     }
@@ -1179,7 +1230,7 @@ const CalendarView = (() => {
   const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
   function agendamentosDoDia(state, isoDate) {
-    const todos = AppCache.getAgendamentos({ radiologiaId: state.radiologiaSelecionada });
+    const todos = DataStore.getAgendamentos({ radiologiaId: state.radiologiaSelecionada });
     const buscaLower = state.busca.trim().toLowerCase();
     return todos.filter((a) => {
       if (a.data !== isoDate) return false;
@@ -1714,10 +1765,10 @@ const KanbanView = (() => {
   }
 
   function findAppointmentById(id) {
-    return AppCache.getAgendamentos({ radiologiaId: 'all' }).find(a => String(a.id) === String(id));
+    return DataStore.getAgendamentos({ radiologiaId: 'all' }).find(a => String(a.id) === String(id));
   }
 
-  function moveAppointment(id, newStatus) {
+  async function moveAppointment(id, newStatus) {
     const agendamento = findAppointmentById(id);
     if (!agendamento || AppCache.statusConfig[agendamento.status].kanbanColumn === newStatus) return;
 
@@ -1725,28 +1776,18 @@ const KanbanView = (() => {
       .find(([, cfg]) => cfg.kanbanColumn === newStatus)?.[0];
     if (!novoStatus) return;
 
-    const oldStatus = agendamento.status;
-    agendamento.status = novoStatus;
-    AppCache.updateAgendamento(agendamento.id, { status: novoStatus });
+    showToast(`Movendo para "${AppCache.statusConfig[novoStatus].label}"…`);
 
-    render(AppState.getState());
-    Kpis.render(AppState.getState());
-    OccupancyChart.render(AppState.getState());
-    document.dispatchEvent(new CustomEvent('appointment:statusChanged', { detail: { agendamento } }));
-    showToast(`Status movido para "${AppCache.statusConfig[novoStatus].label}"!`);
-
-    // Persiste no backend de forma otimista
-    Api.updateAgendamento(agendamento.id, { status: novoStatus }).catch(err => {
-      // Reverte em caso de erro
-      agendamento.status = oldStatus;
-      AppCache.updateAgendamento(agendamento.id, { status: oldStatus });
-      render(AppState.getState());
-      Kpis.render(AppState.getState());
-      OccupancyChart.render(AppState.getState());
+    try {
+      await Api.updateAgendamento(agendamento.id, { status: novoStatus });
+      showToast(`Status movido para "${AppCache.statusConfig[novoStatus].label}"!`);
+      // Busca dados frescos e re-renderiza toda a UI
+      await DataStore.refresh(AppState.getState());
       document.dispatchEvent(new CustomEvent('appointment:statusChanged', { detail: { agendamento } }));
+    } catch (err) {
       console.error('[KanbanView] Erro ao salvar status:', err);
       showToast('Erro ao salvar status. Tente novamente.', 'error');
-    });
+    }
   }
 
   function render(state) {
@@ -1754,7 +1795,7 @@ const KanbanView = (() => {
     boardEl.innerHTML = '';
     AppCache.kanbanColumns.forEach((columnDef) => {
       const daColuna = agendamentos.filter(
-        (a) => AppCache.statusConfig[a.status].kanbanColumn === columnDef.id
+        (a) => AppCache.statusConfig[a.status]?.kanbanColumn === columnDef.id
       );
       boardEl.appendChild(buildColumn(columnDef, daColuna));
     });
@@ -1796,7 +1837,7 @@ const DayView = (() => {
 
   function agendamentosDoDia(state) {
     const iso = AppCache.toISODate(state.dayDate);
-    const todos = AppCache.getAgendamentos({ radiologiaId: state.radiologiaSelecionada });
+    const todos = DataStore.getAgendamentos({ radiologiaId: state.radiologiaSelecionada });
     const buscaLower = state.busca.trim().toLowerCase();
     return todos.filter((a) => {
       if (a.data !== iso) return false;
@@ -1848,7 +1889,7 @@ const DayView = (() => {
     const counts = {};
     agendamentos.forEach((a) => { counts[a.status] = (counts[a.status] || 0) + 1; });
     statusPillsEl.innerHTML = Object.entries(counts)
-      .map(([status, n]) => `<span class="status-badge status-badge--${status}">${n} ${AppCache.statusConfig[status].label}</span>`)
+      .map(([status, n]) => `<span class="status-badge status-badge--${status}">${n} ${AppCache.statusConfig[status]?.label || status}</span>`)
       .join('');
   }
 
@@ -1875,7 +1916,7 @@ const DayView = (() => {
       </div>
       <div class="timeline-appt__aside">
         <span class="timeline-appt__value">${Kpis.formatCurrency(agendamento.valor)}</span>
-        <span class="status-badge status-badge--${agendamento.status}">${AppCache.statusConfig[agendamento.status].label}</span>
+        <span class="status-badge status-badge--${agendamento.status}">${AppCache.statusConfig[agendamento.status]?.label || agendamento.status}</span>
       </div>
     `;
 
@@ -2136,7 +2177,7 @@ const NewAppointmentModal = (() => {
     // Busca o label correspondente ao ID para comparar com o cache
     const tipoInfo = AppCache.getTiposExame().find(t => t.id === tipoExameId);
     const tipoLabel = tipoInfo ? tipoInfo.label : tipoExameId;
-    return AppCache.getAgendamentos({ radiologiaId: radId })
+    return DataStore.getAgendamentos({ radiologiaId: radId })
       .filter(a =>
         a.data === isoDate &&
         (a.tipoExame === tipoLabel || a.tipoExameId === tipoExameId) &&
@@ -2498,7 +2539,7 @@ const NewAppointmentModal = (() => {
     return {
       id: editingAppointment ? editingAppointment.id : `${radId}_${data}_new_${Date.now()}`,
       radiologiaId: radId,
-      radiologiaNome: AppCache.nomeRadiologiaPorId(radId),
+      radiologiaNome: DataStore.nomeRadiologiaPorId(radId),
       data,
       horarioInicio,
       horarioFim,
@@ -2527,45 +2568,16 @@ const NewAppointmentModal = (() => {
     try {
       if (editingAppointment) {
         await Api.updateAgendamento(editingAppointment.id, appt);
-        // O backend retorna {} — usa o objeto local como fonte de verdade
-        AppCache.updateAgendamento(editingAppointment.id, appt);
         showToast(`Agendamento de ${appt.paciente} atualizado com sucesso!`);
       } else {
         await Api.postAgendamento(appt);
         showToast(`Agendamento de ${appt.paciente} criado com sucesso!`);
-
-        // Recarrega agendamentos do servidor
-        const state = AppState.getState();
-        const { start, end } = DateUtils.getPeriodRange(state);
-        const resAgend = await Api.getAgendamentos({
-          radiologiaId: state.radiologiaSelecionada,
-          dataInicio: AppCache.toISODate(start),
-          dataFim: AppCache.toISODate(end),
-        });
-        AppCache.setAgendamentos(resAgend.data || []);
       }
       close();
-      // Re-render completo após salvar
-      Kpis.render(AppState.getState());
-      OccupancyChart.render(AppState.getState());
-      document.dispatchEvent(new CustomEvent('appointment:statusChanged', { detail: { agendamento: appt } }));
-      // Força re-fetch e re-render geral
+      // Busca dados frescos do servidor e re-renderiza toda a UI
       const stateAtual = AppState.getState();
-      const { start, end } = DateUtils.getPeriodRange(stateAtual);
-      try {
-        const resAgend = await Api.getAgendamentos({
-          radiologiaId: stateAtual.radiologiaSelecionada,
-          dataInicio: AppCache.toISODate(start),
-          dataFim: AppCache.toISODate(end),
-        });
-        AppCache.setAgendamentos(resAgend.data || []);
-        Kpis.render(stateAtual);
-        OccupancyChart.render(stateAtual);
-        CalendarView.render(stateAtual);
-        KanbanView.render(stateAtual);
-        DayView.render(stateAtual);
-        PendingList.render(stateAtual);
-      } catch (_) { /* já salvou, ignora erro de reload */ }
+      await DataStore.refresh(stateAtual);
+      document.dispatchEvent(new CustomEvent('appointment:statusChanged', { detail: { agendamento: appt } }));
     } catch (err) {
       console.error('[NewAppointmentModal] Erro ao salvar:', err);
       showToast('Erro ao salvar agendamento. Tente novamente.', 'error');
@@ -2577,7 +2589,7 @@ const NewAppointmentModal = (() => {
   function _populateRadiologiaSelect() {
     const sel = document.getElementById('newRadiologia');
     if (!sel) return;
-    const radiologias = AppCache.getRadiologias().filter(r => r.id !== 'all');
+    const radiologias = DataStore.getRadiologias().filter(r => r.id !== 'all');
     sel.innerHTML = '<option value="">Selecione a radiologia...</option>';
     radiologias.forEach(r => {
       const opt = document.createElement('option');
@@ -2590,12 +2602,12 @@ const NewAppointmentModal = (() => {
   function _populateTipoExameSelect() {
     const sel = document.getElementById('newTipoExame');
     if (!sel) return;
-    const tipos = AppCache.getTiposExame();
+    const tipos = DataStore.getTiposExame();
     sel.innerHTML = '<option value="">Selecione o exame...</option>';
     tipos.forEach(t => {
       const opt = document.createElement('option');
-      opt.value = t.id;       // usa o ID do banco (ex: 'tomografia')
-      opt.textContent = t.label; // exibe o label (ex: 'Tomografia')
+      opt.value = t.id;
+      opt.textContent = t.label;
       sel.appendChild(opt);
     });
   }
@@ -2779,7 +2791,7 @@ const PendingList = (() => {
 
     if (end < hoje) return [];
 
-    const base = AppCache.getAgendamentos({ radiologiaId: state.radiologiaSelecionada });
+    const base = DataStore.getAgendamentos({ radiologiaId: state.radiologiaSelecionada });
     const buscaLower = state.busca.trim().toLowerCase();
 
     return base
@@ -2871,7 +2883,7 @@ const PendingList = (() => {
       const periodoLabel = periodoLabels[state.periodo] ?? 'no período';
       const radLabel = state.radiologiaSelecionada === 'all'
         ? 'todas as radiologias'
-        : AppCache.nomeRadiologiaPorId(state.radiologiaSelecionada);
+        : DataStore.nomeRadiologiaPorId(state.radiologiaSelecionada);
       const filterLabel = currentFilter === 'confirmado' ? 'confirmados' : 'agendados';
 
       subtitleEl.textContent = pendentes.length
@@ -2939,44 +2951,28 @@ const PendingList = (() => {
 })();
 
 // Variáveis globais de tipos de exame
-let VALOR_POR_EXAME = {};
+// Lookups globais de valor e duração por tipo de exame
+// (preenchidos pelo DataStore.loadTiposExame)
+let VALOR_POR_EXAME   = {};
 let DURACAO_POR_EXAME = {};
 
 /* =================================================================
-   15. INIT — bootstrap assíncrono
+   15. INIT — bootstrap assíncrono (sem cache)
 ================================================================= */
 document.addEventListener('DOMContentLoaded', async () => {
 
-  // Mostra loading global enquanto carrega os dados iniciais
   const loadingEl = document.getElementById('pageLoadingOverlay');
   if (loadingEl) loadingEl.hidden = false;
 
   try {
-    // 1. Carrega radiologias (necessário para pills de filtro)
-    const res = await Api.getRadiologias();
-    AppCache.setRadiologias(res.data);
+    // 1. Carrega radiologias e tipos de exame em paralelo
+    await Promise.all([
+      DataStore.loadRadiologias(),
+      DataStore.loadTiposExame(),
+    ]);
 
     // 2. Carrega agendamentos do período inicial (hoje por padrão)
-    const state = AppState.getState();
-    const { start, end } = DateUtils.getPeriodRange(state);
-    const resAgend = await Api.getAgendamentos({
-      radiologiaId: state.radiologiaSelecionada,
-      dataInicio: AppCache.toISODate(start),
-      dataFim: AppCache.toISODate(end),
-    });
-    AppCache.setAgendamentos(resAgend.data || []);
-
-    // 3. Carrega tipos de exame
-    const resParametros = await Api.getParametros();
-    resParametros.data.examDurations.forEach(e => {
-      // Indexa por ID (usado como value no select) E por label (fallback)
-      VALOR_POR_EXAME[e.id]    = e.valor_base || 0;
-      DURACAO_POR_EXAME[e.id]  = e.duration   || 30;
-      VALOR_POR_EXAME[e.label]    = e.valor_base || 0;
-      DURACAO_POR_EXAME[e.label]  = e.duration   || 30;
-    });
-    // Guarda lista completa para popular selects dinamicamente
-    AppCache.setTiposExame(resParametros.data.examDurations || []);
+    await DataStore.loadAgendamentos(AppState.getState());
 
   } catch (err) {
     console.error('[Init] Erro ao carregar dados iniciais:', err);
@@ -2985,7 +2981,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (loadingEl) loadingEl.hidden = true;
   }
 
-  // Inicia os módulos de UI (já com cache preenchido)
+  // Inicia os módulos de UI (DataStore já preenchido)
   Filters.init();
   Kpis.init();
   OccupancyChart.init();
@@ -3000,22 +2996,34 @@ document.addEventListener('DOMContentLoaded', async () => {
   ViewSwitcher.init();
   Sidebar.init();
 
-  // Recarrega agendamentos quando o filtro de período/radiologia muda
-  // e re-renderiza TODOS os módulos após o novo cache
+  // Subscriber: recarrega do servidor sempre que filtros relevantes mudam.
+  // Não re-fetcha para mudanças de UI pura (agendaView, busca, status, etc.)
+  const FETCH_KEYS = new Set(['radiologiaSelecionada', 'periodo', 'customDateStart', 'customDateEnd']);
+  let _prevState = AppState.getState();
   let _fetchDebounce = null;
+
   AppState.subscribe(async (state) => {
+    const changedKeys = Object.keys(state).filter(k => state[k] !== _prevState[k]);
+    _prevState = state;
+
+    const needsFetch = changedKeys.some(k => FETCH_KEYS.has(k));
+
+    if (!needsFetch) {
+      // Apenas re-renderiza localmente com os dados em memória
+      Kpis.render(state);
+      OccupancyChart.render(state);
+      CalendarView.render(state);
+      KanbanView.render(state);
+      DayView.render(state);
+      PendingList.render(state);
+      return;
+    }
+
+    // Mudou radiologia ou período → busca dados frescos do servidor
     clearTimeout(_fetchDebounce);
     _fetchDebounce = setTimeout(async () => {
       try {
-        const { start, end } = DateUtils.getPeriodRange(state);
-        const agendamentos = await Api.getAgendamentos({
-          radiologiaId: state.radiologiaSelecionada,
-          dataInicio: AppCache.toISODate(start),
-          dataFim: AppCache.toISODate(end),
-          // Não filtra status aqui — os módulos filtram localmente
-        });
-        AppCache.setAgendamentos(agendamentos.data || []);
-        // Re-renderiza toda a UI com os dados novos
+        await DataStore.loadAgendamentos(state);
         Kpis.render(state);
         OccupancyChart.render(state);
         CalendarView.render(state);
@@ -3024,7 +3032,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         PendingList.render(state);
       } catch (err) {
         console.error('[Init] Erro ao atualizar agendamentos:', err);
+        showToast('Erro ao atualizar dados. Verifique sua conexão.', 'error');
       }
-    }, 300); // debounce para evitar chamadas redundantes
+    }, 300);
   });
 });
