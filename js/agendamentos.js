@@ -117,12 +117,7 @@ const DataStore = (() => {
    */
   async function refresh(state) {
     await loadAgendamentos(state);
-    Kpis.render(state);
-    OccupancyChart.render(state);
-    CalendarView.render(state);
-    KanbanView.render(state);
-    DayView.render(state);
-    PendingList.render(state);
+    // Não chama render aqui — quem chama refresh é responsável por renderizar
   }
 
   return {
@@ -918,7 +913,14 @@ const AppointmentModal = (() => {
         await Api.updateAgendamento(currentAppointment.id, { status: newStatus });
         showToast('Status atualizado com sucesso!');
         // Busca dados frescos do servidor e re-renderiza tudo
-        await DataStore.refresh(AppState.getState());
+        const st = AppState.getState();
+        await DataStore.refresh(st);
+        Kpis.render(st);
+        OccupancyChart.render(st);
+        CalendarView.render(st);
+        KanbanView.render(st);
+        DayView.render(st);
+        PendingList.render(st);
         notifyStatusChange(currentAppointment);
       } catch (err) {
         // Reverte o modal ao status original
@@ -941,7 +943,14 @@ const AppointmentModal = (() => {
       try {
         await Api.updateAgendamento(currentAppointment.id, { status: newStatus });
         showToast('Status atualizado com sucesso!');
-        await DataStore.refresh(AppState.getState());
+        const st = AppState.getState();
+        await DataStore.refresh(st);
+        Kpis.render(st);
+        OccupancyChart.render(st);
+        CalendarView.render(st);
+        KanbanView.render(st);
+        DayView.render(st);
+        PendingList.render(st);
         notifyStatusChange(currentAppointment);
       } catch (err) {
         // Reverte o modal
@@ -1782,7 +1791,14 @@ const KanbanView = (() => {
       await Api.updateAgendamento(agendamento.id, { status: novoStatus });
       showToast(`Status movido para "${AppCache.statusConfig[novoStatus].label}"!`);
       // Busca dados frescos e re-renderiza toda a UI
-      await DataStore.refresh(AppState.getState());
+      const st = AppState.getState();
+      await DataStore.refresh(st);
+      Kpis.render(st);
+      OccupancyChart.render(st);
+      CalendarView.render(st);
+      KanbanView.render(st);
+      DayView.render(st);
+      PendingList.render(st);
       document.dispatchEvent(new CustomEvent('appointment:statusChanged', { detail: { agendamento } }));
     } catch (err) {
       console.error('[KanbanView] Erro ao salvar status:', err);
@@ -2577,6 +2593,12 @@ const NewAppointmentModal = (() => {
       // Busca dados frescos do servidor e re-renderiza toda a UI
       const stateAtual = AppState.getState();
       await DataStore.refresh(stateAtual);
+      Kpis.render(stateAtual);
+      OccupancyChart.render(stateAtual);
+      CalendarView.render(stateAtual);
+      KanbanView.render(stateAtual);
+      DayView.render(stateAtual);
+      PendingList.render(stateAtual);
       document.dispatchEvent(new CustomEvent('appointment:statusChanged', { detail: { agendamento: appt } }));
     } catch (err) {
       console.error('[NewAppointmentModal] Erro ao salvar:', err);
