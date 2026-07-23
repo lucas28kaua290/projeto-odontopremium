@@ -51,30 +51,30 @@ const Filters = (() => {
   let pillsContainer, periodSelect, customRangeWrapper, customDateStart, customDateEnd;
 
   async function renderRadiologyPills() {
-  pillsContainer.innerHTML = '';
-  let lista = [];
-  try {
-    const res = await Api.getRadiologias();
-    lista = res.data || [];
-  } catch (e) {
-    console.error('[Filters] Erro ao carregar radiologias:', e);
-    // Fallback mínimo: só a pill "Todas"
-    lista = [{ id: 'all', nome: 'Todas as Radiologias' }];
-  }
+    pillsContainer.innerHTML = '';
+    let lista = [];
+    try {
+      const res = await Api.getRadiologias();
+      lista = res.data || [];
+    } catch (e) {
+      console.error('[Filters] Erro ao carregar radiologias:', e);
+      // Fallback mínimo: só a pill "Todas"
+      lista = [{ id: 'all', nome: 'Todas as Radiologias' }];
+    }
 
-  lista.forEach((rad) => {
-    const isActive = rad.id === AppState.getState().radiologiaSelecionada;
-    const pill = document.createElement('button');
-    pill.type = 'button';
-    pill.className = 'pill' + (isActive ? ' is-active' : '');
-    pill.textContent = rad.nome;
-    pill.setAttribute('role', 'tab');
-    pill.setAttribute('aria-selected', String(isActive));
-    pill.dataset.radiologyId = rad.id;
-    pill.addEventListener('click', () => AppState.update({ radiologiaSelecionada: rad.id, clinicaSelecionada: 'all' }));
-    pillsContainer.appendChild(pill);
-  });
-}
+    lista.forEach((rad) => {
+      const isActive = rad.id === AppState.getState().radiologiaSelecionada;
+      const pill = document.createElement('button');
+      pill.type = 'button';
+      pill.className = 'pill' + (isActive ? ' is-active' : '');
+      pill.textContent = rad.nome;
+      pill.setAttribute('role', 'tab');
+      pill.setAttribute('aria-selected', String(isActive));
+      pill.dataset.radiologyId = rad.id;
+      pill.addEventListener('click', () => AppState.update({ radiologiaSelecionada: rad.id, clinicaSelecionada: 'all' }));
+      pillsContainer.appendChild(pill);
+    });
+  }
 
   function syncActivePill(radiologiaSelecionada) {
     pillsContainer.querySelectorAll('.pill').forEach((pill) => {
@@ -138,62 +138,62 @@ const Kpis = (() => {
   }
 
   function setKpisLoading() {
-  ['kpiRevenue', 'kpiExams', 'kpiAvgPerClinic', 'kpiCashForecast', 'kpiTicketMedio'].forEach((id) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const val = el.querySelector('[data-field="value"]');
-    if (val) val.textContent = '...';
-  });
-}
-
-async function render(state) {
-  setKpisLoading();
-  try {
-    const filtros = Api.filtrosDoState(state);
-    const res = await Api.getKPIs(filtros);
-    const data = res.data;
-    if (!data) return;
-
-    const kpiRevenue = document.getElementById('kpiRevenue');
-    if (kpiRevenue) {
-      kpiRevenue.querySelector('[data-field="value"]').textContent = formatCurrency(data.faturamentoTotal);
-      renderChangeEl(kpiRevenue.querySelector('[data-field="change"]'), data.faturamentoVariacao);
-    }
-
-    const kpiExams = document.getElementById('kpiExams');
-    if (kpiExams) {
-      kpiExams.querySelector('[data-field="value"]').textContent = formatNumber(data.totalExames);
-      renderChangeEl(kpiExams.querySelector('[data-field="change"]'), data.examesVariacao);
-    }
-
-    const kpiAvg = document.getElementById('kpiAvgPerClinic');
-    if (kpiAvg) {
-      kpiAvg.querySelector('[data-field="value"]').textContent = formatCurrency(data.faturamentoMedioPorClinica);
-      kpiAvg.querySelector('[data-field="context"]').textContent =
-        `${data.clinicasAtivas} clínica${data.clinicasAtivas > 1 ? 's' : ''} referenciadora${data.clinicasAtivas > 1 ? 's' : ''} ativa${data.clinicasAtivas > 1 ? 's' : ''}`;
-    }
-
-    const kpiCash = document.getElementById('kpiCashForecast');
-    if (kpiCash) {
-      kpiCash.querySelector('[data-field="value"]').textContent = formatCurrency(data.previsibilidadeCaixa);
-      kpiCash.querySelector('[data-field="context"]').textContent = `${data.examesAgendados} exames agendados`;
-    }
-
-    const kpiTicket = document.getElementById('kpiTicketMedio');
-    if (kpiTicket) {
-      kpiTicket.querySelector('[data-field="value"]').textContent = formatCurrency(data.ticketMedioExame);
-      renderChangeEl(kpiTicket.querySelector('[data-field="change"]'), data.faturamentoVariacao);
-    }
-  } catch (e) {
-    console.error('[Kpis] Erro ao carregar KPIs financeiros:', e);
     ['kpiRevenue', 'kpiExams', 'kpiAvgPerClinic', 'kpiCashForecast', 'kpiTicketMedio'].forEach((id) => {
       const el = document.getElementById(id);
       if (!el) return;
       const val = el.querySelector('[data-field="value"]');
-      if (val) val.textContent = '--';
+      if (val) val.textContent = '...';
     });
   }
-}
+
+  async function render(state) {
+    setKpisLoading();
+    try {
+      const filtros = Api.filtrosDoState(state);
+      const res = await Api.getKPIs(filtros);
+      const data = res.data;
+      if (!data) return;
+
+      const kpiRevenue = document.getElementById('kpiRevenue');
+      if (kpiRevenue) {
+        kpiRevenue.querySelector('[data-field="value"]').textContent = formatCurrency(data.faturamentoTotal);
+        renderChangeEl(kpiRevenue.querySelector('[data-field="change"]'), data.faturamentoVariacao);
+      }
+
+      const kpiExams = document.getElementById('kpiExams');
+      if (kpiExams) {
+        kpiExams.querySelector('[data-field="value"]').textContent = formatNumber(data.totalExames);
+        renderChangeEl(kpiExams.querySelector('[data-field="change"]'), data.examesVariacao);
+      }
+
+      const kpiAvg = document.getElementById('kpiAvgPerClinic');
+      if (kpiAvg) {
+        kpiAvg.querySelector('[data-field="value"]').textContent = formatCurrency(data.faturamentoMedioPorClinica);
+        kpiAvg.querySelector('[data-field="context"]').textContent =
+          `${data.clinicasAtivas} clínica${data.clinicasAtivas > 1 ? 's' : ''} referenciadora${data.clinicasAtivas > 1 ? 's' : ''} ativa${data.clinicasAtivas > 1 ? 's' : ''}`;
+      }
+
+      const kpiCash = document.getElementById('kpiCashForecast');
+      if (kpiCash) {
+        kpiCash.querySelector('[data-field="value"]').textContent = formatCurrency(data.previsibilidadeCaixa);
+        kpiCash.querySelector('[data-field="context"]').textContent = `${data.examesAgendados} exames agendados`;
+      }
+
+      const kpiTicket = document.getElementById('kpiTicketMedio');
+      if (kpiTicket) {
+        kpiTicket.querySelector('[data-field="value"]').textContent = formatCurrency(data.ticketMedioExame);
+        renderChangeEl(kpiTicket.querySelector('[data-field="change"]'), data.faturamentoVariacao);
+      }
+    } catch (e) {
+      console.error('[Kpis] Erro ao carregar KPIs financeiros:', e);
+      ['kpiRevenue', 'kpiExams', 'kpiAvgPerClinic', 'kpiCashForecast', 'kpiTicketMedio'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const val = el.querySelector('[data-field="value"]');
+        if (val) val.textContent = '--';
+      });
+    }
+  }
 
   function init() {
     render(AppState.getState());
@@ -552,7 +552,7 @@ const Charts = (() => {
     const meta = itens.map((i) => ({
       tipo: agrupamento,
       clinicas: i.breakdown || [],
-      medicos:  i.breakdown || [],
+      medicos: i.breakdown || [],
     }));
 
     return { labels, values, meta };
@@ -667,29 +667,29 @@ const Charts = (() => {
   }
 
   function updateChartHeadings(state) {
-  // Pega o nome real a partir da pill ativa no DOM (evita depender do estado isolado)
-  const pillAtiva = document.querySelector('#radiologyFilters .pill.is-active');
-  const nomeRadiologia = pillAtiva ? pillAtiva.textContent.trim() : (state.radiologiaSelecionada === 'all' ? 'Todas as Radiologias' : state.radiologiaSelecionada);
-  const labelPeriodo = { mes_atual: 'mês atual', ultimos_30: 'últimos 30 dias', trimestre: 'trimestre', semestre: 'semestre', ano: 'ano', custom: 'período personalizado' }[state.periodo] || 'período selecionado';
-  const isAll = state.radiologiaSelecionada === 'all';
+    // Pega o nome real a partir da pill ativa no DOM (evita depender do estado isolado)
+    const pillAtiva = document.querySelector('#radiologyFilters .pill.is-active');
+    const nomeRadiologia = pillAtiva ? pillAtiva.textContent.trim() : (state.radiologiaSelecionada === 'all' ? 'Todas as Radiologias' : state.radiologiaSelecionada);
+    const labelPeriodo = { mes_atual: 'mês atual', ultimos_30: 'últimos 30 dias', trimestre: 'trimestre', semestre: 'semestre', ano: 'ano', custom: 'período personalizado' }[state.periodo] || 'período selecionado';
+    const isAll = state.radiologiaSelecionada === 'all';
 
-  const lineTitle = document.getElementById('lineChartTitle');
-  const lineSub   = document.getElementById('lineChartSubtitle');
-  const barTitle  = document.getElementById('barChartTitle');
-  const barSub    = document.getElementById('barChartSubtitle');
+    const lineTitle = document.getElementById('lineChartTitle');
+    const lineSub = document.getElementById('lineChartSubtitle');
+    const barTitle = document.getElementById('barChartTitle');
+    const barSub = document.getElementById('barChartSubtitle');
 
-  if (lineTitle) lineTitle.textContent = state.visualizacao === 'faturamento' ? 'Evolução de Faturamento' : 'Evolução de Exames Realizados';
-  if (lineSub)   lineSub.textContent = isAll
-    ? `Comparativo entre as radiologias — ${labelPeriodo}`
-    : `${nomeRadiologia} — ${labelPeriodo}`;
+    if (lineTitle) lineTitle.textContent = state.visualizacao === 'faturamento' ? 'Evolução de Faturamento' : 'Evolução de Exames Realizados';
+    if (lineSub) lineSub.textContent = isAll
+      ? `Comparativo entre as radiologias — ${labelPeriodo}`
+      : `${nomeRadiologia} — ${labelPeriodo}`;
 
-  if (barTitle) barTitle.textContent = isAll
-    ? (state.visualizacao === 'faturamento' ? 'Faturamento por Radiologia' : 'Exames por Radiologia')
-    : (state.visualizacao === 'faturamento' ? 'Faturamento por Clínica Referenciadora' : 'Exames por Clínica Referenciadora');
-  if (barSub) barSub.textContent = isAll
-    ? `Comparativo entre unidades — ${labelPeriodo}`
-    : `Comparativo dentro de ${nomeRadiologia} — ${labelPeriodo}`;
-}
+    if (barTitle) barTitle.textContent = isAll
+      ? (state.visualizacao === 'faturamento' ? 'Faturamento por Radiologia' : 'Exames por Radiologia')
+      : (state.visualizacao === 'faturamento' ? 'Faturamento por Clínica Referenciadora' : 'Exames por Clínica Referenciadora');
+    if (barSub) barSub.textContent = isAll
+      ? `Comparativo entre unidades — ${labelPeriodo}`
+      : `Comparativo dentro de ${nomeRadiologia} — ${labelPeriodo}`;
+  }
 
   function bindViewToggle() {
     const buttons = document.querySelectorAll('.view-toggle__btn');
@@ -714,24 +714,24 @@ const Charts = (() => {
   }
 
   async function renderAll(state) {
-  updateChartHeadings(state);
-  try {
-    await renderLineChart(state);
-  } catch (e) {
-    console.error('[Charts] Erro ao renderizar gráfico de linha:', e);
+    updateChartHeadings(state);
+    try {
+      await renderLineChart(state);
+    } catch (e) {
+      console.error('[Charts] Erro ao renderizar gráfico de linha:', e);
+    }
+    try {
+      await renderBarChart(state);
+    } catch (e) {
+      console.error('[Charts] Erro ao renderizar gráfico de barras:', e);
+    }
   }
-  try {
-    await renderBarChart(state);
-  } catch (e) {
-    console.error('[Charts] Erro ao renderizar gráfico de barras:', e);
-  }
-}
 
-function init() {
-  bindViewToggle();
-  renderAll(AppState.getState());
-  AppState.subscribe(renderAll);
-}
+  function init() {
+    bindViewToggle();
+    renderAll(AppState.getState());
+    AppState.subscribe(renderAll);
+  }
 
   return { init, externalTooltipHandler, formatCurrencyFull, formatNumberFull, SERIES_COLORS };
 })();
@@ -753,7 +753,7 @@ const ExamAnalysis = (() => {
    * Array ordenado por relevância — os 2 primeiros viram tags no minicard.
    * Numa API real, viria do breakdown de laudos por CRM.
    */
-  
+
 
   const TYPE_COLORS = ['#018093', '#01C6BF', '#046B85', '#8FBFC7', '#B7C2C4'];
 
@@ -774,7 +774,7 @@ const ExamAnalysis = (() => {
     return parts[0].slice(0, 2).toUpperCase();
   }
 
-  
+
   async function renderDoctorClinicFilter(state) {
     const select = document.getElementById('doctorClinicFilter');
     if (!select) return;
@@ -840,7 +840,7 @@ const ExamAnalysis = (() => {
     const tipos = res.data.tipos;
     const labels = tipos.map(t => t.tipo);
     const values = tipos.map(t => t.quantidade);
-    const total  = values.reduce((s, v) => s + v, 0);
+    const total = values.reduce((s, v) => s + v, 0);
     if (pieChart) { pieChart.destroy(); pieChart = null; }
     pieChart = new Chart(ctx, {
       type: 'doughnut',
@@ -915,7 +915,9 @@ const ExamAnalysis = (() => {
     doctors.forEach(doc => {
 
       const initials = getInitials(doc.medicoNome);
-      const exams = [...(doc.tiposDeExame || [{ tipo: 'Sem dados', exames: 0 }])];
+      const exams = (doc.tiposDeExame && doc.tiposDeExame.length > 0)
+        ? [...doc.tiposDeExame]
+        : [{ tipo: 'Sem dados', exames: 0 }];
 
       // Ordena do maior para o menor
       exams.sort((a, b) => b.exames - a.exames);
@@ -1072,12 +1074,12 @@ const ExamAnalysis = (() => {
     const filtros = Api.filtrosDoState(state);
 
     const resClinicas = await Api.getRankingClinicasPorExames(filtros);
-    const resMedicos  = await Api.getRankingMedicosPorExames(filtros);
+    const resMedicos = await Api.getRankingMedicosPorExames(filtros);
     const clinics = resClinicas.data;
     const doctors = resMedicos.data;
 
     const totalClinicas = clinics.reduce((s, c) => s + c.totalExames, 0);
-    const totalMedicos  = doctors.reduce((s, d) => s + d.totalExames, 0);
+    const totalMedicos = doctors.reduce((s, d) => s + d.totalExames, 0);
 
     const subEl = document.getElementById('examsListsSubtitle');
     if (subEl) subEl.textContent = isAll ? 'Top clínicas e médicos — todas as radiologias' : `Top clínicas e médicos — ${radId}`;
@@ -1160,22 +1162,22 @@ const ExamAnalysis = (() => {
      RENDER GERAL
   --------------------------------------------------------------- */
   async function render(state) {
-  const steps = [
-    ['KPIs de exames',        () => renderKPIs(state)],
-    ['Pizza por tipo',        () => renderPieChart(state)],
-    ['Filtro de clínica',     () => renderDoctorClinicFilter(state)],
-    ['Spotlight médicos',     () => renderDoctorsSpotlight(state)],
-    ['Rankings clín./méd.',   () => renderRankLists(state)],
-    ['Destaques do período',  () => renderHighlights(state)],
-  ];
-  for (const [label, fn] of steps) {
-    try {
-      await fn();
-    } catch (e) {
-      console.error(`[ExamAnalysis] Erro em "${label}":`, e);
+    const steps = [
+      ['KPIs de exames', () => renderKPIs(state)],
+      ['Pizza por tipo', () => renderPieChart(state)],
+      ['Filtro de clínica', () => renderDoctorClinicFilter(state)],
+      ['Spotlight médicos', () => renderDoctorsSpotlight(state)],
+      ['Rankings clín./méd.', () => renderRankLists(state)],
+      ['Destaques do período', () => renderHighlights(state)],
+    ];
+    for (const [label, fn] of steps) {
+      try {
+        await fn();
+      } catch (e) {
+        console.error(`[ExamAnalysis] Erro em "${label}":`, e);
+      }
     }
   }
-}
 
   function init() {
     render(AppState.getState());
