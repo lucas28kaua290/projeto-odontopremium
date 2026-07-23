@@ -2574,10 +2574,10 @@ const NewAppointmentModal = (() => {
         showToast(`Agendamento de ${appt.paciente} criado com sucesso!`);
       }
       close();
-      // Busca dados frescos do servidor e dispara re-render via AppState
+      // Busca dados frescos e propaga via AppState para todos os subscribers
       const stateAtual = AppState.getState();
       await DataStore.refresh(stateAtual);
-      AppState.update({});   // notifica todos os subscribers automaticamente
+      AppState.update({});
       document.dispatchEvent(new CustomEvent('appointment:statusChanged', { detail: { agendamento: appt } }));
     } catch (err) {
       console.error('[NewAppointmentModal] Erro ao salvar:', err);
@@ -3010,12 +3010,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const needsFetch = changedKeys.some(k => FETCH_KEYS.has(k));
 
     if (!needsFetch) {
-      // Apenas re-renderiza localmente com os dados em memória
-      OccupancyChart.render(state);
+      // Re-renderiza as views que expõem render() — as demais são auto-gerenciadas via subscribe
       CalendarView.render(state);
       KanbanView.render(state);
       DayView.render(state);
-      PendingList.render(state);
       return;
     }
 
@@ -3024,11 +3022,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     _fetchDebounce = setTimeout(async () => {
       try {
         await DataStore.loadAgendamentos(state);
-        OccupancyChart.render(state);
         CalendarView.render(state);
         KanbanView.render(state);
         DayView.render(state);
-        PendingList.render(state);
       } catch (err) {
         console.error('[Init] Erro ao atualizar agendamentos:', err);
         showToast('Erro ao atualizar dados. Verifique sua conexão.', 'error');
