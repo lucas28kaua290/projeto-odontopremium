@@ -782,7 +782,7 @@ const OccupancyChart = (() => {
     AppState.subscribe(render);
   }
 
-  return { init, externalTooltipHandler: () => { } };
+  return { init, render, externalTooltipHandler: () => { } };
 })();
 
 
