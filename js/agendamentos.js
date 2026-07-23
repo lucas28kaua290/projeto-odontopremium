@@ -870,10 +870,13 @@ const AppointmentModal = (() => {
     statusSelect.value = agendamento.status;
 
     /* Campos do body */
-    document.getElementById('modalPatientName').textContent = agendamento.paciente;
-    document.getElementById('modalPatientPhone').textContent = agendamento.pacienteTelefone;
+    document.getElementById('modalPatientName').textContent = agendamento.paciente || '—';
+    document.getElementById('modalPatientCpf').textContent = agendamento.pacienteCpf || '—';
+    document.getElementById('modalPatientPhone').textContent = agendamento.pacienteTelefone || '—';
+
+    const idade = agendamento.pacienteIdade || agendamento.idade;
     document.getElementById('modalPatientAge').textContent =
-      agendamento.pacienteIdade != null ? `${agendamento.pacienteIdade} anos` : '—';
+      idade != null ? `${idade} anos` : '—';
 
     document.getElementById('modalExamType').textContent = agendamento.tipoExame;
     document.getElementById('modalExamValue').textContent = Kpis.formatCurrency(agendamento.valor);
