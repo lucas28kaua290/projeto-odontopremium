@@ -1142,6 +1142,7 @@ def criar_agendamento():
         nome     = data.get("paciente", "").strip()
         telefone = data.get("pacienteTelefone", "").strip()
         cpf      = data.get("pacienteCpf", "").strip()
+        nascimento = data.get("pacienteNascimento") or None   # ← AAAA-MM-DD
 
         if not nome:
             return err("Nome do paciente é obrigatório.", 400)
@@ -1156,7 +1157,6 @@ def criar_agendamento():
 
         if not paciente_id:
             paciente_id = _gerar_id_paciente()
-            nascimento = data.get("pacienteNascimento") or None  # espera AAAA-MM-DD
             query(
                 "INSERT INTO pacientes (id, nome, cpf, telefone, nascimento) VALUES (%s,%s,%s,%s,%s)",
                 (paciente_id, nome, cpf or None, telefone or None, nascimento),
@@ -1222,48 +1222,44 @@ def atualizar_agendamento(agendamento_id):
         "observacoes":   "observacoes",
         "data":          "data_agendamento",
         "horarioInicio": "hora_agendamento",
-        "radiologiaId":  "radiologia_id",   # ← adicionado: edição de radiologia
+        "horarioFim":    "hora_fim",
+        "radiologiaId":  "radiologia_id",
+        "clinicaId":     "clinica_id",
+        "medicoId":      "medico_id",
+        "tipoExameId":   "tipo_exame_id"
     }
     for chave, coluna in campos_diretos.items():
         if chave in data and data[chave] is not None:
             sets.append(f"{coluna} = %s")
             params.append(data[chave])
 
-    # Médico (aceita null para remover vínculo)
-    if "medicoId" in data:
-        sets.append("medico_id = %s")
-        params.append(data["medicoId"] or None)
-
-    # Clínica (aceita null para remover vínculo)
-    if "clinicaId" in data:
-        sets.append("clinica_id = %s")
-        params.append(data["clinicaId"] or None)
-
-    # Tipo de exame — prefere ID; fallback para label
-    if "tipoExameId" in data and data["tipoExameId"]:
-        sets.append("tipo_exame_id = %s")
-        params.append(data["tipoExameId"])
-    elif "tipoExame" in data and data["tipoExame"]:
+    # Tipo de exame por label (fallback)
+    if "tipoExame" in data and data["tipoExame"] and not data.get("tipoExameId"):
         te = query("SELECT id FROM tipos_exame WHERE label = %s", (data["tipoExame"],), fetch="one")
         if te:
             sets.append("tipo_exame_id = %s")
             params.append(te["id"])
 
-    # Atualiza paciente (nome/telefone) se o agendamento não usa pacienteId externo
-    if data.get("paciente") or data.get("pacienteTelefone"):
+    # Atualiza paciente (nome, cpf, telefone, nascimento)
+    if data.get("paciente") or data.get("pacienteCpf") or data.get("pacienteTelefone") or data.get("pacienteNascimento"):
         paciente_row = query(
             "SELECT paciente_id FROM agendamentos WHERE id = %s", (agendamento_id,), fetch="one"
         )
-        if paciente_row:
+        if paciente_row and paciente_row["paciente_id"]:
             p_sets, p_params = [], []
             if data.get("paciente"):
-                p_sets.append("nome = %s"); p_params.append(data["paciente"])
-            if data.get("pacienteTelefone"):
-                p_sets.append("telefone = %s"); p_params.append(data["pacienteTelefone"])
+                p_sets.append("nome = %s")
+                p_params.append(data["paciente"])
             if data.get("pacienteCpf"):
-                p_sets.append("cpf = %s"); p_params.append(data["pacienteCpf"])
+                p_sets.append("cpf = %s")
+                p_params.append(data["pacienteCpf"])
+            if data.get("pacienteTelefone"):
+                p_sets.append("telefone = %s")
+                p_params.append(data["pacienteTelefone"])
             if data.get("pacienteNascimento"):
-                p_sets.append("nascimento = %s"); p_params.append(data["pacienteNascimento"])
+                p_sets.append("nascimento = %s")
+                p_params.append(data["pacienteNascimento"])
+
             if p_sets:
                 p_params.append(paciente_row["paciente_id"])
                 query(
@@ -1276,6 +1272,7 @@ def atualizar_agendamento(agendamento_id):
 
     params.append(agendamento_id)
     query(f"UPDATE agendamentos SET {', '.join(sets)} WHERE id = %s", params, fetch="none")
+
     return ok({}, "Agendamento atualizado com sucesso.")
 
 @app.route("/v1/agendamentos/<int:agendamento_id>", methods=["DELETE"])
