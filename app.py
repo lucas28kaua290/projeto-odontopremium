@@ -1271,7 +1271,8 @@ def atualizar_agendamento(agendamento_id):
             )
 
     if not sets:
-        return err("Nenhum campo para atualizar.", 400)
+        # Só dados do paciente foram atualizados — ainda é sucesso
+        return ok({}, "Agendamento atualizado com sucesso.")
 
     params.append(agendamento_id)
     query(f"UPDATE agendamentos SET {', '.join(sets)} WHERE id = %s", params, fetch="none")
