@@ -419,7 +419,7 @@ const Kpis = (() => {
     AppState.subscribe(render);
   }
 
-  return { init, formatCurrency, formatNumber };
+  return { init, render, formatCurrency, formatNumber };
 })();
 
 
@@ -684,7 +684,7 @@ const OccupancyChart = (() => {
 
   function renderInternalOccupancy(state) {
     const ctx = document.getElementById('occupancyChart');
-    const nome = AppCache.nomeRadiologiaPorId(state.radiologiaSelecionada);
+    const nome = DataStore.nomeRadiologiaPorId(state.radiologiaSelecionada);
     const data = getOcupacaoInterna(state.radiologiaSelecionada, state);
     const pal = PALETTE[state.radiologiaSelecionada] || { base: '#018093', light: '#01C6BF' };
 
@@ -3026,8 +3026,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     clearTimeout(_fetchDebounce);
     _fetchDebounce = setTimeout(async () => {
       try {
-        await DataStore.loadAgendamentos(AppState.getState()); 
-        AppState.update({});
+        await DataStore.loadAgendamentos(AppState.getState());
+        // Após o fetch, re-renderiza TODOS os componentes que dependem dos dados
+        const freshState = AppState.getState();
+        Kpis.render(freshState);
+        OccupancyChart.render(freshState);
+        CalendarView.render(freshState);
+        KanbanView.render(freshState);
+        DayView.render(freshState);
       } catch (err) {
         console.error('[Init] Erro ao atualizar agendamentos:', err);
         showToast('Erro ao atualizar dados. Verifique sua conexão.', 'error');
