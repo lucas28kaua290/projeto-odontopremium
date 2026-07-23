@@ -1780,15 +1780,9 @@ const KanbanView = (() => {
     try {
       await Api.updateAgendamento(agendamento.id, { status: novoStatus });
       showToast(`Status movido para "${AppCache.statusConfig[novoStatus].label}"!`);
-      // Busca dados frescos e re-renderiza toda a UI
       const st = AppState.getState();
       await DataStore.refresh(st);
-      Kpis.render(st);
-      OccupancyChart.render(st);
-      CalendarView.render(st);
-      KanbanView.render(st);
-      DayView.render(st);
-      PendingList.render(st);
+      AppState.update({});
       document.dispatchEvent(new CustomEvent('appointment:statusChanged', { detail: { agendamento } }));
     } catch (err) {
       console.error('[KanbanView] Erro ao salvar status:', err);
@@ -2180,8 +2174,8 @@ const NewAppointmentModal = (() => {
 
   function horariosOcupados(radId, isoDate, tipoExameId) {
     if (!radId || !isoDate) return [];
-    // Busca o label correspondente ao ID para comparar com o cache
-    const tipoInfo = AppCache.getTiposExame().find(t => t.id === tipoExameId);
+    // Busca o label correspondente ao ID para comparar com o DataStore
+    const tipoInfo = DataStore.getTiposExame().find(t => t.id === tipoExameId);
     const tipoLabel = tipoInfo ? tipoInfo.label : tipoExameId;
     return DataStore.getAgendamentos({ radiologiaId: radId })
       .filter(a =>
@@ -2580,15 +2574,10 @@ const NewAppointmentModal = (() => {
         showToast(`Agendamento de ${appt.paciente} criado com sucesso!`);
       }
       close();
-      // Busca dados frescos do servidor e re-renderiza toda a UI
+      // Busca dados frescos do servidor e dispara re-render via AppState
       const stateAtual = AppState.getState();
       await DataStore.refresh(stateAtual);
-      Kpis.render(stateAtual);
-      OccupancyChart.render(stateAtual);
-      CalendarView.render(stateAtual);
-      KanbanView.render(stateAtual);
-      DayView.render(stateAtual);
-      PendingList.render(stateAtual);
+      AppState.update({});   // notifica todos os subscribers automaticamente
       document.dispatchEvent(new CustomEvent('appointment:statusChanged', { detail: { agendamento: appt } }));
     } catch (err) {
       console.error('[NewAppointmentModal] Erro ao salvar:', err);
@@ -3022,7 +3011,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (!needsFetch) {
       // Apenas re-renderiza localmente com os dados em memória
-      Kpis.render(state);
       OccupancyChart.render(state);
       CalendarView.render(state);
       KanbanView.render(state);
@@ -3036,7 +3024,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     _fetchDebounce = setTimeout(async () => {
       try {
         await DataStore.loadAgendamentos(state);
-        Kpis.render(state);
         OccupancyChart.render(state);
         CalendarView.render(state);
         KanbanView.render(state);
