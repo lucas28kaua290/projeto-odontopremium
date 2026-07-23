@@ -901,64 +901,54 @@ const AppointmentModal = (() => {
     overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !overlay.hidden) close(); });
     statusSelect.addEventListener('change', async (e) => {
-      const newStatus = e.target.value;
-      if (!currentAppointment) return;
-      const oldStatus = currentAppointment.status;
+  const newStatus = e.target.value;
+  if (!currentAppointment) return;
+  const oldStatus = currentAppointment.status;
 
-      // Atualiza o modal otimisticamente para feedback imediato
-      currentAppointment.status = newStatus;
-      fill(currentAppointment);
+  // Atualiza o modal otimisticamente para feedback imediato
+  currentAppointment.status = newStatus;
+  fill(currentAppointment);
 
-      try {
-        await Api.updateAgendamento(currentAppointment.id, { status: newStatus });
-        showToast('Status atualizado com sucesso!');
-        // Busca dados frescos do servidor e re-renderiza tudo
-        const st = AppState.getState();
-        await DataStore.refresh(st);
-        Kpis.render(st);
-        OccupancyChart.render(st);
-        CalendarView.render(st);
-        KanbanView.render(st);
-        DayView.render(st);
-        PendingList.render(st);
-        notifyStatusChange(currentAppointment);
-      } catch (err) {
-        // Reverte o modal ao status original
-        currentAppointment.status = oldStatus;
-        fill(currentAppointment);
-        console.error('Erro ao salvar status:', err);
-        showToast('Erro ao salvar status. Tente novamente.', 'error');
-      }
-    });
+  try {
+    await Api.updateAgendamento(currentAppointment.id, { status: newStatus });
+    showToast('Status atualizado com sucesso!');
+    // Busca dados frescos e dispara re-render de todos os componentes via AppState
+    const st = AppState.getState();
+    await DataStore.refresh(st);
+    AppState.update({});   // notifica todos os subscribers (KPIs, gráficos, listas…)
+    notifyStatusChange(currentAppointment);
+  } catch (err) {
+    // Reverte o modal ao status original
+    currentAppointment.status = oldStatus;
+    fill(currentAppointment);
+    console.error('Erro ao salvar status:', err);
+    showToast('Erro ao salvar status. Tente novamente.', 'error');
+  }
+});
 
     async function applyStatusChange(newStatus) {
-      if (!currentAppointment) return;
-      const oldStatus = currentAppointment.status;
-      if (oldStatus === newStatus) return;
+  if (!currentAppointment) return;
+  const oldStatus = currentAppointment.status;
+  if (oldStatus === newStatus) return;
 
-      // Feedback imediato no modal
-      currentAppointment.status = newStatus;
-      fill(currentAppointment);
+  // Feedback imediato no modal
+  currentAppointment.status = newStatus;
+  fill(currentAppointment);
 
-      try {
-        await Api.updateAgendamento(currentAppointment.id, { status: newStatus });
-        showToast('Status atualizado com sucesso!');
-        const st = AppState.getState();
-        await DataStore.refresh(st);
-        Kpis.render(st);
-        OccupancyChart.render(st);
-        CalendarView.render(st);
-        KanbanView.render(st);
-        DayView.render(st);
-        PendingList.render(st);
-        notifyStatusChange(currentAppointment);
-      } catch (err) {
-        // Reverte o modal
-        currentAppointment.status = oldStatus;
-        fill(currentAppointment);
-        showToast('Erro ao salvar status. Tente novamente.', 'error');
-      }
-    }
+  try {
+    await Api.updateAgendamento(currentAppointment.id, { status: newStatus });
+    showToast('Status atualizado com sucesso!');
+    const st = AppState.getState();
+    await DataStore.refresh(st);
+    AppState.update({});   // notifica todos os subscribers (KPIs, gráficos, listas…)
+    notifyStatusChange(currentAppointment);
+  } catch (err) {
+    // Reverte o modal
+    currentAppointment.status = oldStatus;
+    fill(currentAppointment);
+    showToast('Erro ao salvar status. Tente novamente.', 'error');
+  }
+}
 
     document.getElementById('modalBtnDone').addEventListener('click', () => applyStatusChange('realizado'));
     document.getElementById('modalBtnCancel').addEventListener('click', () => applyStatusChange('cancelado'));
