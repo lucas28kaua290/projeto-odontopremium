@@ -1216,8 +1216,8 @@ def atualizar_agendamento(agendamento_id):
 
     sets, params = [], []
 
-    # Campos escalares diretos
-    campos_diretos = {
+    # Campos do agendamento
+    campos = {
         "status":        "status",
         "observacoes":   "observacoes",
         "data":          "data_agendamento",
@@ -1228,44 +1228,47 @@ def atualizar_agendamento(agendamento_id):
         "medicoId":      "medico_id",
         "tipoExameId":   "tipo_exame_id"
     }
-    for chave, coluna in campos_diretos.items():
+
+    for chave, coluna in campos.items():
         if chave in data and data[chave] is not None:
             sets.append(f"{coluna} = %s")
             params.append(data[chave])
 
     # Tipo de exame por label (fallback)
-    if "tipoExame" in data and data["tipoExame"] and not data.get("tipoExameId"):
+    if "tipoExame" in data and data["tipoExame"] and not any(k == "tipoExameId" for k in data):
         te = query("SELECT id FROM tipos_exame WHERE label = %s", (data["tipoExame"],), fetch="one")
         if te:
             sets.append("tipo_exame_id = %s")
             params.append(te["id"])
 
-    # Atualiza paciente (nome, cpf, telefone, nascimento)
-    if data.get("paciente") or data.get("pacienteCpf") or data.get("pacienteTelefone") or data.get("pacienteNascimento"):
-        paciente_row = query(
-            "SELECT paciente_id FROM agendamentos WHERE id = %s", (agendamento_id,), fetch="one"
-        )
-        if paciente_row and paciente_row["paciente_id"]:
-            p_sets, p_params = [], []
-            if data.get("paciente"):
-                p_sets.append("nome = %s")
-                p_params.append(data["paciente"])
-            if data.get("pacienteCpf"):
-                p_sets.append("cpf = %s")
-                p_params.append(data["pacienteCpf"])
-            if data.get("pacienteTelefone"):
-                p_sets.append("telefone = %s")
-                p_params.append(data["pacienteTelefone"])
-            if data.get("pacienteNascimento"):
-                p_sets.append("nascimento = %s")
-                p_params.append(data["pacienteNascimento"])
+    # Atualiza dados do paciente (se vier algum)
+    paciente_row = query(
+        "SELECT paciente_id FROM agendamentos WHERE id = %s", (agendamento_id,), fetch="one"
+    )
 
-            if p_sets:
-                p_params.append(paciente_row["paciente_id"])
-                query(
-                    f"UPDATE pacientes SET {', '.join(p_sets)} WHERE id = %s",
-                    p_params, fetch="none"
-                )
+    if paciente_row and paciente_row.get("paciente_id"):
+        p_id = paciente_row["paciente_id"]
+        p_sets, p_params = [], []
+
+        if data.get("paciente"):
+            p_sets.append("nome = %s")
+            p_params.append(data["paciente"])
+        if data.get("pacienteCpf"):
+            p_sets.append("cpf = %s")
+            p_params.append(data["pacienteCpf"])
+        if data.get("pacienteTelefone"):
+            p_sets.append("telefone = %s")
+            p_params.append(data["pacienteTelefone"])
+        if data.get("pacienteNascimento"):
+            p_sets.append("nascimento = %s")
+            p_params.append(data["pacienteNascimento"])
+
+        if p_sets:
+            p_params.append(p_id)
+            query(
+                f"UPDATE pacientes SET {', '.join(p_sets)} WHERE id = %s",
+                p_params, fetch="none"
+            )
 
     if not sets:
         return err("Nenhum campo para atualizar.", 400)
