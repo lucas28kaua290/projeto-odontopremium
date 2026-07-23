@@ -77,11 +77,13 @@ const DataStore = (() => {
 
   function getAgendamentos({ radiologiaId = 'all' } = {}) {
     if (radiologiaId === 'all') return _agendamentos;
-    // Tenta filtrar pelo campo radiologiaId do objeto.
-    // Se o backend já filtrou (e não devolve o campo), todos os objetos passam —
-    // isso evita que a tela zere quando a API omite radiologiaId nos registros.
-    const filtered = _agendamentos.filter(a => a.radiologiaId === radiologiaId);
-    return filtered.length > 0 ? filtered : _agendamentos;
+    // Filtra pelo campo radiologiaId do objeto.
+    // Se o objeto não tiver o campo (API omitiu), usa o campo radiologia, radioId ou similar.
+    return _agendamentos.filter(a =>
+      a.radiologiaId === radiologiaId ||
+      a.radioId === radiologiaId ||
+      a.radiologia === radiologiaId
+    );
   }
 
   // ── loaders (buscam do servidor e atualizam memória) ─────
@@ -369,9 +371,21 @@ const Kpis = (() => {
       ? todasRads
       : todasRads.filter(r => r.id === state.radiologiaSelecionada);
 
+    // Pré-filtra todos do período uma vez, para não repetir o filtro de data por radiologia
+    const todosNoPeriodo = DataStore.getAgendamentos({ radiologiaId: 'all' })
+      .filter(a => DateUtils.isWithinRange(a.data, ocStart, ocEnd));
+
     const mediaOcupacao = radsParaOcupacao.reduce((acc, r) => {
-      const ags = DataStore.getAgendamentos({ radiologiaId: r.id })
-        .filter(a => DateUtils.isWithinRange(a.data, ocStart, ocEnd));
+      const ags = state.radiologiaSelecionada === 'all'
+        ? todosNoPeriodo.filter(a =>
+            a.radiologiaId === r.id ||
+            a.radioId === r.id ||
+            a.radiologia === r.id ||
+            a.radiologiaNome === r.nome
+          )
+        : AgendaData.getFiltered(state).filter(a =>
+            DateUtils.isWithinRange(a.data, ocStart, ocEnd)
+          );
       const ativos = ags.filter(a => a.status !== 'cancelado' && a.status !== 'faltou').length;
       const capacidade = diasNoPeriodo * SLOTS_POR_DIA;
       const pct = capacidade ? Math.min(100, Math.round((ativos / capacidade) * 100)) : 0;
@@ -590,12 +604,20 @@ const OccupancyChart = (() => {
     const { start, end } = DateUtils.getPeriodRange(state || AppState.getState());
     const diasNoPeriodo = Math.max(1, Math.round((end - start) / 86400000) + 1);
     const SLOTS_POR_DIA = 12;
+    // Todos os agendamentos do período (sem filtro de radiologia)
+    const todos = DataStore.getAgendamentos({ radiologiaId: 'all' })
+      .filter(a => DateUtils.isWithinRange(a.data, start, end));
 
     return DataStore.getRadiologias()
       .filter(r => r.id !== 'all')
       .map(r => {
-        const ags = DataStore.getAgendamentos({ radiologiaId: r.id })
-          .filter(a => DateUtils.isWithinRange(a.data, start, end));
+        // Tenta filtrar pelos campos possíveis de identificação da radiologia
+        const ags = todos.filter(a =>
+          a.radiologiaId === r.id ||
+          a.radioId === r.id ||
+          a.radiologia === r.id ||
+          a.radiologiaNome === r.nome
+        );
         const ativos = ags.filter(a => a.status !== 'cancelado' && a.status !== 'faltou').length;
         const capacidade = diasNoPeriodo * SLOTS_POR_DIA;
         const pct = capacidade ? Math.min(100, Math.round((ativos / capacidade) * 100)) : 0;
