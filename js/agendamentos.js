@@ -558,7 +558,9 @@ const OccupancyChart = (() => {
     const pal = PALETTE[item.id] || { base: '#018093' };
     const pts = sparklineData(item.id);
     const svg = buildSparklineSVG(pts, '#ffffff');
-    const agendados = Math.round(item.ocupacao * 0.5);
+    const hojeISO = AppCache.toISODate(new Date());
+    const agendados = DataStore.getAgendamentos({ radiologiaId: item.id })
+      .filter(a => a.data === hojeISO && a.status !== 'cancelado' && a.status !== 'faltou').length;
     const disponiveis = 50 - agendados;
 
     return `
