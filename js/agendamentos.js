@@ -77,7 +77,11 @@ const DataStore = (() => {
 
   function getAgendamentos({ radiologiaId = 'all' } = {}) {
     if (radiologiaId === 'all') return _agendamentos;
-    return _agendamentos.filter(a => a.radiologiaId === radiologiaId);
+    // Tenta filtrar pelo campo radiologiaId do objeto.
+    // Se o backend já filtrou (e não devolve o campo), todos os objetos passam —
+    // isso evita que a tela zere quando a API omite radiologiaId nos registros.
+    const filtered = _agendamentos.filter(a => a.radiologiaId === radiologiaId);
+    return filtered.length > 0 ? filtered : _agendamentos;
   }
 
   // ── loaders (buscam do servidor e atualizam memória) ─────
@@ -599,9 +603,11 @@ const OccupancyChart = (() => {
       });
   }
 
-  function getOcupacaoInterna(radiologiaId) {
+  function getOcupacaoInterna(radiologiaId, state) {
     const dias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-    const ags = DataStore.getAgendamentos({ radiologiaId });
+    const { start, end } = DateUtils.getPeriodRange(state || AppState.getState());
+    const ags = DataStore.getAgendamentos({ radiologiaId })
+      .filter(a => DateUtils.isWithinRange(a.data, start, end));
     const porDia = [0, 0, 0, 0, 0, 0, 0];
     ags.forEach(a => { porDia[new Date(`${a.data}T00:00:00`).getDay()]++; });
     const max = Math.max(...porDia, 1);
@@ -679,7 +685,7 @@ const OccupancyChart = (() => {
   function renderInternalOccupancy(state) {
     const ctx = document.getElementById('occupancyChart');
     const nome = AppCache.nomeRadiologiaPorId(state.radiologiaSelecionada);
-    const data = getOcupacaoInterna(state.radiologiaSelecionada);
+    const data = getOcupacaoInterna(state.radiologiaSelecionada, state);
     const pal = PALETTE[state.radiologiaSelecionada] || { base: '#018093', light: '#01C6BF' };
 
     document.getElementById('occupancyChartTitle').textContent = `Ocupação Interna — ${nome}`;
