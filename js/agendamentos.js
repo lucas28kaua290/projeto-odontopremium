@@ -873,10 +873,10 @@ const AppointmentModal = (() => {
     document.getElementById('modalPatientName').textContent = agendamento.paciente || '—';
     document.getElementById('modalPatientCpf').textContent = agendamento.pacienteCpf || '—';
     document.getElementById('modalPatientPhone').textContent = agendamento.pacienteTelefone || '—';
-
-    const idade = agendamento.pacienteIdade || agendamento.idade;
     document.getElementById('modalPatientAge').textContent =
-      idade != null ? `${idade} anos` : '—';
+      (agendamento.pacienteIdade !== null && agendamento.pacienteIdade !== undefined)
+        ? `${agendamento.pacienteIdade} anos`
+        : '—';
 
     document.getElementById('modalExamType').textContent = agendamento.tipoExame;
     document.getElementById('modalExamValue').textContent = Kpis.formatCurrency(agendamento.valor);
@@ -2504,7 +2504,9 @@ const NewAppointmentModal = (() => {
     document.getElementById('newPaciente').value = ag.paciente || '';
     document.getElementById('newCpf').value = ag.pacienteCpf || '';
     document.getElementById('newTelefone').value = ag.pacienteTelefone || '';
-    document.getElementById('newIdade').value = ag.pacienteIdade || '';
+    document.getElementById('newNascimento').value = ag.pacienteNascimento
+      ? ag.pacienteNascimento.split('-').reverse().join('/')   // converte AAAA-MM-DD → DD/MM/AAAA
+      : '';
     document.getElementById('newDate').value = ag.data || '';
     document.getElementById('newStatus').value = ag.status || 'agendado';
     document.getElementById('newObservacoes').value = ag.observacoes || '';
@@ -2606,7 +2608,12 @@ const NewAppointmentModal = (() => {
       paciente: document.getElementById('newPaciente').value.trim(),
       pacienteCpf: document.getElementById('newCpf').value.trim(),
       pacienteTelefone: document.getElementById('newTelefone').value.trim(),
-      pacienteIdade: parseInt(document.getElementById('newIdade').value) || null,
+      pacienteNascimento: (() => {
+        const v = document.getElementById('newNascimento').value.trim();
+        if (!v || v.length < 10) return null;
+        const [d, m, a] = v.split('/');
+        return (a && m && d) ? `${a}-${m}-${d}` : null;  // converte DD/MM/AAAA → AAAA-MM-DD para o backend
+      })(),
       tipoExameId: tipoExame,   // ← campo que o backend consome direto (linha 1160)
       tipoExame, // ← mantém como fallback (mas agora não vai ser usado)
       valor: VALOR_POR_EXAME[tipoExame] || 0,
@@ -2727,9 +2734,24 @@ const NewAppointmentModal = (() => {
     /* CPF: máscara simples */
     document.getElementById('newCpf').addEventListener('input', (e) => {
       let v = e.target.value.replace(/\D/g, '').slice(0, 11);
-      if (v.length > 9) v = `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6, 9)}-${v.slice(9)}`;
-      else if (v.length > 6) v = `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6)}`;
-      else if (v.length > 3) v = `${v.slice(0, 3)}.${v.slice(3)}`;
+      if (v.length > 9) v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+      else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d+)/, '$1.$2.$3');
+      else if (v.length > 3) v = v.replace(/(\d{3})(\d+)/, '$1.$2');
+      e.target.value = v;
+    });
+
+    document.getElementById('newTelefone').addEventListener('input', (e) => {
+      let v = e.target.value.replace(/\D/g, '').slice(0, 11);
+      if (v.length > 10) v = v.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+      else if (v.length > 6) v = v.replace(/(\d{2})(\d{4,5})(\d*)/, '($1) $2-$3');
+      else if (v.length > 2) v = v.replace(/(\d{2})(\d+)/, '($1) $2');
+      e.target.value = v;
+    });
+
+    document.getElementById('newNascimento').addEventListener('input', (e) => {
+      let v = e.target.value.replace(/\D/g, '').slice(0, 8);
+      if (v.length > 4) v = v.replace(/(\d{2})(\d{2})(\d+)/, '$1/$2/$3');
+      else if (v.length > 2) v = v.replace(/(\d{2})(\d+)/, '$1/$2');
       e.target.value = v;
     });
 

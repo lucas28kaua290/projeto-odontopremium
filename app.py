@@ -1041,7 +1041,13 @@ def listar_agendamentos():
             a.paciente_id      AS pacienteId,
             p.nome             AS paciente,
             p.telefone         AS pacienteTelefone,
-            TIMESTAMPDIFF(YEAR, p.nascimento, CURDATE()) AS pacienteIdade,
+            p.cpf              AS pacienteCpf,
+            DATE_FORMAT(p.nascimento, '%Y-%m-%d') AS pacienteNascimento,
+            CASE
+                WHEN p.nascimento IS NOT NULL
+                THEN TIMESTAMPDIFF(YEAR, p.nascimento, CURDATE())
+                ELSE NULL
+            END                AS pacienteIdade,
             a.radiologia_id    AS radiologiaId,
             r.nome             AS radiologiaNome,
             a.clinica_id       AS clinicaId,
@@ -1150,9 +1156,10 @@ def criar_agendamento():
 
         if not paciente_id:
             paciente_id = _gerar_id_paciente()
+            nascimento = data.get("pacienteNascimento") or None  # espera AAAA-MM-DD
             query(
-                "INSERT INTO pacientes (id, nome, cpf, telefone) VALUES (%s,%s,%s,%s)",
-                (paciente_id, nome, cpf or None, telefone or None),
+                "INSERT INTO pacientes (id, nome, cpf, telefone, nascimento) VALUES (%s,%s,%s,%s,%s)",
+                (paciente_id, nome, cpf or None, telefone or None, nascimento),
                 fetch="none"
             )
 
@@ -1255,6 +1262,8 @@ def atualizar_agendamento(agendamento_id):
                 p_sets.append("telefone = %s"); p_params.append(data["pacienteTelefone"])
             if data.get("pacienteCpf"):
                 p_sets.append("cpf = %s"); p_params.append(data["pacienteCpf"])
+            if data.get("pacienteNascimento"):
+                p_sets.append("nascimento = %s"); p_params.append(data["pacienteNascimento"])
             if p_sets:
                 p_params.append(paciente_row["paciente_id"])
                 query(
@@ -1612,127 +1621,6 @@ def atualizar_paciente(paciente_id):
     )
     return ok(paciente, "Paciente atualizado com sucesso.")
 
-# -----------------------------------------------------------------------------
-# AGENDAMENTOS — Rotas completas
-# -----------------------------------------------------------------------------
-
-@app.route("/v1/agendamentos", methods=["GET"])
-@require_auth
-def listar_agendamentos():
-    """[API] GET /agendamentos"""
-    radiologia_id = request.args.get("radiologiaId", "all")
-    data_inicio   = request.args.get("dataInicio")
-    data_fim      = request.args.get("dataFim")
-    status        = request.args.get("status")
-
-    sql = """
-        SELECT a.id, a.data_agendamento AS data, a.hora_agendamento AS horarioInicio,
-               a.hora_fim AS horarioFim, a.status, a.observacoes,
-               p.nome AS paciente, p.cpf AS pacienteCpf, p.telefone AS pacienteTelefone,
-               TIMESTAMPDIFF(YEAR, p.data_nascimento, CURDATE()) AS pacienteIdade,
-               t.label AS tipoExame, t.id AS tipoExameId,
-               r.id AS radiologiaId, r.nome AS radiologiaNome,
-               c.id AS clinicaId, c.nome AS clinica,
-               m.id AS medicoId, m.nome AS medico
-        FROM agendamentos a
-        LEFT JOIN pacientes p ON a.paciente_id = p.id
-        LEFT JOIN tipos_exame t ON a.tipo_exame_id = t.id
-        LEFT JOIN radiologias r ON a.radiologia_id = r.id
-        LEFT JOIN clinicas c ON a.clinica_id = c.id
-        LEFT JOIN medicos m ON a.medico_id = m.id
-        WHERE 1=1
-    """
-    params = []
-
-    if radiologia_id != "all" and radiologia_id != "todas":
-        sql += " AND a.radiologia_id = %s"
-        params.append(radiologia_id)
-    if data_inicio:
-        sql += " AND a.data_agendamento >= %s"
-        params.append(data_inicio)
-    if data_fim:
-        sql += " AND a.data_agendamento <= %s"
-        params.append(data_fim)
-    if status:
-        sql += " AND a.status = %s"
-        params.append(status)
-
-    sql += " ORDER BY a.data_agendamento DESC, a.hora_agendamento ASC"
-
-    rows = query(sql, params)
-    return ok(rows)
-
-
-@app.route("/v1/agendamentos", methods=["POST"])
-@require_auth
-def criar_agendamento():
-    """[API] POST /agendamentos"""
-    data = request.get_json(silent=True) or {}
-    # ... (você pode deixar como estava ou eu completo depois)
-    return err("Rota POST ainda em implementação", 501)
-
-
-@app.route("/v1/agendamentos/<int:agendamento_id>", methods=["PATCH"])
-@require_auth
-def atualizar_agendamento(agendamento_id):
-    """[API] PATCH /agendamentos/:id"""
-    data = request.get_json(silent=True) or {}
-
-    existe = query("SELECT id FROM agendamentos WHERE id = %s", (agendamento_id,), fetch="one")
-    if not existe:
-        return not_found("Agendamento não encontrado.")
-
-    sets = []
-    params = []
-
-    # Campos diretos
-    campos = {
-        "status": "status",
-        "observacoes": "observacoes",
-        "data": "data_agendamento",
-        "horarioInicio": "hora_agendamento",
-        "horarioFim": "hora_fim",
-        "radiologiaId": "radiologia_id",
-        "clinicaId": "clinica_id",
-        "medicoId": "medico_id",
-        "tipoExameId": "tipo_exame_id"
-    }
-
-    for chave, coluna in campos.items():
-        if chave in data and data[chave] is not None:
-            sets.append(f"{coluna} = %s")
-            params.append(data[chave])
-
-    if not sets:
-        return err("Nenhum campo para atualizar.", 400)
-
-    params.append(agendamento_id)
-
-    query(
-        f"UPDATE agendamentos SET {', '.join(sets)} WHERE id = %s",
-        params, fetch="none"
-    )
-
-    # Retorna o agendamento atualizado completo
-    ag = query("""
-        SELECT a.id, a.data_agendamento AS data, a.hora_agendamento AS horarioInicio,
-               a.hora_fim AS horarioFim, a.status, a.observacoes,
-               p.nome AS paciente, p.cpf AS pacienteCpf, p.telefone AS pacienteTelefone,
-               TIMESTAMPDIFF(YEAR, p.data_nascimento, CURDATE()) AS pacienteIdade,
-               t.label AS tipoExame, t.id AS tipoExameId,
-               r.id AS radiologiaId, r.nome AS radiologiaNome,
-               c.id AS clinicaId, c.nome AS clinica,
-               m.id AS medicoId, m.nome AS medico
-        FROM agendamentos a
-        LEFT JOIN pacientes p ON a.paciente_id = p.id
-        LEFT JOIN tipos_exame t ON a.tipo_exame_id = t.id
-        LEFT JOIN radiologias r ON a.radiologia_id = r.id
-        LEFT JOIN clinicas c ON a.clinica_id = c.id
-        LEFT JOIN medicos m ON a.medico_id = m.id
-        WHERE a.id = %s
-    """, (agendamento_id,), fetch="one")
-
-    return ok(ag, "Agendamento atualizado com sucesso.")
 
 # -----------------------------------------------------------------------------
 # 10. EXAMES — KPIs, Evolução, Comparativo, Ranking, Destaques
