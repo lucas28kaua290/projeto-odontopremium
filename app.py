@@ -1171,6 +1171,14 @@ def criar_paciente():
         cpf_limpo = re.sub(r"\D", "", data["cpf"])
         cpf_val = f"{cpf_limpo[:3]}.{cpf_limpo[3:6]}.{cpf_limpo[6:9]}-{cpf_limpo[9:]}"
 
+    if cpf_val:
+        existente = query(
+            "SELECT id FROM pacientes WHERE cpf = %s",
+            (cpf_val,), fetch="one"
+        )
+        if existente:
+            return err("CPF já cadastrado.", 409, {"pacienteId": existente["id"]})
+
     insert(
         "INSERT INTO pacientes (id, nome, cpf, telefone, email, nascimento, endereco, status, observacoes) "
         "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
