@@ -1164,11 +1164,11 @@ def listar_pacientes():
         placeholders = ",".join(["%s"] * len(ids))
         resumos = query(
             f"SELECT a.paciente_id, "
-            f"  COUNT(*) AS totalExames, "
-            f"  MAX(CASE WHEN a.status='realizado' THEN a.data_agendamento ELSE NULL END) AS ultimoExame, "
+            f"  COUNT(CASE WHEN a.status != 'cancelado' THEN 1 END) AS totalExames, "
+            f"  MAX(CASE WHEN a.status != 'cancelado' THEN a.data_agendamento ELSE NULL END) AS ultimoExame, "
             f"  (SELECT r2.nome FROM agendamentos a2 "
             f"   JOIN radiologias r2 ON r2.id = a2.radiologia_id "
-            f"   WHERE a2.paciente_id = a.paciente_id "
+            f"   WHERE a2.paciente_id = a.paciente_id AND a2.status != 'cancelado' "
             f"   GROUP BY a2.radiologia_id ORDER BY COUNT(*) DESC LIMIT 1) AS radiologiaFrequente "
             f"FROM agendamentos a "
             f"WHERE a.paciente_id IN ({placeholders}) "
@@ -1186,10 +1186,10 @@ def listar_pacientes():
                 f"SELECT a.paciente_id, te.label AS tipoExame "
                 f"FROM agendamentos a "
                 f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
-                f"WHERE a.paciente_id IN ({ph2}) AND a.status='realizado' "
+                f"WHERE a.paciente_id IN ({ph2}) AND a.status != 'cancelado' "
                 f"AND a.data_agendamento = ("
                 f"  SELECT MAX(a2.data_agendamento) FROM agendamentos a2 "
-                f"  WHERE a2.paciente_id = a.paciente_id AND a2.status='realizado'"
+                f"  WHERE a2.paciente_id = a.paciente_id AND a2.status != 'cancelado'"
                 f") LIMIT {len(pac_com_exame) * 2}",
                 pac_com_exame
             )
@@ -1301,33 +1301,48 @@ def paciente_kpis(paciente_id):
     if not exists:
         return not_found("Paciente não encontrado.")
 
-    totais = query(
-        "SELECT COUNT(*) AS totalExames, COALESCE(SUM(te.valor_base),0) AS totalGasto "
-        "FROM agendamentos a JOIN tipos_exame te ON te.id = a.tipo_exame_id "
-        "WHERE a.paciente_id = %s AND a.status='realizado'",
+    # Total de visitas = todos exceto cancelado (regra C)
+    total_visitas = query(
+        "SELECT COUNT(*) AS totalExames "
+        "FROM agendamentos a "
+        "WHERE a.paciente_id = %s AND a.status != 'cancelado'",
         (paciente_id,), fetch="one"
     )
+
+    # Total gasto = somente realizados (regra C)
+    total_gasto = query(
+        "SELECT COALESCE(SUM(te.valor_base), 0) AS totalGasto "
+        "FROM agendamentos a "
+        "JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+        "WHERE a.paciente_id = %s AND a.status = 'realizado'",
+        (paciente_id,), fetch="one"
+    )
+
+    # Último agendamento não cancelado
     ultimo = query(
-        "SELECT MAX(a.data_agendamento) AS ultimoExame FROM agendamentos a "
-        "WHERE a.paciente_id = %s AND a.status='realizado'",
+        "SELECT MAX(a.data_agendamento) AS ultimoExame "
+        "FROM agendamentos a "
+        "WHERE a.paciente_id = %s AND a.status != 'cancelado'",
         (paciente_id,), fetch="one"
     )
-    # Radiologia mais frequente (considera todos os agendamentos, não só realizados)
+
+    # Radiologia mais frequente (exceto cancelado)
     rad_freq = query(
         "SELECT r.nome AS radiologiaNome, COUNT(*) AS visitas "
         "FROM agendamentos a "
         "JOIN radiologias r ON r.id = a.radiologia_id "
-        "WHERE a.paciente_id = %s "
+        "WHERE a.paciente_id = %s AND a.status != 'cancelado' "
         "GROUP BY r.id, r.nome "
         "ORDER BY visitas DESC LIMIT 1",
         (paciente_id,), fetch="one"
     )
+
     return ok({
-        "totalExames":           totais.get("totalExames", 0) if totais else 0,
-        "totalGasto":            to_decimal(totais.get("totalGasto", 0)) if totais else 0,
-        "ultimoExame":           ultimo.get("ultimoExame") if ultimo else None,
-        "unidadeMaisFrequente":  rad_freq.get("radiologiaNome") if rad_freq else None,
-        "visitasUnidadeFreq":    rad_freq.get("visitas", 0) if rad_freq else 0,
+        "totalExames":          total_visitas.get("totalExames", 0) if total_visitas else 0,
+        "totalGasto":           to_decimal(total_gasto.get("totalGasto", 0)) if total_gasto else 0,
+        "ultimoExame":          ultimo.get("ultimoExame") if ultimo else None,
+        "unidadeMaisFrequente": rad_freq.get("radiologiaNome") if rad_freq else None,
+        "visitasUnidadeFreq":   rad_freq.get("visitas", 0) if rad_freq else 0,
     })
 
 
@@ -1348,7 +1363,7 @@ def paciente_exames(paciente_id):
         "JOIN radiologias r ON r.id = a.radiologia_id "
         "LEFT JOIN clinicas c ON c.id = a.clinica_id "
         "LEFT JOIN medicos m ON m.id = a.medico_id "
-        "WHERE a.paciente_id = %s"
+        "WHERE a.paciente_id = %s AND a.status != 'cancelado'"
     )
     params = [paciente_id]
 

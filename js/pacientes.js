@@ -351,19 +351,20 @@ async function abrirPerfil(id) {
   `;
 
   // KPIs — totalExames, totalGasto e unidadeMaisFrequente vêm do backend
-  const kpisData    = kpis.data || kpis;
-  const totalExames = kpisData.totalExames ?? exames.length;
-  const totalGasto  = kpisData.totalGasto  ?? exames.reduce((s, e) => s + (e.valor || 0), 0);
-  // Prioriza campo do backend; fallback para cálculo local
-  const unidadeFreq = kpisData.unidadeMaisFrequente || unidadeMaisFrequente(exames);
-  const visitasFreq = kpisData.visitasUnidadeFreq
-    ?? exames.filter(e => (e.radiologia || e.unidade) === unidadeFreq).length;
+  // Unwrap defensivo: backend retorna { success, data: { totalExames, ... } }
+  const kpisData    = (kpis && kpis.data) ? kpis.data : (kpis || {});
+  const totalExames = kpisData.totalExames != null ? Number(kpisData.totalExames) : exames.length;
+  const totalGasto  = kpisData.totalGasto  != null ? Number(kpisData.totalGasto)  : exames.filter(e => e.status === 'realizado').reduce((s, e) => s + (Number(e.valor) || 0), 0);
+  const unidadeFreq = kpisData.unidadeMaisFrequente || unidadeMaisFrequente(exames) || '—';
+  const visitasFreq = kpisData.visitasUnidadeFreq != null
+    ? Number(kpisData.visitasUnidadeFreq)
+    : exames.filter(e => (e.radiologia || e.unidade) === unidadeFreq).length;
 
   $('kpi-visitas').textContent = totalExames;
-  $('kpi-total-gasto').textContent = formatarValor(Number(totalGasto));
+  $('kpi-total-gasto').textContent = formatarValor(isNaN(totalGasto) ? 0 : totalGasto);
   $('kpi-paciente-desde').textContent = formatarData(p.cadastro);
   $('kpi-tempo-relativo').textContent = tempoRelativo(p.cadastro);
-  $('kpi-radiologia-frequente').textContent = unidadeFreq || '—';
+  $('kpi-radiologia-frequente').textContent = unidadeFreq;
   $('kpi-radiologia-visitas').textContent = `${visitasFreq} visita${visitasFreq !== 1 ? 's' : ''}`;
 
   // Contato Rápido
