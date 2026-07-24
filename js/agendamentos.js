@@ -2648,8 +2648,8 @@ const NewAppointmentModal = (() => {
 
         // Tenta encontrar por CPF para evitar duplicata
         if (cpf) {
-          const busca = await Api.get(`/pacientes?busca=${encodeURIComponent(cpf)}&limite=1`);
-          const encontrado = busca?.data?.[0] ?? busca?.[0] ?? null;
+          const busca = await Api.getPacientes({ busca: cpf, porPagina: 1 });
+          const encontrado = busca?.itens?.[0] ?? busca?.data?.itens?.[0] ?? null;
           if (encontrado?.id) {
             pacienteId = encontrado.id;
           }
@@ -2657,7 +2657,7 @@ const NewAppointmentModal = (() => {
 
         // Não encontrou — cria novo
         if (!pacienteId) {
-          const novoPaciente = await Api.post('/pacientes', { nome, cpf, telefone, nascimento });
+          const novoPaciente = await Api.postPaciente({ nome, cpf, telefone, nascimento });
           pacienteId = novoPaciente?.data?.id ?? novoPaciente?.id;
         }
 
