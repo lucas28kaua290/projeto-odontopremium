@@ -192,11 +192,14 @@ function renderTabela() {
   $('tabela-footer').hidden = false;
 
   pagina.forEach(p => {
-    const ultimo = ultimoExame(p.exames);
-    const unidade = unidadeMaisFrequente(p.exames);
-    // Backend normaliza cpf/telefone como null quando vazio
-    const cpfDisplay = p.cpf || '—';
-    const telDisplay = p.telefone || '—';
+    // Usa campos pré-calculados pelo backend (_) quando disponíveis,
+    // com fallback para cálculo local (exames carregados no perfil)
+    const totalExames   = p._totalExames   ?? p.exames.length;
+    const ultimaData    = p._ultimoExame   ?? (ultimoExame(p.exames)?.data || null);
+    const ultimoTipo    = p._ultimoExameTipo ?? (ultimoExame(p.exames)?.tipoExame || ultimoExame(p.exames)?.tipo || '');
+    const radFrequente  = p._radiologiaFrequente ?? unidadeMaisFrequente(p.exames);
+    const cpfDisplay    = p.cpf || '—';
+    const telDisplay    = p.telefone || '—';
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>
@@ -211,10 +214,10 @@ function renderTabela() {
       <td>${cpfDisplay}</td>
       <td>${telDisplay}</td>
       <td>
-        ${ultimo ? `<span>${formatarData(ultimo.data)}</span><span class="data-table__exam-type">${ultimo.tipoExame || ultimo.tipo || ''}</span>` : '<span>—</span>'}
+        ${ultimaData ? `<span>${formatarData(ultimaData)}</span><span class="data-table__exam-type">${ultimoTipo}</span>` : '<span>—</span>'}
       </td>
-      <td class="data-table__num">${p.exames.length}</td>
-      <td>${unidade}</td>
+      <td class="data-table__num">${totalExames}</td>
+      <td>${radFrequente}</td>
       <td class="data-table__action">
         <div class="data-table__actions-cell">
           <button class="row-action-btn" data-action="ver" data-id="${p.id}" title="Ver perfil" aria-label="Ver perfil de ${p.nome}">
@@ -347,19 +350,20 @@ async function abrirPerfil(id) {
     <span>Cód. ${p.id}</span>
   `;
 
-  // KPIs — dados de getPacienteKPIs (totalExames, totalGasto vêm do backend)
-  // unidadeFrequente calculada localmente (backend não retorna esse campo)
-  const kpisData = kpis.data || kpis; // unwrap envelope { success, data }
+  // KPIs — totalExames, totalGasto e unidadeMaisFrequente vêm do backend
+  const kpisData    = kpis.data || kpis;
   const totalExames = kpisData.totalExames ?? exames.length;
   const totalGasto  = kpisData.totalGasto  ?? exames.reduce((s, e) => s + (e.valor || 0), 0);
-  const unidadeFreq = unidadeMaisFrequente(exames); // calculado localmente
-  const visitasFreq = exames.filter(e => (e.radiologia || e.unidade) === unidadeFreq).length;
+  // Prioriza campo do backend; fallback para cálculo local
+  const unidadeFreq = kpisData.unidadeMaisFrequente || unidadeMaisFrequente(exames);
+  const visitasFreq = kpisData.visitasUnidadeFreq
+    ?? exames.filter(e => (e.radiologia || e.unidade) === unidadeFreq).length;
 
   $('kpi-visitas').textContent = totalExames;
   $('kpi-total-gasto').textContent = formatarValor(Number(totalGasto));
   $('kpi-paciente-desde').textContent = formatarData(p.cadastro);
   $('kpi-tempo-relativo').textContent = tempoRelativo(p.cadastro);
-  $('kpi-radiologia-frequente').textContent = unidadeFreq;
+  $('kpi-radiologia-frequente').textContent = unidadeFreq || '—';
   $('kpi-radiologia-visitas').textContent = `${visitasFreq} visita${visitasFreq !== 1 ? 's' : ''}`;
 
   // Contato Rápido
@@ -554,9 +558,14 @@ async function salvarPaciente(e) {
         state.pacientes[idx] = {
           ...state.pacientes[idx],
           ...atualizado,
-          exames:       state.pacientes[idx].exames || [],
-          agendamentos: state.pacientes[idx].agendamentos || [],
-          notas:        state.pacientes[idx].notas || [],
+          exames:               state.pacientes[idx].exames || [],
+          agendamentos:         state.pacientes[idx].agendamentos || [],
+          notas:                state.pacientes[idx].notas || [],
+          // Preserva campos calculados do backend
+          _totalExames:         state.pacientes[idx]._totalExames,
+          _ultimoExame:         state.pacientes[idx]._ultimoExame,
+          _ultimoExameTipo:     state.pacientes[idx]._ultimoExameTipo,
+          _radiologiaFrequente: state.pacientes[idx]._radiologiaFrequente,
         };
       }
       if (state.pacienteAtivo?.id === state.editandoId) {
@@ -765,11 +774,19 @@ async function init() {
     state.pacientes = res.data || [];
     state.pacientes = state.pacientes.map(p => ({
       ...p,
-      cpf:         p.cpf || '',
-      telefone:    p.telefone || '',
-      exames:      [],  
-      agendamentos: [], 
-      notas:       [], 
+      cpf:          p.cpf || '',
+      telefone:     p.telefone || '',
+      // Dados enriquecidos vindos do backend (prefixo _ indica campo calculado)
+      exames:       p._ultimoExame
+        ? [{ data: p._ultimoExame, tipoExame: p._ultimoExameTipo || '', radiologia: p._radiologiaFrequente || '' }]
+        : [],
+      agendamentos: [],
+      notas:        [],
+      // Totais para exibição na tabela
+      _totalExames:         p._totalExames || 0,
+      _ultimoExame:         p._ultimoExame || null,
+      _ultimoExameTipo:     p._ultimoExameTipo || null,
+      _radiologiaFrequente: p._radiologiaFrequente || null,
     }));
   } catch (err) {
     mostrarToast('Erro ao carregar pacientes.');

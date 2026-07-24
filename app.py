@@ -1156,8 +1156,54 @@ def listar_pacientes():
         params.append(status)
 
     sql += f" ORDER BY nome LIMIT {limite} OFFSET {offset}"
-    rows = query(sql, params)
-    return ok(rows)
+    pacientes = query(sql, params)
+
+    # Enriquece cada paciente com resumo de agendamentos (último exame, total, radiologia frequente)
+    ids = [p["id"] for p in pacientes]
+    if ids:
+        placeholders = ",".join(["%s"] * len(ids))
+        resumos = query(
+            f"SELECT a.paciente_id, "
+            f"  COUNT(*) AS totalExames, "
+            f"  MAX(CASE WHEN a.status='realizado' THEN a.data_agendamento ELSE NULL END) AS ultimoExame, "
+            f"  (SELECT r2.nome FROM agendamentos a2 "
+            f"   JOIN radiologias r2 ON r2.id = a2.radiologia_id "
+            f"   WHERE a2.paciente_id = a.paciente_id "
+            f"   GROUP BY a2.radiologia_id ORDER BY COUNT(*) DESC LIMIT 1) AS radiologiaFrequente "
+            f"FROM agendamentos a "
+            f"WHERE a.paciente_id IN ({placeholders}) "
+            f"GROUP BY a.paciente_id",
+            ids
+        )
+        resumo_map = {r["paciente_id"]: r for r in resumos}
+
+        # Último exame detalhado (tipo) para pacientes que têm agendamentos
+        pac_com_exame = [pid for pid in ids if resumo_map.get(pid, {}).get("ultimoExame")]
+        ultimo_tipo_map = {}
+        if pac_com_exame:
+            ph2 = ",".join(["%s"] * len(pac_com_exame))
+            ultimos = query(
+                f"SELECT a.paciente_id, te.label AS tipoExame "
+                f"FROM agendamentos a "
+                f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+                f"WHERE a.paciente_id IN ({ph2}) AND a.status='realizado' "
+                f"AND a.data_agendamento = ("
+                f"  SELECT MAX(a2.data_agendamento) FROM agendamentos a2 "
+                f"  WHERE a2.paciente_id = a.paciente_id AND a2.status='realizado'"
+                f") LIMIT {len(pac_com_exame) * 2}",
+                pac_com_exame
+            )
+            for u in ultimos:
+                ultimo_tipo_map[u["paciente_id"]] = u["tipoExame"]
+
+        for p in pacientes:
+            r = resumo_map.get(p["id"], {})
+            p["_totalExames"]        = r.get("totalExames", 0) or 0
+            p["_ultimoExame"]        = r.get("ultimoExame")
+            p["_ultimoExameTipo"]    = ultimo_tipo_map.get(p["id"])
+            p["_radiologiaFrequente"] = r.get("radiologiaFrequente")
+
+    return ok(pacientes)
 
 
 @app.route("/v1/pacientes", methods=["POST"])
@@ -1266,42 +1312,95 @@ def paciente_kpis(paciente_id):
         "WHERE a.paciente_id = %s AND a.status='realizado'",
         (paciente_id,), fetch="one"
     )
+    # Radiologia mais frequente (considera todos os agendamentos, não só realizados)
+    rad_freq = query(
+        "SELECT r.nome AS radiologiaNome, COUNT(*) AS visitas "
+        "FROM agendamentos a "
+        "JOIN radiologias r ON r.id = a.radiologia_id "
+        "WHERE a.paciente_id = %s "
+        "GROUP BY r.id, r.nome "
+        "ORDER BY visitas DESC LIMIT 1",
+        (paciente_id,), fetch="one"
+    )
     return ok({
-        "totalExames": totais.get("totalExames", 0) if totais else 0,
-        "totalGasto":  to_decimal(totais.get("totalGasto", 0)) if totais else 0,
-        "ultimoExame": ultimo.get("ultimoExame") if ultimo else None,
+        "totalExames":           totais.get("totalExames", 0) if totais else 0,
+        "totalGasto":            to_decimal(totais.get("totalGasto", 0)) if totais else 0,
+        "ultimoExame":           ultimo.get("ultimoExame") if ultimo else None,
+        "unidadeMaisFrequente":  rad_freq.get("radiologiaNome") if rad_freq else None,
+        "visitasUnidadeFreq":    rad_freq.get("visitas", 0) if rad_freq else 0,
     })
 
 
 @app.route("/v1/pacientes/<paciente_id>/exames", methods=["GET"])
 @require_auth
 def paciente_exames(paciente_id):
-    rows = query(
+    tipo = request.args.get("tipo")
+    data_inicio = request.args.get("dataInicio")
+    data_fim = request.args.get("dataFim")
+
+    sql = (
         "SELECT a.id, te.label AS tipoExame, r.nome AS radiologia, "
-        "DATE_FORMAT(a.data_agendamento,'%Y-%m-%d') AS data, a.status, "
-        "te.valor_base AS valor "
+        "c.nome AS clinica, m.nome AS medico, "
+        "DATE_FORMAT(a.data_agendamento,'%Y-%m-%d') AS data, "
+        "a.status, te.valor_base AS valor, a.observacoes "
         "FROM agendamentos a "
         "JOIN tipos_exame te ON te.id = a.tipo_exame_id "
         "JOIN radiologias r ON r.id = a.radiologia_id "
-        "WHERE a.paciente_id = %s ORDER BY a.data_agendamento DESC",
-        (paciente_id,)
+        "LEFT JOIN clinicas c ON c.id = a.clinica_id "
+        "LEFT JOIN medicos m ON m.id = a.medico_id "
+        "WHERE a.paciente_id = %s"
     )
+    params = [paciente_id]
+
+    if tipo:
+        sql += " AND te.label = %s"
+        params.append(tipo)
+    if data_inicio:
+        sql += " AND a.data_agendamento >= %s"
+        params.append(data_inicio)
+    if data_fim:
+        sql += " AND a.data_agendamento <= %s"
+        params.append(data_fim)
+
+    sql += " ORDER BY a.data_agendamento DESC"
+    rows = query(sql, params)
     return ok(rows)
 
 
 @app.route("/v1/pacientes/<paciente_id>/agendamentos", methods=["GET"])
 @require_auth
 def paciente_agendamentos(paciente_id):
-    rows = query(
+    status = request.args.get("status")
+    data_inicio = request.args.get("dataInicio")
+    data_fim = request.args.get("dataFim")
+
+    sql = (
         "SELECT a.id, te.label AS tipoExame, r.nome AS radiologia, "
+        "c.nome AS clinica, m.nome AS medico, "
         "DATE_FORMAT(a.data_agendamento,'%Y-%m-%d') AS data, "
-        "TIME_FORMAT(a.hora_agendamento,'%H:%i') AS hora, a.status "
+        "TIME_FORMAT(a.hora_agendamento,'%H:%i') AS hora, "
+        "a.status, a.observacoes, te.valor_base AS valor "
         "FROM agendamentos a "
         "JOIN tipos_exame te ON te.id = a.tipo_exame_id "
         "JOIN radiologias r ON r.id = a.radiologia_id "
-        "WHERE a.paciente_id = %s ORDER BY a.data_agendamento DESC",
-        (paciente_id,)
+        "LEFT JOIN clinicas c ON c.id = a.clinica_id "
+        "LEFT JOIN medicos m ON m.id = a.medico_id "
+        "WHERE a.paciente_id = %s"
     )
+    params = [paciente_id]
+
+    if status and status != "all":
+        sql += " AND a.status = %s"
+        params.append(status)
+    if data_inicio:
+        sql += " AND a.data_agendamento >= %s"
+        params.append(data_inicio)
+    if data_fim:
+        sql += " AND a.data_agendamento <= %s"
+        params.append(data_fim)
+
+    sql += " ORDER BY a.data_agendamento DESC, a.hora_agendamento DESC"
+    rows = query(sql, params)
     return ok(rows)
 
 
