@@ -2469,6 +2469,7 @@ const NewAppointmentModal = (() => {
     const today = new Date().toISOString().split('T')[0];
 
     document.getElementById('newPaciente').value = '';
+    document.getElementById('newPacienteId').value = '';
     document.getElementById('newCpf').value = '';
     document.getElementById('newTelefone').value = '';
     document.getElementById('newNascimento').value = '';
@@ -2598,7 +2599,7 @@ const NewAppointmentModal = (() => {
       || calcFim(horarioInicio, DURACAO_POR_EXAME[tipoExame] || 30);
 
     return {
-      pacienteId: document.getElementById('newPacienteId') ? document.getElementById('newPacienteId').value : null,  // ← campo correto
+      pacienteId: document.getElementById('newPacienteId')?.value?.trim() || null,
       radiologiaId: radId,
       radiologiaNome: DataStore.nomeRadiologiaPorId(radId),
       data,
@@ -2628,10 +2629,47 @@ const NewAppointmentModal = (() => {
   async function saveAppointment() {
     if (!validate()) { showToast('Preencha os campos obrigatórios.', 'error'); return; }
 
-    const appt = buildNewAppointment();
     saveBtn.disabled = true;
 
     try {
+      // --- Resolve pacienteId antes de montar o payload ---
+      let pacienteId = document.getElementById('newPacienteId')?.value?.trim() || null;
+
+      if (!pacienteId) {
+        const nome = document.getElementById('newPaciente').value.trim();
+        const cpf = document.getElementById('newCpf').value.trim();
+        const telefone = document.getElementById('newTelefone').value.trim();
+        const nascRaw = document.getElementById('newNascimento').value.trim();
+        const nascimento = (() => {
+          if (!nascRaw || nascRaw.length < 10) return null;
+          const [d, m, a] = nascRaw.split('/');
+          return (a && m && d) ? `${a}-${m}-${d}` : null;
+        })();
+
+        // Tenta encontrar por CPF para evitar duplicata
+        if (cpf) {
+          const busca = await Api.get(`/pacientes?busca=${encodeURIComponent(cpf)}&limite=1`);
+          const encontrado = busca?.data?.[0] ?? busca?.[0] ?? null;
+          if (encontrado?.id) {
+            pacienteId = encontrado.id;
+          }
+        }
+
+        // Não encontrou — cria novo
+        if (!pacienteId) {
+          const novoPaciente = await Api.post('/pacientes', { nome, cpf, telefone, nascimento });
+          pacienteId = novoPaciente?.data?.id ?? novoPaciente?.id;
+        }
+
+        if (!pacienteId) throw new Error('Não foi possível obter o ID do paciente.');
+
+        // Seta no hidden para buildNewAppointment capturar
+        document.getElementById('newPacienteId').value = pacienteId;
+      }
+      // ----------------------------------------------------
+
+      const appt = buildNewAppointment();
+
       if (editingAppointment) {
         await Api.updateAgendamento(editingAppointment.id, appt);
         showToast(`Agendamento de ${appt.paciente} atualizado com sucesso!`);
@@ -2640,7 +2678,6 @@ const NewAppointmentModal = (() => {
         showToast(`Agendamento de ${appt.paciente} criado com sucesso!`);
       }
       close();
-      // Busca dados frescos e propaga via AppState para todos os subscribers
       const stateAtual = AppState.getState();
       await DataStore.refresh(stateAtual);
       AppState.update({});
