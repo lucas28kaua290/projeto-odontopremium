@@ -1085,7 +1085,7 @@ def criar_agendamento():
     return created({"id": new_id}, "Agendamento criado com sucesso.")
 
 
-@app.route("/v1/agendamentos/<int:agendamento_id>", methods=["PUT"])
+@app.route("/v1/agendamentos/<int:agendamento_id>", methods=["PUT", "PATCH"])
 @require_auth
 def atualizar_agendamento(agendamento_id):
     data = request.get_json(silent=True) or {}
