@@ -108,7 +108,7 @@ function statusLabel(status) {
 }
 
 function statusTagClass(status) {
-  const map = { ativo: 'status-tag--active', novo: 'status-tag--new', inativo: 'status-tag--inactive', confirmado: 'status-tag--active', pendente: 'status-tag--new', realizado: 'status-tag--inactive', cancelado: 'status-tag--inactive' };
+  const map = { ativo: 'status-tag--active', novo: 'status-tag--new', inativo: 'status-tag--inactive', confirmado: 'status-tag--new', pendente: 'status-tag--new', realizado: 'status-tag--active', cancelado: 'status-tag--inactive' };
   return map[status] || '';
 }
 
