@@ -2650,7 +2650,9 @@ const NewAppointmentModal = (() => {
         // Tenta encontrar por CPF para evitar duplicata
         if (cpf) {
           const busca = await Api.getPacientes({ busca: cpf, porPagina: 1 });
-          const encontrado = busca?.itens?.[0] ?? busca?.data?.itens?.[0] ?? null;
+          // backend retorna { data: [...] } — array direto, sem "itens"
+          const lista = Array.isArray(busca?.data) ? busca.data : (Array.isArray(busca) ? busca : []);
+          const encontrado = lista[0] ?? null;
           if (encontrado?.id) {
             pacienteId = encontrado.id;
           }
