@@ -843,10 +843,284 @@ function fecharModalNota() {
   if (modal) modal.style.display = 'none';
 }
 
-// Exportar PDF (placeholder)
 $('btn-exportar-pdf').addEventListener('click', () => {
-  mostrarToast('Exportação de PDF em desenvolvimento.');
+  if (!state.pacienteAtivo) return;
+  exportarPerfilPDF(state.pacienteAtivo);
 });
+
+async function exportarPerfilPDF(p) {
+  mostrarToast('Gerando PDF, aguarde…', 8000);
+
+  const idade = calcularIdade(p.nascimento);
+
+  // Mescla exames realizados + agendamentos não cancelados, ordena por data desc
+  const historico = [
+    ...(p.exames || []).map(e => ({ ...e, _origem: 'exame' })),
+    ...(p.agendamentos || []).filter(a => a.status !== 'cancelado').map(a => ({ ...a, _origem: 'agendamento' })),
+  ].sort((a, b) => {
+    const da = new Date(a.data + (a.hora ? 'T' + a.hora : ''));
+    const db = new Date(b.data + (b.hora ? 'T' + b.hora : ''));
+    return db - da;
+  });
+
+  const linhasHistorico = historico.length
+    ? historico.map(item => `
+        <tr>
+          <td>${formatarData(item.data)}</td>
+          <td>${item.hora || '—'}</td>
+          <td>${item.tipoExame || item.tipo || '—'}</td>
+          <td>${item.radiologia || item.unidade || '—'}</td>
+          <td>${item.clinica || '—'}</td>
+          <td>${item.medico || '—'}</td>
+          <td>${item._origem === 'exame' ? formatarValor(Number(item.valor) || 0) : '—'}</td>
+          <td><span class="pdf-badge pdf-badge--${item.status}">${statusLabel(item.status)}</span></td>
+        </tr>`).join('')
+    : `<tr><td colspan="8" class="pdf-empty">Nenhum registro encontrado.</td></tr>`;
+
+  const linhasNotas = (p.notas || []).length
+    ? p.notas.map(n => `
+        <div class="pdf-nota">
+          <span class="pdf-nota__data">${formatarData((n.data || n.criado_em || '').substring(0, 10))}</span>
+          <span class="pdf-nota__texto">${n.texto}</span>
+        </div>`).join('')
+    : '<p class="pdf-empty">Nenhuma observação registrada.</p>';
+
+  // Cria div oculta com o conteúdo do PDF
+  const container = document.createElement('div');
+  container.id = 'pdf-render-container';
+  container.style.cssText = `
+    position:fixed; left:-9999px; top:0;
+    width:794px; background:#fff;
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    font-size:11px; color:#273237; padding:36px 40px;
+  `;
+
+  container.innerHTML = `
+    <style>
+      #pdf-render-container * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      .pdf-header {
+        display:flex; justify-content:space-between; align-items:flex-start;
+        border-bottom:2px solid #018093; padding-bottom:14px; margin-bottom:18px;
+      }
+      .pdf-brand-name { font-size:20px; font-weight:700; color:#018093; letter-spacing:-0.5px; }
+      .pdf-brand-sub  { font-size:10px; color:#8B9C9F; margin-top:2px; }
+      .pdf-header-meta { text-align:right; font-size:10px; color:#8B9C9F; line-height:1.7; }
+
+      .pdf-hero {
+        display:flex; align-items:center; gap:14px;
+        background:linear-gradient(135deg,#EAF6F6 0%,#f0fafa 100%);
+        border:1px solid #D2ECEC; border-radius:10px;
+        padding:14px 18px; margin-bottom:18px;
+      }
+      .pdf-avatar {
+        width:50px; height:50px; border-radius:50%; flex-shrink:0;
+        background:linear-gradient(135deg,#046B85 0%,#018093 52%,#01A9A0 100%);
+        color:#fff; font-size:17px; font-weight:700;
+        display:flex; align-items:center; justify-content:center;
+      }
+      .pdf-hero-name { font-size:15px; font-weight:700; color:#273237; }
+      .pdf-hero-meta { font-size:10px; color:#5C6E72; margin-top:3px; }
+      .pdf-hero-status {
+        margin-left:auto; padding:4px 10px; border-radius:20px;
+        font-size:10px; font-weight:600; background:#E6F6EF; color:#0E8F63;
+      }
+
+      .pdf-kpis {
+        display:grid; grid-template-columns:repeat(4,1fr);
+        gap:10px; margin-bottom:18px;
+      }
+      .pdf-kpi {
+        border:1px solid #E7ECED; border-radius:8px;
+        padding:10px 12px; background:#FDFFFE;
+      }
+      .pdf-kpi__label { font-size:9px; color:#8B9C9F; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; }
+      .pdf-kpi__value { font-size:14px; font-weight:700; color:#273237; }
+      .pdf-kpi__sub   { font-size:9px; color:#8B9C9F; margin-top:2px; }
+
+      .pdf-section { margin-bottom:18px; }
+      .pdf-section__title {
+        font-size:9px; font-weight:600; color:#018093;
+        text-transform:uppercase; letter-spacing:0.6px;
+        border-bottom:1px solid #E7ECED;
+        padding-bottom:5px; margin-bottom:10px;
+      }
+
+      .pdf-dados {
+        display:grid; grid-template-columns:1fr 1fr; gap:6px 24px;
+      }
+      .pdf-dado { display:flex; flex-direction:column; gap:1px; }
+      .pdf-dado__label { font-size:9px; color:#8B9C9F; text-transform:uppercase; letter-spacing:0.4px; }
+      .pdf-dado__valor { font-size:11px; color:#273237; font-weight:500; }
+
+      table { width:100%; border-collapse:collapse; }
+      th {
+        font-size:9px; font-weight:600; color:#8B9C9F;
+        text-transform:uppercase; letter-spacing:0.4px;
+        text-align:left; padding:6px 8px;
+        background:#F3F7F7; border-bottom:1px solid #E7ECED;
+      }
+      td {
+        font-size:10px; color:#273237;
+        padding:6px 8px; border-bottom:1px solid #F3F7F7;
+        vertical-align:middle;
+      }
+      tr:last-child td { border-bottom:none; }
+
+      .pdf-badge {
+        display:inline-block; padding:2px 7px;
+        border-radius:20px; font-size:9px; font-weight:600;
+      }
+      .pdf-badge--realizado  { background:#E6F6EF; color:#0E8F63; }
+      .pdf-badge--confirmado { background:#FCF3E1; color:#B27A0E; }
+      .pdf-badge--agendado   { background:#EAF6F6; color:#018093; }
+      .pdf-badge--cancelado  { background:#FCEBEA; color:#C23B32; }
+
+      .pdf-nota {
+        display:flex; gap:10px; padding:7px 10px;
+        background:#F3F7F7; border-left:3px solid #018093;
+        border-radius:0 6px 6px 0; margin-bottom:6px;
+      }
+      .pdf-nota__data  { font-size:9px; color:#8B9C9F; white-space:nowrap; padding-top:1px; min-width:60px; }
+      .pdf-nota__texto { font-size:10px; color:#273237; line-height:1.5; }
+
+      .pdf-empty { color:#8B9C9F; font-size:10px; padding:12px 0; }
+
+      .pdf-footer {
+        margin-top:24px; padding-top:10px; border-top:1px solid #E7ECED;
+        display:flex; justify-content:space-between;
+        font-size:9px; color:#8B9C9F;
+      }
+    </style>
+
+    <!-- CABEÇALHO -->
+    <div class="pdf-header">
+      <div>
+        <div class="pdf-brand-name">IORD</div>
+        <div class="pdf-brand-sub">Painel de Gestão · Radiologias Odontológicas</div>
+      </div>
+      <div class="pdf-header-meta">
+        <div>Perfil do Paciente</div>
+        <div>Gerado em ${new Date().toLocaleString('pt-BR')}</div>
+        <div>Cód. interno: ${p.id}</div>
+      </div>
+    </div>
+
+    <!-- HERO -->
+    <div class="pdf-hero">
+      <div class="pdf-avatar">${iniciais(p.nome)}</div>
+      <div>
+        <div class="pdf-hero-name">${p.nome}</div>
+        <div class="pdf-hero-meta">
+          ${p.cpf || '—'} &nbsp;·&nbsp;
+          ${idade !== null ? idade + ' anos' : 'Idade não informada'} &nbsp;·&nbsp;
+          ${p.telefone || '—'}
+        </div>
+      </div>
+      <span class="pdf-hero-status">${statusLabel(p.status)}</span>
+    </div>
+
+    <!-- KPIs -->
+    <div class="pdf-kpis">
+      <div class="pdf-kpi">
+        <div class="pdf-kpi__label">Total de visitas</div>
+        <div class="pdf-kpi__value">${$('kpi-visitas').textContent || '0'}</div>
+        <div class="pdf-kpi__sub">exames não cancelados</div>
+      </div>
+      <div class="pdf-kpi">
+        <div class="pdf-kpi__label">Total gasto</div>
+        <div class="pdf-kpi__value">${$('kpi-total-gasto').textContent || 'R$ 0,00'}</div>
+        <div class="pdf-kpi__sub">exames realizados</div>
+      </div>
+      <div class="pdf-kpi">
+        <div class="pdf-kpi__label">Paciente desde</div>
+        <div class="pdf-kpi__value">${$('kpi-paciente-desde').textContent || '—'}</div>
+        <div class="pdf-kpi__sub">${$('kpi-tempo-relativo').textContent || ''}</div>
+      </div>
+      <div class="pdf-kpi">
+        <div class="pdf-kpi__label">Radiologia frequente</div>
+        <div class="pdf-kpi__value" style="font-size:11px;">${$('kpi-radiologia-frequente').textContent || '—'}</div>
+        <div class="pdf-kpi__sub">${$('kpi-radiologia-visitas').textContent || ''}</div>
+      </div>
+    </div>
+
+    <!-- DADOS PESSOAIS -->
+    <div class="pdf-section">
+      <div class="pdf-section__title">Dados pessoais</div>
+      <div class="pdf-dados">
+        <div class="pdf-dado"><span class="pdf-dado__label">Nome completo</span><span class="pdf-dado__valor">${p.nome}</span></div>
+        <div class="pdf-dado"><span class="pdf-dado__label">CPF</span><span class="pdf-dado__valor">${p.cpf || '—'}</span></div>
+        <div class="pdf-dado"><span class="pdf-dado__label">Telefone</span><span class="pdf-dado__valor">${p.telefone || '—'}</span></div>
+        <div class="pdf-dado"><span class="pdf-dado__label">E-mail</span><span class="pdf-dado__valor">${p.email || '—'}</span></div>
+        <div class="pdf-dado"><span class="pdf-dado__label">Data de nascimento</span><span class="pdf-dado__valor">${formatarData(p.nascimento)}</span></div>
+        <div class="pdf-dado"><span class="pdf-dado__label">Data de cadastro</span><span class="pdf-dado__valor">${formatarData((p.cadastro || '').substring(0, 10))}</span></div>
+        <div class="pdf-dado" style="grid-column:1/-1"><span class="pdf-dado__label">Endereço</span><span class="pdf-dado__valor">${p.endereco || '—'}</span></div>
+      </div>
+    </div>
+
+    <!-- HISTÓRICO UNIFICADO -->
+    <div class="pdf-section">
+      <div class="pdf-section__title">Histórico completo — exames realizados + agendamentos</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th><th>Horário</th><th>Tipo de exame</th>
+            <th>Radiologia</th><th>Clínica</th><th>Médico</th>
+            <th>Valor</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>${linhasHistorico}</tbody>
+      </table>
+    </div>
+
+    <!-- OBSERVAÇÕES -->
+    <div class="pdf-section">
+      <div class="pdf-section__title">Observações clínicas</div>
+      <div>${linhasNotas}</div>
+    </div>
+
+    <!-- RODAPÉ -->
+    <div class="pdf-footer">
+      <span>IORD — Painel de Gestão de Radiologias Odontológicas</span>
+      <span>Documento gerado em ${new Date().toLocaleDateString('pt-BR')} — uso interno</span>
+    </div>
+  `;
+
+  document.body.appendChild(container);
+
+  try {
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      width: 794,
+    });
+
+    const imgData = canvas.toDataURL('image/png');
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
+
+    const pdfW = pdf.internal.pageSize.getWidth();
+    const pdfH = pdf.internal.pageSize.getHeight();
+    const imgH = (canvas.height * pdfW) / canvas.width;
+
+    // Quebra em páginas se o conteúdo for maior que uma página A4
+    let posY = 0;
+    while (posY < imgH) {
+      if (posY > 0) pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, -posY, pdfW, imgH);
+      posY += pdfH;
+    }
+
+    pdf.save(`perfil-${p.nome.replace(/\s+/g, '-').toLowerCase()}.pdf`);
+    mostrarToast('PDF exportado com sucesso!');
+  } catch (err) {
+    mostrarToast('Erro ao gerar PDF. Tente novamente.');
+    console.error(err);
+  } finally {
+    document.body.removeChild(container);
+  }
+}
 
 /* =============================================================
    INICIALIZAÇÃO
