@@ -89,9 +89,24 @@ const Filters = (() => {
   }
 
   function bindEvents() {
+    let pendingDateStart = null;  // ← guarda temporariamente sem notificar
+
     periodSelect.addEventListener('change', (e) => AppState.update({ periodo: e.target.value }));
-    customDateStart.addEventListener('change', (e) => AppState.update({ customDateStart: e.target.value }));
-    customDateEnd.addEventListener('change', (e) => AppState.update({ customDateEnd: e.target.value }));
+
+    customDateStart.addEventListener('change', (e) => {
+      pendingDateStart = e.target.value;
+      const end = customDateEnd.value;
+      if (end) {
+        AppState.update({ customDateStart: pendingDateStart, customDateEnd: end });
+      }
+    });
+
+    customDateEnd.addEventListener('change', (e) => {
+      const start = pendingDateStart || customDateStart.value;
+      if (start) {
+        AppState.update({ customDateStart: start, customDateEnd: e.target.value });
+      }
+    });
 
     AppState.subscribe((state) => {
       syncActivePill(state.radiologiaSelecionada);
