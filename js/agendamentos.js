@@ -2503,6 +2503,7 @@ const NewAppointmentModal = (() => {
   function fillFormForEdit(ag) {
     // 1. Campos simples — sem dependência de cascata
     document.getElementById('newPaciente').value = ag.paciente || '';
+    document.getElementById('newPacienteId').value = ag.pacienteId || '';
     document.getElementById('newCpf').value = ag.pacienteCpf || '';
     document.getElementById('newTelefone').value = ag.pacienteTelefone || '';
     document.getElementById('newNascimento').value = ag.pacienteNascimento
