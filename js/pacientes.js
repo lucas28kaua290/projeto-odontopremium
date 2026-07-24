@@ -198,12 +198,12 @@ function renderTabela() {
   pagina.forEach(p => {
     // Usa campos pré-calculados pelo backend (_) quando disponíveis,
     // com fallback para cálculo local (exames carregados no perfil)
-    const totalExames   = p._totalExames   ?? p.exames.length;
-    const ultimaData    = p._ultimoExame   ?? (ultimoExame(p.exames)?.data || null);
-    const ultimoTipo    = p._ultimoExameTipo ?? (ultimoExame(p.exames)?.tipoExame || ultimoExame(p.exames)?.tipo || '');
-    const radFrequente  = p._radiologiaFrequente ?? unidadeMaisFrequente(p.exames);
-    const cpfDisplay    = p.cpf || '—';
-    const telDisplay    = p.telefone || '—';
+    const totalExames = p._totalExames ?? p.exames.length;
+    const ultimaData = p._ultimoExame ?? (ultimoExame(p.exames)?.data || null);
+    const ultimoTipo = p._ultimoExameTipo ?? (ultimoExame(p.exames)?.tipoExame || ultimoExame(p.exames)?.tipo || '');
+    const radFrequente = p._radiologiaFrequente ?? unidadeMaisFrequente(p.exames);
+    const cpfDisplay = p.cpf || '—';
+    const telDisplay = p.telefone || '—';
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>
@@ -328,11 +328,11 @@ async function abrirPerfil(id) {
 
   // Unwrap do envelope { success, data } retornado pelo backend
   // Cada variável já recebe o conteúdo final — sem segundo unwrap depois
-  p            = _pRes.data     || _pRes;
-  kpis         = _kpisRes.data  || _kpisRes;   // <- kpis JÁ É o objeto com totalExames, totalGasto etc.
-  exames       = _examesRes.data     || _examesRes     || [];
-  agendamentos = _agendRes.data      || _agendRes      || [];
-  notas        = _notasRes.data      || _notasRes      || [];
+  p = _pRes.data || _pRes;
+  kpis = _kpisRes.data || _kpisRes;   // <- kpis JÁ É o objeto com totalExames, totalGasto etc.
+  exames = _examesRes.data || _examesRes || [];
+  agendamentos = _agendRes.data || _agendRes || [];
+  notas = _notasRes.data || _notasRes || [];
 
   // Monta objeto local para as funções de render
   state.pacienteAtivo = { ...p, exames, agendamentos, notas };
@@ -357,7 +357,7 @@ async function abrirPerfil(id) {
 
   // KPIs — kpis já foi unwrappado acima, usar direto sem .data novamente
   const totalExames = kpis.totalExames != null ? Number(kpis.totalExames) : exames.length;
-  const totalGasto  = kpis.totalGasto  != null ? Number(kpis.totalGasto)
+  const totalGasto = kpis.totalGasto != null ? Number(kpis.totalGasto)
     : exames.filter(e => e.status === 'realizado').reduce((s, e) => s + (Number(e.valor) || 0), 0);
   const unidadeFreq = kpis.unidadeMaisFrequente || unidadeMaisFrequente(exames) || '—';
   const visitasFreq = kpis.visitasUnidadeFreq != null
@@ -547,12 +547,12 @@ async function salvarPaciente(e) {
   e.preventDefault();
 
   const dados = {
-    nome:        $('f-nome').value.trim(),
-    cpf:         $('f-cpf').value.trim(),
-    telefone:    $('f-telefone').value.trim(),
-    nascimento:  $('f-nascimento').value,
-    email:       $('f-email').value.trim(),
-    endereco:    $('f-endereco').value.trim(),
+    nome: $('f-nome').value.trim(),
+    cpf: $('f-cpf').value.trim(),
+    telefone: $('f-telefone').value.trim(),
+    nascimento: $('f-nascimento').value,
+    email: $('f-email').value.trim(),
+    endereco: $('f-endereco').value.trim(),
     observacoes: $('f-observacoes').value.trim(),
   };
 
@@ -566,13 +566,13 @@ async function salvarPaciente(e) {
         state.pacientes[idx] = {
           ...state.pacientes[idx],
           ...atualizado,
-          exames:               state.pacientes[idx].exames || [],
-          agendamentos:         state.pacientes[idx].agendamentos || [],
-          notas:                state.pacientes[idx].notas || [],
+          exames: state.pacientes[idx].exames || [],
+          agendamentos: state.pacientes[idx].agendamentos || [],
+          notas: state.pacientes[idx].notas || [],
           // Preserva campos calculados do backend
-          _totalExames:         state.pacientes[idx]._totalExames,
-          _ultimoExame:         state.pacientes[idx]._ultimoExame,
-          _ultimoExameTipo:     state.pacientes[idx]._ultimoExameTipo,
+          _totalExames: state.pacientes[idx]._totalExames,
+          _ultimoExame: state.pacientes[idx]._ultimoExame,
+          _ultimoExameTipo: state.pacientes[idx]._ultimoExameTipo,
           _radiologiaFrequente: state.pacientes[idx]._radiologiaFrequente,
         };
       }
@@ -586,9 +586,9 @@ async function salvarPaciente(e) {
       // Adiciona ao topo do cache com arrays vazios (sem criar agendamentos!)
       state.pacientes.unshift({
         ...novoPaciente,
-        exames:       [],
+        exames: [],
         agendamentos: [],
-        notas:        [],
+        notas: [],
       });
       mostrarToast('Paciente cadastrado com sucesso.');
     }
@@ -853,7 +853,7 @@ async function exportarPerfilPDF(p) {
 
   const idade = calcularIdade(p.nascimento);
 
-  // Mescla exames realizados + agendamentos não cancelados, ordena por data desc
+  // Mescla exames + agendamentos não cancelados, ordena por data desc
   const historico = [
     ...(p.exames || []).map(e => ({ ...e, _origem: 'exame' })),
     ...(p.agendamentos || []).filter(a => a.status !== 'cancelado').map(a => ({ ...a, _origem: 'agendamento' })),
@@ -885,142 +885,123 @@ async function exportarPerfilPDF(p) {
         </div>`).join('')
     : '<p class="pdf-empty">Nenhuma observação registrada.</p>';
 
-  // Cria div oculta com o conteúdo do PDF
-  const container = document.createElement('div');
-  container.id = 'pdf-render-container';
-  container.style.cssText = `
-    position:fixed; left:-9999px; top:0;
-    width:794px; background:#fff;
-    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-    font-size:11px; color:#273237; padding:36px 40px;
+  // ─── CSS compartilhado entre todas as seções ───────────────────────────────
+  const CSS = `
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; font-size:11px; color:#273237; background:#fff; }
+
+    /* ── Cabeçalho ── */
+    .pdf-header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #018093; padding-bottom:14px; }
+    .pdf-brand-name { font-size:20px; font-weight:700; color:#018093; letter-spacing:-0.5px; }
+    .pdf-brand-sub  { font-size:10px; color:#8B9C9F; margin-top:3px; }
+    .pdf-header-meta { text-align:right; font-size:10px; color:#8B9C9F; line-height:1.8; }
+
+    /* ── Hero ── */
+    .pdf-hero { display:flex; align-items:center; gap:14px; background:linear-gradient(135deg,#EAF6F6 0%,#f0fafa 100%); border:1px solid #D2ECEC; border-radius:10px; padding:16px 20px; }
+    .pdf-avatar { width:52px; height:52px; border-radius:50%; flex-shrink:0; background:linear-gradient(135deg,#046B85 0%,#018093 52%,#01A9A0 100%); color:#fff; font-size:17px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+    .pdf-hero-name { font-size:15px; font-weight:700; color:#273237; }
+    .pdf-hero-meta { font-size:10px; color:#5C6E72; margin-top:4px; line-height:1.6; }
+    .pdf-hero-status { margin-left:auto; padding:5px 12px; border-radius:20px; font-size:10px; font-weight:600; background:#E6F6EF; color:#0E8F63; white-space:nowrap; }
+
+    /* ── KPIs ── */
+    .pdf-kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+    .pdf-kpi { border:1px solid #E7ECED; border-radius:8px; padding:12px 14px; background:#FDFFFE; }
+    .pdf-kpi__label { font-size:9px; color:#8B9C9F; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:5px; }
+    .pdf-kpi__value { font-size:15px; font-weight:700; color:#273237; line-height:1.2; }
+    .pdf-kpi__sub   { font-size:9px; color:#8B9C9F; margin-top:3px; }
+
+    /* ── Seções ── */
+    .pdf-section__title { font-size:9px; font-weight:700; color:#018093; text-transform:uppercase; letter-spacing:0.7px; border-bottom:1px solid #E7ECED; padding-bottom:6px; margin-bottom:12px; }
+
+    /* ── Dados pessoais ── */
+    .pdf-dados { display:grid; grid-template-columns:1fr 1fr; gap:10px 32px; }
+    .pdf-dado { display:flex; flex-direction:column; gap:2px; }
+    .pdf-dado__label { font-size:9px; color:#8B9C9F; text-transform:uppercase; letter-spacing:0.4px; }
+    .pdf-dado__valor { font-size:11px; color:#273237; font-weight:500; line-height:1.4; }
+
+    /* ── Tabela histórico ── */
+    table { width:100%; border-collapse:collapse; }
+    th { font-size:9px; font-weight:700; color:#5C6E72; text-transform:uppercase; letter-spacing:0.4px; text-align:left; padding:8px 10px; background:#F3F7F7; border-bottom:2px solid #D2ECEC; }
+    td { font-size:10px; color:#273237; padding:8px 10px; border-bottom:1px solid #F0F4F4; vertical-align:middle; line-height:1.4; }
+    tr:nth-child(even) td { background:#FAFCFC; }
+    tr:last-child td { border-bottom:none; }
+
+    /* ── Badges ── */
+    .pdf-badge { display:inline-block; padding:3px 8px; border-radius:20px; font-size:9px; font-weight:600; }
+    .pdf-badge--realizado  { background:#E6F6EF; color:#0E8F63; }
+    .pdf-badge--confirmado { background:#FCF3E1; color:#B27A0E; }
+    .pdf-badge--agendado   { background:#EAF6F6; color:#018093; }
+    .pdf-badge--cancelado  { background:#FCEBEA; color:#C23B32; }
+    .pdf-badge--pendente   { background:#FCF3E1; color:#B27A0E; }
+
+    /* ── Notas ── */
+    .pdf-nota { display:flex; gap:12px; padding:9px 12px; background:#F3F7F7; border-left:3px solid #018093; border-radius:0 6px 6px 0; margin-bottom:8px; }
+    .pdf-nota:last-child { margin-bottom:0; }
+    .pdf-nota__data  { font-size:9px; color:#8B9C9F; white-space:nowrap; padding-top:1px; min-width:64px; }
+    .pdf-nota__texto { font-size:10px; color:#273237; line-height:1.6; }
+
+    /* ── Utilitários ── */
+    .pdf-empty { color:#8B9C9F; font-size:10px; padding:14px 0; text-align:center; }
+
+    /* ── Rodapé ── */
+    .pdf-footer { display:flex; justify-content:space-between; align-items:center; border-top:1px solid #E7ECED; padding-top:10px; font-size:9px; color:#8B9C9F; }
+    .pdf-footer-page { font-size:9px; color:#B0BEC0; }
   `;
 
-  container.innerHTML = `
-    <style>
-      #pdf-render-container * { box-sizing: border-box; margin: 0; padding: 0; }
+  // ─── Helper: cria um wrapper isolado com os estilos ───────────────────────
+  function criarWrapper(conteudo, padding = '40px 44px') {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = `
+      position:fixed; left:-9999px; top:0;
+      width:794px; background:#fff;
+      padding:${padding};
+    `;
+    wrap.innerHTML = `<style>${CSS}</style>${conteudo}`;
+    document.body.appendChild(wrap);
+    return wrap;
+  }
 
-      .pdf-header {
-        display:flex; justify-content:space-between; align-items:flex-start;
-        border-bottom:2px solid #018093; padding-bottom:14px; margin-bottom:18px;
-      }
-      .pdf-brand-name { font-size:20px; font-weight:700; color:#018093; letter-spacing:-0.5px; }
-      .pdf-brand-sub  { font-size:10px; color:#8B9C9F; margin-top:2px; }
-      .pdf-header-meta { text-align:right; font-size:10px; color:#8B9C9F; line-height:1.7; }
+  // ─── Helper: renderiza um elemento como canvas ────────────────────────────
+  async function renderizarSecao(el) {
+    return html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      width: 794,
+      logging: false,
+    });
+  }
 
-      .pdf-hero {
-        display:flex; align-items:center; gap:14px;
-        background:linear-gradient(135deg,#EAF6F6 0%,#f0fafa 100%);
-        border:1px solid #D2ECEC; border-radius:10px;
-        padding:14px 18px; margin-bottom:18px;
-      }
-      .pdf-avatar {
-        width:50px; height:50px; border-radius:50%; flex-shrink:0;
-        background:linear-gradient(135deg,#046B85 0%,#018093 52%,#01A9A0 100%);
-        color:#fff; font-size:17px; font-weight:700;
-        display:flex; align-items:center; justify-content:center;
-      }
-      .pdf-hero-name { font-size:15px; font-weight:700; color:#273237; }
-      .pdf-hero-meta { font-size:10px; color:#5C6E72; margin-top:3px; }
-      .pdf-hero-status {
-        margin-left:auto; padding:4px 10px; border-radius:20px;
-        font-size:10px; font-weight:600; background:#E6F6EF; color:#0E8F63;
-      }
+  // ─── Construção das seções HTML ───────────────────────────────────────────
+  const dataGeracao = new Date().toLocaleString('pt-BR');
+  const dataGeraCurta = new Date().toLocaleDateString('pt-BR');
 
-      .pdf-kpis {
-        display:grid; grid-template-columns:repeat(4,1fr);
-        gap:10px; margin-bottom:18px;
-      }
-      .pdf-kpi {
-        border:1px solid #E7ECED; border-radius:8px;
-        padding:10px 12px; background:#FDFFFE;
-      }
-      .pdf-kpi__label { font-size:9px; color:#8B9C9F; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; }
-      .pdf-kpi__value { font-size:14px; font-weight:700; color:#273237; }
-      .pdf-kpi__sub   { font-size:9px; color:#8B9C9F; margin-top:2px; }
-
-      .pdf-section { margin-bottom:18px; }
-      .pdf-section__title {
-        font-size:9px; font-weight:600; color:#018093;
-        text-transform:uppercase; letter-spacing:0.6px;
-        border-bottom:1px solid #E7ECED;
-        padding-bottom:5px; margin-bottom:10px;
-      }
-
-      .pdf-dados {
-        display:grid; grid-template-columns:1fr 1fr; gap:6px 24px;
-      }
-      .pdf-dado { display:flex; flex-direction:column; gap:1px; }
-      .pdf-dado__label { font-size:9px; color:#8B9C9F; text-transform:uppercase; letter-spacing:0.4px; }
-      .pdf-dado__valor { font-size:11px; color:#273237; font-weight:500; }
-
-      table { width:100%; border-collapse:collapse; }
-      th {
-        font-size:9px; font-weight:600; color:#8B9C9F;
-        text-transform:uppercase; letter-spacing:0.4px;
-        text-align:left; padding:6px 8px;
-        background:#F3F7F7; border-bottom:1px solid #E7ECED;
-      }
-      td {
-        font-size:10px; color:#273237;
-        padding:6px 8px; border-bottom:1px solid #F3F7F7;
-        vertical-align:middle;
-      }
-      tr:last-child td { border-bottom:none; }
-
-      .pdf-badge {
-        display:inline-block; padding:2px 7px;
-        border-radius:20px; font-size:9px; font-weight:600;
-      }
-      .pdf-badge--realizado  { background:#E6F6EF; color:#0E8F63; }
-      .pdf-badge--confirmado { background:#FCF3E1; color:#B27A0E; }
-      .pdf-badge--agendado   { background:#EAF6F6; color:#018093; }
-      .pdf-badge--cancelado  { background:#FCEBEA; color:#C23B32; }
-
-      .pdf-nota {
-        display:flex; gap:10px; padding:7px 10px;
-        background:#F3F7F7; border-left:3px solid #018093;
-        border-radius:0 6px 6px 0; margin-bottom:6px;
-      }
-      .pdf-nota__data  { font-size:9px; color:#8B9C9F; white-space:nowrap; padding-top:1px; min-width:60px; }
-      .pdf-nota__texto { font-size:10px; color:#273237; line-height:1.5; }
-
-      .pdf-empty { color:#8B9C9F; font-size:10px; padding:12px 0; }
-
-      .pdf-footer {
-        margin-top:24px; padding-top:10px; border-top:1px solid #E7ECED;
-        display:flex; justify-content:space-between;
-        font-size:9px; color:#8B9C9F;
-      }
-    </style>
-
-    <!-- CABEÇALHO -->
+  const htmlCabecalho = `
     <div class="pdf-header">
       <div>
         <div class="pdf-brand-name">IORD</div>
         <div class="pdf-brand-sub">Painel de Gestão · Radiologias Odontológicas</div>
       </div>
       <div class="pdf-header-meta">
-        <div>Perfil do Paciente</div>
-        <div>Gerado em ${new Date().toLocaleString('pt-BR')}</div>
-        <div>Cód. interno: ${p.id}</div>
+        <div style="font-weight:600;color:#273237;margin-bottom:2px;">Perfil do Paciente</div>
+        <div>Gerado em ${dataGeracao}</div>
+        <div>Cód. interno: <strong>${p.id}</strong></div>
       </div>
-    </div>
+    </div>`;
 
-    <!-- HERO -->
+  const htmlHero = `
     <div class="pdf-hero">
       <div class="pdf-avatar">${iniciais(p.nome)}</div>
       <div>
         <div class="pdf-hero-name">${p.nome}</div>
         <div class="pdf-hero-meta">
-          ${p.cpf || '—'} &nbsp;·&nbsp;
-          ${idade !== null ? idade + ' anos' : 'Idade não informada'} &nbsp;·&nbsp;
-          ${p.telefone || '—'}
+          ${p.cpf || '—'}&nbsp;&nbsp;·&nbsp;&nbsp;${idade !== null ? idade + ' anos' : 'Idade não informada'}&nbsp;&nbsp;·&nbsp;&nbsp;${p.telefone || '—'}
         </div>
       </div>
       <span class="pdf-hero-status">${statusLabel(p.status)}</span>
-    </div>
+    </div>`;
 
-    <!-- KPIs -->
+  const htmlKpis = `
     <div class="pdf-kpis">
       <div class="pdf-kpi">
         <div class="pdf-kpi__label">Total de visitas</div>
@@ -1042,10 +1023,10 @@ async function exportarPerfilPDF(p) {
         <div class="pdf-kpi__value" style="font-size:11px;">${$('kpi-radiologia-frequente').textContent || '—'}</div>
         <div class="pdf-kpi__sub">${$('kpi-radiologia-visitas').textContent || ''}</div>
       </div>
-    </div>
+    </div>`;
 
-    <!-- DADOS PESSOAIS -->
-    <div class="pdf-section">
+  const htmlDadosPessoais = `
+    <div>
       <div class="pdf-section__title">Dados pessoais</div>
       <div class="pdf-dados">
         <div class="pdf-dado"><span class="pdf-dado__label">Nome completo</span><span class="pdf-dado__valor">${p.nome}</span></div>
@@ -1056,11 +1037,11 @@ async function exportarPerfilPDF(p) {
         <div class="pdf-dado"><span class="pdf-dado__label">Data de cadastro</span><span class="pdf-dado__valor">${formatarData((p.cadastro || '').substring(0, 10))}</span></div>
         <div class="pdf-dado" style="grid-column:1/-1"><span class="pdf-dado__label">Endereço</span><span class="pdf-dado__valor">${p.endereco || '—'}</span></div>
       </div>
-    </div>
+    </div>`;
 
-    <!-- HISTÓRICO UNIFICADO -->
-    <div class="pdf-section">
-      <div class="pdf-section__title">Histórico completo — exames realizados + agendamentos</div>
+  const htmlHistorico = `
+    <div>
+      <div class="pdf-section__title">Histórico completo — exames e agendamentos</div>
       <table>
         <thead>
           <tr>
@@ -1071,46 +1052,86 @@ async function exportarPerfilPDF(p) {
         </thead>
         <tbody>${linhasHistorico}</tbody>
       </table>
-    </div>
+    </div>`;
 
-    <!-- OBSERVAÇÕES -->
-    <div class="pdf-section">
+  const htmlNotas = `
+    <div>
       <div class="pdf-section__title">Observações clínicas</div>
       <div>${linhasNotas}</div>
-    </div>
+    </div>`;
 
-    <!-- RODAPÉ -->
-    <div class="pdf-footer">
-      <span>IORD — Painel de Gestão de Radiologias Odontológicas</span>
-      <span>Documento gerado em ${new Date().toLocaleDateString('pt-BR')} — uso interno</span>
-    </div>
-  `;
-
-  document.body.appendChild(container);
+  // ─── Renderização seção a seção e montagem do PDF ─────────────────────────
+  const wrappers = [];
 
   try {
-    const canvas = await html2canvas(container, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      width: 794,
-    });
-
-    const imgData = canvas.toDataURL('image/png');
     const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
 
-    const pdfW = pdf.internal.pageSize.getWidth();
-    const pdfH = pdf.internal.pageSize.getHeight();
-    const imgH = (canvas.height * pdfW) / canvas.width;
+    // Dimensões A4 em pt (unidade nativa do jsPDF)
+    const PAGE_W = pdf.internal.pageSize.getWidth();   // ~595 pt
+    const PAGE_H = pdf.internal.pageSize.getHeight();  // ~842 pt
+    const MARGIN = 28;   // margem lateral em pt
+    const GAP = 16;   // espaço entre seções em pt
+    const CONTENT_W = PAGE_W - MARGIN * 2;
 
-    // Quebra em páginas se o conteúdo for maior que uma página A4
-    let posY = 0;
-    while (posY < imgH) {
-      if (posY > 0) pdf.addPage();
-      pdf.addImage(imgData, 'PNG', 0, -posY, pdfW, imgH);
-      posY += pdfH;
+    // Rodapé de página
+    function adicionarRodape(pdf, pageNum, totalPages) {
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(176, 190, 192);
+      const texto = `IORD — Painel de Gestão de Radiologias Odontológicas  ·  Gerado em ${dataGeraCurta}  ·  uso interno`;
+      const pagina = `Página ${pageNum}`;
+      pdf.text(texto, MARGIN, PAGE_H - 14);
+      pdf.text(pagina, PAGE_W - MARGIN, PAGE_H - 14, { align: 'right' });
+      // linha divisória
+      pdf.setDrawColor(231, 236, 237);
+      pdf.setLineWidth(0.5);
+      pdf.line(MARGIN, PAGE_H - 20, PAGE_W - MARGIN, PAGE_H - 20);
     }
+
+    // Helper: converte canvas em imagem e adiciona ao PDF, quebrando páginas se necessário
+    // Retorna o cursor Y após adicionar a imagem
+    async function adicionarSecao(htmlConteudo, cursorY, pdfRef, pageTracker) {
+      const wrap = criarWrapper(htmlConteudo);
+      wrappers.push(wrap);
+
+      const canvas = await renderizarSecao(wrap);
+      const imgData = canvas.toDataURL('image/png');
+
+      // Altura da imagem em pt, proporcional à largura do conteúdo
+      const ratio = CONTENT_W / (canvas.width / 2); // canvas.width está em px @2x
+      const imgH_pt = (canvas.height / 2) * ratio;
+
+      const FOOTER_H = 30;
+      const availableH = PAGE_H - MARGIN - FOOTER_H;
+
+      // Se não couber na página atual, adiciona nova página
+      if (cursorY + imgH_pt > availableH) {
+        adicionarRodape(pdfRef, pageTracker.page, '?');
+        pdfRef.addPage();
+        pageTracker.page++;
+        cursorY = MARGIN;
+      }
+
+      pdfRef.addImage(imgData, 'PNG', MARGIN, cursorY, CONTENT_W, imgH_pt);
+      return cursorY + imgH_pt + GAP;
+    }
+
+    const pageTracker = { page: 1 };
+    let cursorY = MARGIN;
+
+    // Adiciona cada bloco, preservando espaçamentos e evitando cortes
+    cursorY = await adicionarSecao(htmlCabecalho, cursorY, pdf, pageTracker);
+    cursorY = await adicionarSecao(htmlHero, cursorY, pdf, pageTracker);
+    cursorY = await adicionarSecao(htmlKpis, cursorY, pdf, pageTracker);
+    cursorY = await adicionarSecao(htmlDadosPessoais, cursorY, pdf, pageTracker);
+    cursorY = await adicionarSecao(htmlHistorico, cursorY, pdf, pageTracker);
+    cursorY = await adicionarSecao(htmlNotas, cursorY, pdf, pageTracker);
+
+    // Rodapé da última página
+    adicionarRodape(pdf, pageTracker.page, pageTracker.page);
+
+    // Corrige os números de página em páginas anteriores retroativamente
+    // (não é possível retroativamente com jsPDF simples, mas o total na última é correto)
 
     pdf.save(`perfil-${p.nome.replace(/\s+/g, '-').toLowerCase()}.pdf`);
     mostrarToast('PDF exportado com sucesso!');
@@ -1118,7 +1139,7 @@ async function exportarPerfilPDF(p) {
     mostrarToast('Erro ao gerar PDF. Tente novamente.');
     console.error(err);
   } finally {
-    document.body.removeChild(container);
+    wrappers.forEach(w => { if (w.parentNode) w.parentNode.removeChild(w); });
   }
 }
 
@@ -1147,18 +1168,18 @@ async function init() {
     state.pacientes = res.data || [];
     state.pacientes = state.pacientes.map(p => ({
       ...p,
-      cpf:          p.cpf || '',
-      telefone:     p.telefone || '',
+      cpf: p.cpf || '',
+      telefone: p.telefone || '',
       // Dados enriquecidos vindos do backend (prefixo _ indica campo calculado)
-      exames:       p._ultimoExame
+      exames: p._ultimoExame
         ? [{ data: p._ultimoExame, tipoExame: p._ultimoExameTipo || '', radiologia: p._radiologiaFrequente || '' }]
         : [],
       agendamentos: [],
-      notas:        [],
+      notas: [],
       // Totais para exibição na tabela
-      _totalExames:         p._totalExames || 0,
-      _ultimoExame:         p._ultimoExame || null,
-      _ultimoExameTipo:     p._ultimoExameTipo || null,
+      _totalExames: p._totalExames || 0,
+      _ultimoExame: p._ultimoExame || null,
+      _ultimoExameTipo: p._ultimoExameTipo || null,
       _radiologiaFrequente: p._radiologiaFrequente || null,
     }));
   } catch (err) {
