@@ -512,7 +512,9 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 .pill.is-active { background: var(--gradient-brand); border-color: transparent; color: var(--color-bg); box-shadow: 0 4px 12px -2px rgba(1, 128, 147, 0.4); }
 
 /* =============================================================
-   7. TABELA DE PACIENTES (Design Premium com Sticky Header)
+   7. TABELA DE PACIENTES — REESCRITA LIMPA
+   Estratégia: colgroup para larguras, sem position:relative no tr,
+   sem table-layout:fixed, sem nth-child nas linhas.
 ============================================================= */
 
 .table-card {
@@ -524,7 +526,7 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
   position: relative;
 }
 
-/* Traço de destaque no topo da tabela */
+/* Traço de destaque no topo */
 .table-card::before {
   content: '';
   position: absolute;
@@ -534,9 +536,8 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
   z-index: 2;
 }
 
-.table-card__scroll { 
-  overflow-x: auto; 
-  /* overflow-y fica no contexto da view-lista, não aqui globalmente */
+.table-card__scroll {
+  overflow-x: auto;
 }
 
 .view-lista .table-card__scroll {
@@ -544,11 +545,16 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
   max-height: 65vh;
 }
 
-.data-table { 
-  width: 100%; 
-  min-width: 820px; 
+/* Tabela base */
+.data-table {
+  width: 100%;
+  min-width: 860px;
   font-size: var(--fs-sm);
+  border-collapse: collapse;
+  table-layout: auto;
 }
+
+/* Cabeçalho */
 .data-table thead th {
   text-align: left;
   padding: var(--space-4) var(--space-5);
@@ -565,66 +571,78 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
   z-index: 10;
   box-shadow: 0 1px 0 var(--color-border);
 }
-.data-table__num { 
-  text-align: right; 
-  width: 100px; 
-}
-.data-table__action { 
-  text-align: center; 
-  width: 110px; 
-}
 
+/* Larguras definidas apenas no <th> — sem conflito com td */
+.data-table thead th:nth-child(1) { width: 28%; min-width: 200px; } /* Paciente */
+.data-table thead th:nth-child(2) { width: 13%; min-width: 110px; } /* CPF */
+.data-table thead th:nth-child(3) { width: 13%; min-width: 110px; } /* Telefone */
+.data-table thead th:nth-child(4) { width: 16%; min-width: 120px; } /* Último exame */
+.data-table thead th:nth-child(5) { width: 9%;  min-width: 80px;  text-align: right; } /* Total */
+.data-table thead th:nth-child(6) { width: 14%; min-width: 110px; } /* Radiologia */
+.data-table thead th:nth-child(7) { width: 7%;  min-width: 80px;  text-align: center; } /* Ações */
+
+/* Células do corpo */
 .data-table tbody td {
   padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--color-border);
   color: var(--color-text);
   vertical-align: middle;
-  transition: background-color var(--transition-fast), padding-left var(--transition-base);
 }
-.data-table tbody tr:last-child td { border-bottom: none; }
 
-.data-table tbody tr { 
-  transition: background-color var(--transition-fast); 
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Hover — SEM position:relative no tr (quebra layout em webkit) */
+.data-table tbody tr {
   cursor: pointer;
-  position: relative;
+  transition: background-color var(--transition-fast);
 }
 
-/* Efeito de Hover com acento lateral */
-.data-table tbody tr::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 15%; bottom: 15%;
-  width: 3px;
-  background: var(--gradient-brand);
-  border-radius: 0 4px 4px 0;
-  opacity: 0;
-  transform: scaleY(0.5);
-  transition: opacity var(--transition-base), transform var(--transition-base);
+.data-table tbody tr:hover {
+  background-color: var(--color-primary-50);
 }
 
-.data-table tbody tr:hover { 
-  background-color: var(--color-primary-50); 
-}
-.data-table tbody tr:hover::before {
-  opacity: 1;
-  transform: scaleY(1);
+/* Acento lateral no hover via borda esquerda da 1ª célula */
+.data-table tbody td:first-child {
+  border-left: 3px solid transparent;
+  transition: border-color var(--transition-base);
 }
 
-.data-table td.data-table__num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-.data-table td.data-table__action { text-align: center; cursor: default; }
+.data-table tbody tr:hover td:first-child {
+  border-left-color: var(--color-primary);
+}
 
+/* Alinhamentos especiais */
+.data-table__num {
+  text-align: right !important;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
 
+.data-table__action {
+  text-align: center !important;
+  cursor: default;
+}
 
-.data-table__name-cell { display: flex; align-items: center; gap: var(--space-3); }
+/* Célula de nome (avatar + texto) */
+.data-table__name-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
 
 .data-table__avatar {
-  width: 36px; height: 36px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: var(--gradient-brand-soft);
   color: var(--color-primary-dark);
   font-size: var(--fs-xs);
   font-weight: var(--fw-bold);
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   border: 2px solid var(--color-surface);
   box-shadow: var(--shadow-xs);
@@ -635,16 +653,32 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
   transform: scale(1.05);
 }
 
-.data-table__name-primary { 
-  font-weight: var(--fw-semibold); 
-  color: var(--color-text); 
-  display: block; 
-  font-size: var(--fs-base); /* Aumentado levemente para hierarquia */
+.data-table__name-primary {
+  font-weight: var(--fw-semibold);
+  color: var(--color-text);
+  display: block;
+  font-size: var(--fs-base);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.data-table__name-secondary { font-size: var(--fs-xs); color: var(--color-text-subtle); display: block; margin-top: 2px; font-family: var(--font-mono); }
 
-.data-table__exam-type { font-size: var(--fs-xs); color: var(--color-text-subtle); display: block; margin-top: 2px; }
+.data-table__name-secondary {
+  font-size: var(--fs-xs);
+  color: var(--color-text-subtle);
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-mono);
+}
 
+.data-table__exam-type {
+  font-size: var(--fs-xs);
+  color: var(--color-text-subtle);
+  display: block;
+  margin-top: 2px;
+}
+
+/* Status tags */
 .status-tag {
   display: inline-flex;
   align-items: center;
@@ -655,29 +689,51 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
   border-radius: 999px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  white-space: nowrap;
 }
-.status-tag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
-.status-tag--active { background-color: var(--color-positive-bg); color: var(--color-positive); }
-.status-tag--new { background-color: var(--color-primary-50); color: var(--color-primary-dark); }
-.status-tag--new::before { animation: subtlePulse 2s infinite ease-in-out; } /* Pulsante para chamar atenção */
+
+.status-tag::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.status-tag--active  { background-color: var(--color-positive-bg); color: var(--color-positive); }
+.status-tag--new     { background-color: var(--color-primary-50);  color: var(--color-primary-dark); }
+.status-tag--new::before { animation: subtlePulse 2s infinite ease-in-out; }
 .status-tag--inactive { background-color: var(--color-surface-muted); color: var(--color-text-subtle); }
 
+/* Botões de ação */
 .row-action-btn {
-  width: 30px; height: 30px;
-  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: var(--radius-sm);
   color: var(--color-text-subtle);
   border: 1px solid transparent;
   background-color: transparent;
   transition: all var(--transition-fast);
 }
-.row-action-btn:hover { 
-  color: var(--color-bg); 
-  background: var(--gradient-brand); 
-  transform: scale(1.1); 
-}
-.data-table__actions-cell { display: flex; align-items: center; justify-content: center; gap: var(--space-1); }
 
+.row-action-btn:hover {
+  color: var(--color-bg);
+  background: var(--gradient-brand);
+  transform: scale(1.1);
+}
+
+.data-table__actions-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+}
+
+/* Empty state */
 .empty-state {
   padding: var(--space-10) var(--space-5);
   text-align: center;
@@ -688,10 +744,12 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
   align-items: center;
   gap: var(--space-4);
 }
-.empty-state__icon { color: var(--color-border-strong); opacity: 0.6; }
-.empty-state__title { font-size: var(--fs-md); font-weight: var(--fw-semibold); color: var(--color-text-muted); }
-.empty-state__hint { color: var(--color-text-subtle); max-width: 300px; line-height: 1.5; }
 
+.empty-state__icon  { color: var(--color-border-strong); opacity: 0.6; }
+.empty-state__title { font-size: var(--fs-md); font-weight: var(--fw-semibold); color: var(--color-text-muted); }
+.empty-state__hint  { color: var(--color-text-subtle); max-width: 300px; line-height: 1.5; }
+
+/* Rodapé da tabela */
 .table-card__footer {
   display: flex;
   align-items: center;
@@ -701,18 +759,21 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
   border-top: 1px solid var(--color-border);
   background-color: var(--color-surface);
   flex-wrap: wrap;
-  position: sticky;
-  bottom: 0;
-  z-index: 5;
 }
+
 .table-card__hint { font-size: var(--fs-xs); color: var(--color-text-subtle); }
 .table-card__hint strong { color: var(--color-text); font-weight: var(--fw-semibold); }
 
+/* Paginação */
 .pagination { display: flex; align-items: center; gap: 4px; }
+
 .pagination__btn {
-  min-width: 32px; height: 32px;
+  min-width: 32px;
+  height: 32px;
   padding: 0 8px;
-  display: inline-flex; align-items: center; justify-content: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: var(--radius-sm);
   font-size: var(--fs-xs);
   font-weight: var(--fw-medium);
@@ -721,14 +782,28 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
   background-color: var(--color-surface);
   transition: all var(--transition-fast);
 }
-.pagination__btn:hover:not(:disabled) { border-color: var(--color-primary-light); color: var(--color-primary-dark); background-color: var(--color-primary-50); }
-.pagination__btn.is-active { background: var(--gradient-brand); border-color: transparent; color: var(--color-bg); box-shadow: 0 2px 8px rgba(1, 128, 147, 0.3); }
+
+.pagination__btn:hover:not(:disabled) {
+  border-color: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  background-color: var(--color-primary-50);
+}
+
+.pagination__btn.is-active {
+  background: var(--gradient-brand);
+  border-color: transparent;
+  color: var(--color-bg);
+  box-shadow: 0 2px 8px rgba(1, 128, 147, 0.3);
+}
+
 .pagination__btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 @media (max-width: 900px) {
   .table-card__footer { flex-direction: column; align-items: stretch; }
   .table-card__scroll { max-height: 50vh; }
+  .data-table__action { min-width: 70px; }
 }
+
 
 /* =============================================================
    8. BOTÕES & UTILITÁRIOS COMPARTILHADOS
