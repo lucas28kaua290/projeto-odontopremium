@@ -734,23 +734,114 @@ $('historico-toggle').addEventListener('click', e => {
   ativarAbaHistorico(btn.dataset.historico);
 });
 
-// Adicionar nota
-$('btn-add-nota').addEventListener('click', async () => {
+// Adicionar nota — usa modal inline em vez de prompt() (bloqueado em alguns browsers)
+$('btn-add-nota').addEventListener('click', () => {
   if (!state.pacienteAtivo) return;
-  const texto = prompt('Nova observação:');
-  if (!texto?.trim()) return;
-
-  try {
-    const res = await Api.postPacienteNota(state.pacienteAtivo.id, texto.trim());
-    const novaNota = res.data || res; // unwrap envelope
-    state.pacienteAtivo.notas.unshift(novaNota);
-    renderNotas(state.pacienteAtivo);
-    mostrarToast('Nota adicionada.');
-  } catch (err) {
-    mostrarToast('Erro ao salvar nota. Tente novamente.');
-    console.error(err);
-  }
+  abrirModalNota();
 });
+
+function abrirModalNota() {
+  // Cria o modal na hora se ainda não existir
+  let modal = $('modal-nota-inline');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modal-nota-inline';
+    modal.style.cssText = `
+      position:fixed;inset:0;z-index:1000;
+      display:flex;align-items:center;justify-content:center;
+      background:rgba(0,0,0,0.45);
+    `;
+    modal.innerHTML = `
+      <div style="
+        background:var(--color-surface,#fff);
+        border-radius:var(--radius-lg,12px);
+        padding:var(--space-6,24px);
+        width:100%;max-width:440px;
+        box-shadow:0 8px 32px rgba(0,0,0,0.18);
+        display:flex;flex-direction:column;gap:var(--space-4,16px);
+      ">
+        <h3 style="margin:0;font-size:var(--fs-base,15px);font-weight:600;color:var(--color-text,#111);">
+          Nova observação clínica
+        </h3>
+        <textarea id="nota-inline-texto" rows="4" placeholder="Digite a observação..." style="
+          width:100%;resize:vertical;
+          border:1px solid var(--color-border,#e2e8f0);
+          border-radius:var(--radius-md,8px);
+          padding:var(--space-3,12px);
+          font-size:var(--fs-sm,13px);
+          color:var(--color-text,#111);
+          background:var(--color-surface,#fff);
+          font-family:inherit;
+          box-sizing:border-box;
+        "></textarea>
+        <div style="display:flex;justify-content:flex-end;gap:var(--space-3,12px);">
+          <button id="nota-inline-cancelar" type="button" style="
+            padding:var(--space-2,8px) var(--space-4,16px);
+            border:1px solid var(--color-border,#e2e8f0);
+            border-radius:var(--radius-md,8px);
+            background:transparent;
+            color:var(--color-text-subtle,#64748b);
+            font-size:var(--fs-sm,13px);
+            cursor:pointer;
+          ">Cancelar</button>
+          <button id="nota-inline-salvar" type="button" style="
+            padding:var(--space-2,8px) var(--space-4,16px);
+            border:none;
+            border-radius:var(--radius-md,8px);
+            background:var(--color-primary,#018093);
+            color:#fff;
+            font-size:var(--fs-sm,13px);
+            font-weight:600;
+            cursor:pointer;
+          ">Salvar</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    $('nota-inline-cancelar').addEventListener('click', fecharModalNota);
+    modal.addEventListener('click', e => { if (e.target === modal) fecharModalNota(); });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !modal.hidden) fecharModalNota();
+    });
+
+    $('nota-inline-salvar').addEventListener('click', async () => {
+      const texto = $('nota-inline-texto').value.trim();
+      if (!texto) {
+        $('nota-inline-texto').focus();
+        return;
+      }
+
+      const btnSalvar = $('nota-inline-salvar');
+      btnSalvar.disabled = true;
+      btnSalvar.textContent = 'Salvando…';
+
+      try {
+        const res = await Api.postPacienteNota(state.pacienteAtivo.id, texto);
+        const novaNota = res.data || res;
+        state.pacienteAtivo.notas.unshift(novaNota);
+        renderNotas(state.pacienteAtivo);
+        fecharModalNota();
+        mostrarToast('Observação adicionada.');
+      } catch (err) {
+        mostrarToast('Erro ao salvar observação. Tente novamente.');
+        console.error(err);
+      } finally {
+        btnSalvar.disabled = false;
+        btnSalvar.textContent = 'Salvar';
+      }
+    });
+  }
+
+  $('nota-inline-texto').value = '';
+  modal.style.display = 'flex';
+  setTimeout(() => $('nota-inline-texto').focus(), 100);
+}
+
+function fecharModalNota() {
+  const modal = $('modal-nota-inline');
+  if (modal) modal.style.display = 'none';
+}
 
 // Exportar PDF (placeholder)
 $('btn-exportar-pdf').addEventListener('click', () => {

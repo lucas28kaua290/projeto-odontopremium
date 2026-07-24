@@ -1229,14 +1229,23 @@ def criar_paciente():
         if existente:
             return err("CPF já cadastrado.", 409, {"pacienteId": existente["id"]})
 
+    obs = data.get("observacoes", "").strip() if data.get("observacoes") else None
+
     insert(
         "INSERT INTO pacientes (id, nome, cpf, telefone, email, nascimento, endereco, status, observacoes) "
         "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
         (pac_id, data["nome"], cpf_val,
          data.get("telefone"), data.get("email"),
          data.get("nascimento"), data.get("endereco"),
-         data.get("status", "ativo"), data.get("observacoes"))
+         data.get("status", "ativo"), obs)
     )
+
+    # Se veio observação no cadastro, registra também como nota clínica
+    if obs:
+        insert(
+            "INSERT INTO paciente_notas (paciente_id, texto) VALUES (%s, %s)",
+            (pac_id, obs)
+        )
 
     paciente = query(
         "SELECT id, nome, cpf, telefone, email, nascimento, endereco, status, "
