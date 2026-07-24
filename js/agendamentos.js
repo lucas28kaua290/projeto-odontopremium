@@ -139,7 +139,7 @@ const DataStore = (() => {
 const AppState = (() => {
   let state = {
     radiologiaSelecionada: 'all',
-    periodo: 'hoje',
+    periodo: 'este_mes',
     customDateStart: null,
     customDateEnd: null,
     busca: '',
