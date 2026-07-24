@@ -92,14 +92,18 @@ const Api = (() => {
 
         if (!response.ok) {
             let detail = '';
+            let errBody = null;
             try {
-                const errBody = await response.json();
+                errBody = await response.json();
                 detail = errBody.message || errBody.error || '';
-            } catch (_) { /* ignora JSON inválido na resposta de erro */ }
+            } catch (_) { }
 
-            throw new Error(
+            const error = new Error(
                 `[IORD API] ${response.status} ${response.statusText} em "${path}"${detail ? ` — ${detail}` : ''}`
             );
+            error.status = response.status;
+            error.body = errBody;  // ← preserva o body completo
+            throw error;
         }
 
         return response.json();

@@ -2661,11 +2661,8 @@ const NewAppointmentModal = (() => {
             const novoPaciente = await Api.postPaciente({ nome, cpf, telefone, nascimento });
             pacienteId = novoPaciente?.data?.id ?? novoPaciente?.id;
           } catch (errPaciente) {
-            // CPF já cadastrado (409) — extrai o id do paciente existente
-            if (errPaciente.message.includes('409')) {
-              const busca = await Api.getPacientes({ busca: cpf, porPagina: 1 });
-              const encontrado = busca?.itens?.[0] ?? busca?.data?.itens?.[0] ?? null;
-              if (encontrado?.id) pacienteId = encontrado.id;
+            if (errPaciente.status === 409 && errPaciente.body?.errors?.pacienteId) {
+              pacienteId = errPaciente.body.errors.pacienteId;  // "P-0024"
             }
             if (!pacienteId) throw errPaciente;
           }
