@@ -31,7 +31,11 @@ function iniciais(nome) {
 
 function formatarData(dataStr) {
   if (!dataStr) return '—';
-  const [a, m, d] = dataStr.split('-');
+  // Remove a parte de hora se vier como datetime ISO (ex: "2026-07-23T21:43:11")
+  const somenteData = String(dataStr).split('T')[0];
+  const partes = somenteData.split('-');
+  if (partes.length < 3) return '—';
+  const [a, m, d] = partes;
   return `${d}/${m}/${a}`;
 }
 
@@ -323,8 +327,9 @@ async function abrirPerfil(id) {
   }
 
   // Unwrap do envelope { success, data } retornado pelo backend
+  // Cada variável já recebe o conteúdo final — sem segundo unwrap depois
   p            = _pRes.data     || _pRes;
-  kpis         = _kpisRes.data  || _kpisRes;
+  kpis         = _kpisRes.data  || _kpisRes;   // <- kpis JÁ É o objeto com totalExames, totalGasto etc.
   exames       = _examesRes.data     || _examesRes     || [];
   agendamentos = _agendRes.data      || _agendRes      || [];
   notas        = _notasRes.data      || _notasRes      || [];
@@ -345,19 +350,18 @@ async function abrirPerfil(id) {
   // Meta (CPF · Idade · Código)
   const idade = calcularIdade(p.nascimento);
   $('perfil-meta').innerHTML = `
-    <span>${p.cpf}</span>
+    <span>${p.cpf || '—'}</span>
     <span>${idade !== null ? idade + ' anos' : '—'}</span>
     <span>Cód. ${p.id}</span>
   `;
 
-  // KPIs — totalExames, totalGasto e unidadeMaisFrequente vêm do backend
-  // Unwrap defensivo: backend retorna { success, data: { totalExames, ... } }
-  const kpisData    = (kpis && kpis.data) ? kpis.data : (kpis || {});
-  const totalExames = kpisData.totalExames != null ? Number(kpisData.totalExames) : exames.length;
-  const totalGasto  = kpisData.totalGasto  != null ? Number(kpisData.totalGasto)  : exames.filter(e => e.status === 'realizado').reduce((s, e) => s + (Number(e.valor) || 0), 0);
-  const unidadeFreq = kpisData.unidadeMaisFrequente || unidadeMaisFrequente(exames) || '—';
-  const visitasFreq = kpisData.visitasUnidadeFreq != null
-    ? Number(kpisData.visitasUnidadeFreq)
+  // KPIs — kpis já foi unwrappado acima, usar direto sem .data novamente
+  const totalExames = kpis.totalExames != null ? Number(kpis.totalExames) : exames.length;
+  const totalGasto  = kpis.totalGasto  != null ? Number(kpis.totalGasto)
+    : exames.filter(e => e.status === 'realizado').reduce((s, e) => s + (Number(e.valor) || 0), 0);
+  const unidadeFreq = kpis.unidadeMaisFrequente || unidadeMaisFrequente(exames) || '—';
+  const visitasFreq = kpis.visitasUnidadeFreq != null
+    ? Number(kpis.visitasUnidadeFreq)
     : exames.filter(e => (e.radiologia || e.unidade) === unidadeFreq).length;
 
   $('kpi-visitas').textContent = totalExames;
