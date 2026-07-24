@@ -2679,6 +2679,7 @@ const NewAppointmentModal = (() => {
       const appt = buildNewAppointment();
 
       if (editingAppointment) {
+        console.log('[DEBUG] payload PUT:', JSON.stringify(appt));
         await Api.updateAgendamento(editingAppointment.id, appt);
         showToast(`Agendamento de ${appt.paciente} atualizado com sucesso!`);
       } else {
