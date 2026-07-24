@@ -895,7 +895,12 @@ def medicos_spotlight():
 
     sql = """
         SELECT m.id AS medicoId, m.nome AS medicoNome,
-               c.nome AS clinicaNome, r.nome AS radiologiaNome,
+               c.nome AS clinicaNome,
+               (SELECT r2.nome FROM radiologias r2
+                JOIN agendamentos a2 ON a2.radiologia_id = r2.id
+                WHERE a2.medico_id = m.id AND a2.status='realizado'
+                ORDER BY a2.data_agendamento DESC LIMIT 1
+               ) AS radiologiaNome,
                COUNT(a.id) AS totalExames,
                COALESCE(SUM(te.valor_base), 0) AS faturamento
         FROM medicos m
@@ -904,7 +909,6 @@ def medicos_spotlight():
                AND a.status='realizado'
                AND a.data_agendamento BETWEEN %s AND %s
         LEFT JOIN tipos_exame te ON te.id = a.tipo_exame_id
-        LEFT JOIN radiologias r ON r.id = a.radiologia_id
         WHERE 1=1
     """
     params = [di, df]
@@ -916,7 +920,7 @@ def medicos_spotlight():
         sql += " AND m.clinica_id = %s"
         params.append(clinica_id)
 
-    sql += " GROUP BY m.id, m.nome, c.nome, r.nome ORDER BY totalExames DESC LIMIT %s"
+    sql += " GROUP BY m.id, m.nome, c.nome ORDER BY totalExames DESC LIMIT %s"
     params.append(limite)
 
     medicos_top = query(sql, params)
