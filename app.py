@@ -1209,7 +1209,7 @@ def detalhe_paciente(paciente_id):
     return ok(row)
 
 
-@app.route("/v1/pacientes/<paciente_id>", methods=["PUT"])
+@app.route("/v1/pacientes/<paciente_id>", methods=["PUT", "PATCH"])
 @require_auth
 def atualizar_paciente(paciente_id):
     data = request.get_json(silent=True) or {}

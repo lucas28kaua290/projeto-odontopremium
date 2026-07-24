@@ -2679,7 +2679,16 @@ const NewAppointmentModal = (() => {
       const appt = buildNewAppointment();
 
       if (editingAppointment) {
-        console.log('[DEBUG] payload PUT:', JSON.stringify(appt));
+        // Atualiza dados pessoais na tabela pacientes
+        if (appt.pacienteId) {
+          await Api.updatePaciente(appt.pacienteId, {
+            nome: appt.paciente,
+            cpf: appt.pacienteCpf,
+            telefone: appt.pacienteTelefone,
+            nascimento: appt.pacienteNascimento,
+          });
+        }
+        // Atualiza dados do agendamento
         await Api.updateAgendamento(editingAppointment.id, appt);
         showToast(`Agendamento de ${appt.paciente} atualizado com sucesso!`);
       } else {
