@@ -2662,7 +2662,9 @@ const NewAppointmentModal = (() => {
         // Não encontrou — cria novo
         if (!pacienteId) {
           try {
-            const novoPaciente = await Api.postPaciente({ nome, cpf, telefone, nascimento });
+            const payload = { nome, cpf, telefone, nascimento };
+            console.log('[DEBUG] postPaciente payload:', JSON.stringify(payload));  // ← adiciona
+            const novoPaciente = await Api.postPaciente(payload);
             pacienteId = novoPaciente?.data?.id ?? novoPaciente?.id;
           } catch (errPaciente) {
             if (errPaciente.status === 409 && errPaciente.body?.errors?.pacienteId) {
