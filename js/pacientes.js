@@ -897,7 +897,7 @@ async function exportarPerfilPDF(p) {
     .pdf-header-meta { text-align:right; font-size:10px; color:#8B9C9F; line-height:1.8; }
 
     /* ── Hero ── */
-    .pdf-hero { display:flex; align-items:center; gap:14px; background:linear-gradient(135deg,#EAF6F6 0%,#f0fafa 100%); border:1px solid #D2ECEC; border-radius:10px; padding:16px 20px; }
+    .pdf-hero { display:flex; align-items:center; gap:14px; background:linear-gradient(135deg,#EAF6F6 0%,#f0fafa 100%); border:1px solid #D2ECEC; border-radius:10px; padding:10px 16px; }
     .pdf-avatar { width:52px; height:52px; border-radius:50%; flex-shrink:0; background:linear-gradient(135deg,#046B85 0%,#018093 52%,#01A9A0 100%); color:#fff; font-size:17px; font-weight:700; display:flex; align-items:center; justify-content:center; }
     .pdf-hero-name { font-size:15px; font-weight:700; color:#273237; }
     .pdf-hero-meta { font-size:10px; color:#5C6E72; margin-top:4px; line-height:1.6; }
@@ -905,7 +905,7 @@ async function exportarPerfilPDF(p) {
 
     /* ── KPIs ── */
     .pdf-kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
-    .pdf-kpi { border:1px solid #E7ECED; border-radius:8px; padding:12px 14px; background:#FDFFFE; }
+    .pdf-kpi { border:1px solid #E7ECED; border-radius:8px; padding:8px 12px; background:#FDFFFE; }
     .pdf-kpi__label { font-size:9px; color:#8B9C9F; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:5px; }
     .pdf-kpi__value { font-size:15px; font-weight:700; color:#273237; line-height:1.2; }
     .pdf-kpi__sub   { font-size:9px; color:#8B9C9F; margin-top:3px; }
@@ -949,13 +949,14 @@ async function exportarPerfilPDF(p) {
   `;
 
   // ─── Helper: cria um wrapper isolado com os estilos ───────────────────────
-  function criarWrapper(conteudo, padding = '40px 44px') {
+  function criarWrapper(conteudo, padding = '12px 44px') {
     const wrap = document.createElement('div');
     wrap.style.cssText = `
-      position:fixed; left:-9999px; top:0;
-      width:794px; background:#fff;
-      padding:${padding};
-    `;
+  position:fixed; left:-9999px; top:0;
+  width:794px; background:#fff;
+  padding:${padding};
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+`;
     wrap.innerHTML = `<style>${CSS}</style>${conteudo}`;
     document.body.appendChild(wrap);
     return wrap;
@@ -1071,7 +1072,7 @@ async function exportarPerfilPDF(p) {
     const PAGE_W = pdf.internal.pageSize.getWidth();   // ~595 pt
     const PAGE_H = pdf.internal.pageSize.getHeight();  // ~842 pt
     const MARGIN = 28;   // margem lateral em pt
-    const GAP = 16;   // espaço entre seções em pt
+    const GAP = 8;   // espaço entre seções em pt
     const CONTENT_W = PAGE_W - MARGIN * 2;
 
     // Rodapé de página
