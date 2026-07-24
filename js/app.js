@@ -980,7 +980,7 @@ const ExamAnalysis = (() => {
           <span class="doctor-spotlight-card__main-exam">
             Principal exame:
             <strong>${principal.tipo}</strong>
-            • ${formatNumber(principal.exames)} exames
+            • ${formatNumber(doc.totalExames)} exames no total
           </span>
 
         </div>
