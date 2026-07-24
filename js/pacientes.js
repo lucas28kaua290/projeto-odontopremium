@@ -67,7 +67,11 @@ function formatarValor(valor) {
 function unidadeMaisFrequente(exames) {
   if (!exames.length) return '—';
   const contagem = {};
-  exames.forEach(e => { contagem[e.unidade] = (contagem[e.unidade] || 0) + 1; });
+  // Backend retorna campo como 'radiologia'; fallback para 'unidade' (mock legado)
+  exames.forEach(e => {
+    const key = e.radiologia || e.unidade || '—';
+    contagem[key] = (contagem[key] || 0) + 1;
+  });
   return Object.entries(contagem).sort((a, b) => b[1] - a[1])[0][0];
 }
 
@@ -190,6 +194,9 @@ function renderTabela() {
   pagina.forEach(p => {
     const ultimo = ultimoExame(p.exames);
     const unidade = unidadeMaisFrequente(p.exames);
+    // Backend normaliza cpf/telefone como null quando vazio
+    const cpfDisplay = p.cpf || '—';
+    const telDisplay = p.telefone || '—';
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>
@@ -201,10 +208,10 @@ function renderTabela() {
           </div>
         </div>
       </td>
-      <td>${p.cpf}</td>
-      <td>${p.telefone}</td>
+      <td>${cpfDisplay}</td>
+      <td>${telDisplay}</td>
       <td>
-        ${ultimo ? `<span>${formatarData(ultimo.data)}</span><span class="data-table__exam-type">${ultimo.tipo}</span>` : '<span>—</span>'}
+        ${ultimo ? `<span>${formatarData(ultimo.data)}</span><span class="data-table__exam-type">${ultimo.tipoExame || ultimo.tipo || ''}</span>` : '<span>—</span>'}
       </td>
       <td class="data-table__num">${p.exames.length}</td>
       <td>${unidade}</td>
@@ -291,8 +298,9 @@ async function abrirPerfil(id) {
 
   let p, kpis, exames, agendamentos, notas;
 
+  let _pRes, _kpisRes, _examesRes, _agendRes, _notasRes;
   try {
-    [p, kpis, exames, agendamentos, notas] = await Promise.all([
+    [_pRes, _kpisRes, _examesRes, _agendRes, _notasRes] = await Promise.all([
       Api.getPaciente(id),
       Api.getPacienteKPIs(id),
       Api.getPacienteExames(id),
@@ -311,7 +319,14 @@ async function abrirPerfil(id) {
     viewPerfil.removeAttribute('aria-busy');
   }
 
-  // Monta objeto local para as funções de render (estrutura idêntica ao mock)
+  // Unwrap do envelope { success, data } retornado pelo backend
+  p            = _pRes.data     || _pRes;
+  kpis         = _kpisRes.data  || _kpisRes;
+  exames       = _examesRes.data     || _examesRes     || [];
+  agendamentos = _agendRes.data      || _agendRes      || [];
+  notas        = _notasRes.data      || _notasRes      || [];
+
+  // Monta objeto local para as funções de render
   state.pacienteAtivo = { ...p, exames, agendamentos, notas };
   state.historicoAba = 'exames';
 
@@ -332,17 +347,20 @@ async function abrirPerfil(id) {
     <span>Cód. ${p.id}</span>
   `;
 
-  // KPIs — usa dados vindos de getPacienteKPIs quando disponíveis,
-  // com fallback calculado localmente a partir dos exames
-  $('kpi-visitas').textContent = kpis.totalExames ?? exames.length;
-  $('kpi-total-gasto').textContent = formatarValor(kpis.totalGasto ?? exames.reduce((s, e) => s + e.valor, 0));
+  // KPIs — dados de getPacienteKPIs (totalExames, totalGasto vêm do backend)
+  // unidadeFrequente calculada localmente (backend não retorna esse campo)
+  const kpisData = kpis.data || kpis; // unwrap envelope { success, data }
+  const totalExames = kpisData.totalExames ?? exames.length;
+  const totalGasto  = kpisData.totalGasto  ?? exames.reduce((s, e) => s + (e.valor || 0), 0);
+  const unidadeFreq = unidadeMaisFrequente(exames); // calculado localmente
+  const visitasFreq = exames.filter(e => (e.radiologia || e.unidade) === unidadeFreq).length;
+
+  $('kpi-visitas').textContent = totalExames;
+  $('kpi-total-gasto').textContent = formatarValor(Number(totalGasto));
   $('kpi-paciente-desde').textContent = formatarData(p.cadastro);
   $('kpi-tempo-relativo').textContent = tempoRelativo(p.cadastro);
-  $('kpi-radiologia-frequente').textContent = kpis.unidadeFrequente ?? unidadeMaisFrequente(exames);
-  $('kpi-radiologia-visitas').textContent = (() => {
-    const n = kpis.visitasUnidadeFrequente ?? exames.filter(e => e.unidade === (kpis.unidadeFrequente ?? unidadeMaisFrequente(exames))).length;
-    return `${n} visita${n !== 1 ? 's' : ''}`;
-  })();
+  $('kpi-radiologia-frequente').textContent = unidadeFreq;
+  $('kpi-radiologia-visitas').textContent = `${visitasFreq} visita${visitasFreq !== 1 ? 's' : ''}`;
 
   // Contato Rápido
   const contatoEl = $('perfil-contato-rapido');
@@ -405,7 +423,7 @@ function renderNotas(p) {
   lista.innerHTML = p.notas.map(n => `
     <li class="note-item">
       <span class="note-item__text">${n.texto}</span>
-      <span class="note-item__meta">${formatarData(n.data)}</span>
+      <span class="note-item__meta">${formatarData((n.data || n.criado_em || '').substring(0, 10))}</span>
     </li>
   `).join('');
 }
@@ -425,11 +443,11 @@ function renderTimeline(exames) {
       </div>
       <div class="timeline-item__content">
         <div class="timeline-item__top">
-          <span class="timeline-item__exam">${e.tipo}</span>
+          <span class="timeline-item__exam">${e.tipoExame || e.tipo || '—'}</span>
           <span class="timeline-item__date">${formatarData(e.data)}</span>
         </div>
-        <span class="timeline-item__unit">${e.unidade}</span>
-        <span class="timeline-item__value">${formatarValor(e.valor)}</span>
+        <span class="timeline-item__unit">${e.radiologia || e.unidade || '—'}</span>
+        <span class="timeline-item__value">${formatarValor(Number(e.valor) || 0)}</span>
       </div>
     </li>
   `).join('');
@@ -445,9 +463,9 @@ function renderTabelaAgendamentos(agendamentos) {
   tbody.innerHTML = ordenados.map(a => `
     <tr>
       <td>${formatarData(a.data)}</td>
-      <td>${a.hora}</td>
-      <td>${a.unidade}</td>
-      <td>${a.tipo}</td>
+      <td>${a.hora || '—'}</td>
+      <td>${a.radiologia || a.unidade || '—'}</td>
+      <td>${a.tipoExame || a.tipo || '—'}</td>
       <td><span class="status-tag ${statusTagClass(a.status)}">${statusLabel(a.status)}</span></td>
     </tr>
   `).join('');
@@ -481,7 +499,8 @@ async function abrirModal(id = null) {
     let p = state.pacientes.find(x => x.id === id);
     if (!p) {
       try {
-        p = await Api.getPaciente(id);
+        const res = await Api.getPaciente(id);
+        p = res.data || res; // unwrap envelope
       } catch (err) {
         mostrarToast('Erro ao carregar dados do paciente.');
         console.error(err);
@@ -527,17 +546,33 @@ async function salvarPaciente(e) {
 
   try {
     if (state.editandoId) {
-      const atualizado = await Api.updatePaciente(state.editandoId, dados);
-      // Atualiza cache local
+      const res = await Api.updatePaciente(state.editandoId, dados);
+      const atualizado = res.data || res; // unwrap envelope
+      // Atualiza cache local preservando exames/agendamentos/notas já carregados
       const idx = state.pacientes.findIndex(x => x.id === state.editandoId);
-      if (idx !== -1) state.pacientes[idx] = { ...state.pacientes[idx], ...atualizado };
+      if (idx !== -1) {
+        state.pacientes[idx] = {
+          ...state.pacientes[idx],
+          ...atualizado,
+          exames:       state.pacientes[idx].exames || [],
+          agendamentos: state.pacientes[idx].agendamentos || [],
+          notas:        state.pacientes[idx].notas || [],
+        };
+      }
       if (state.pacienteAtivo?.id === state.editandoId) {
         await abrirPerfil(state.editandoId);
       }
       mostrarToast('Paciente atualizado com sucesso.');
     } else {
-      const novoPaciente = await Api.postPaciente(dados);
-      state.pacientes.unshift(novoPaciente);
+      const res = await Api.postPaciente(dados);
+      const novoPaciente = res.data || res; // unwrap envelope
+      // Adiciona ao topo do cache com arrays vazios (sem criar agendamentos!)
+      state.pacientes.unshift({
+        ...novoPaciente,
+        exames:       [],
+        agendamentos: [],
+        notas:        [],
+      });
       mostrarToast('Paciente cadastrado com sucesso.');
     }
   } catch (err) {
@@ -689,7 +724,8 @@ $('btn-add-nota').addEventListener('click', async () => {
   if (!texto?.trim()) return;
 
   try {
-    const novaNota = await Api.postPacienteNota(state.pacienteAtivo.id, { texto: texto.trim() });
+    const res = await Api.postPacienteNota(state.pacienteAtivo.id, texto.trim());
+    const novaNota = res.data || res; // unwrap envelope
     state.pacienteAtivo.notas.unshift(novaNota);
     renderNotas(state.pacienteAtivo);
     mostrarToast('Nota adicionada.');
@@ -725,7 +761,16 @@ async function init() {
     </tr>`;
 
   try {
-    state.pacientes = await Api.getPacientes();
+    const res = await Api.getPacientes({ limite: 500 });
+    state.pacientes = res.data || [];
+    state.pacientes = state.pacientes.map(p => ({
+      ...p,
+      cpf:         p.cpf || '',
+      telefone:    p.telefone || '',
+      exames:      [],  
+      agendamentos: [], 
+      notas:       [], 
+    }));
   } catch (err) {
     mostrarToast('Erro ao carregar pacientes.');
     console.error(err);
