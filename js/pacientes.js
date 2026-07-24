@@ -440,7 +440,7 @@ function renderNotas(p) {
 function renderTimeline(exames) {
   const lista = $('timeline-exames');
   if (!exames.length) {
-    lista.innerHTML = '<li style="padding:var(--space-5);color:var(--color-text-subtle);font-size:var(--fs-sm);">Nenhum exame registrado.</li>';
+    lista.innerHTML = '<li style="padding:var(--space-5);color:var(--color-text-subtle);font-size:var(--fs-sm);">Nenhum exame realizado ainda.</li>';
     return;
   }
   const ordenados = [...exames].sort((a, b) => new Date(b.data) - new Date(a.data));
@@ -456,7 +456,10 @@ function renderTimeline(exames) {
           <span class="timeline-item__date">${formatarData(e.data)}</span>
         </div>
         <span class="timeline-item__unit">${e.radiologia || e.unidade || '—'}</span>
-        <span class="timeline-item__value">${formatarValor(Number(e.valor) || 0)}</span>
+        <div class="timeline-item__bottom">
+          <span class="timeline-item__value">${formatarValor(Number(e.valor) || 0)}</span>
+          <span class="status-tag ${statusTagClass(e.status)}">${statusLabel(e.status)}</span>
+        </div>
       </div>
     </li>
   `).join('');

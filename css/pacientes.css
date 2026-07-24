@@ -653,6 +653,13 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
   transform: scale(1.05);
 }
 
+.timeline-item__bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-1);
+}
+
 .data-table__name-primary {
   font-weight: var(--fw-semibold);
   color: var(--color-text);

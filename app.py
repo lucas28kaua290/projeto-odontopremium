@@ -1363,7 +1363,7 @@ def paciente_exames(paciente_id):
         "JOIN radiologias r ON r.id = a.radiologia_id "
         "LEFT JOIN clinicas c ON c.id = a.clinica_id "
         "LEFT JOIN medicos m ON m.id = a.medico_id "
-        "WHERE a.paciente_id = %s AND a.status != 'cancelado'"
+        "WHERE a.paciente_id = %s AND a.status = 'realizado'"
     )
     params = [paciente_id]
 
