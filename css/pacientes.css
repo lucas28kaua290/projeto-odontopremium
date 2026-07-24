@@ -548,7 +548,6 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
   width: 100%; 
   min-width: 820px; 
   font-size: var(--fs-sm);
-  table-layout: fixed;
 }
 .data-table thead th {
   text-align: left;
@@ -614,33 +613,7 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 .data-table td.data-table__num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .data-table td.data-table__action { text-align: center; cursor: default; }
 
-.data-table td.data-table__num,
-.data-table td.data-table__action {
-  width: inherit;
-}
 
-/* Larguras fixas das colunas da tabela de pacientes
-   (funciona junto com table-layout: fixed para garantir alinhamento perfeito) */
-#tabela-pacientes th:nth-child(1),
-#tabela-pacientes td:nth-child(1) { width: 26%; }   /* Paciente (avatar + nome) */
-
-#tabela-pacientes th:nth-child(2),
-#tabela-pacientes td:nth-child(2) { width: 13%; }   /* CPF */
-
-#tabela-pacientes th:nth-child(3),
-#tabela-pacientes td:nth-child(3) { width: 13%; }   /* Telefone */
-
-#tabela-pacientes th:nth-child(4),
-#tabela-pacientes td:nth-child(4) { width: 17%; }   /* Último exame */
-
-#tabela-pacientes th:nth-child(5),
-#tabela-pacientes td:nth-child(5) { width: 10%; text-align: right; }  /* Total */
-
-#tabela-pacientes th:nth-child(6),
-#tabela-pacientes td:nth-child(6) { width: 14%; }   /* Radiologia */
-
-#tabela-pacientes th:nth-child(7),
-#tabela-pacientes td:nth-child(7) { width: 7%; text-align: center; }  /* Ações */
 
 .data-table__name-cell { display: flex; align-items: center; gap: var(--space-3); }
 
