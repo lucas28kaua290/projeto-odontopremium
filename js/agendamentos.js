@@ -2598,24 +2598,23 @@ const NewAppointmentModal = (() => {
       || calcFim(horarioInicio, DURACAO_POR_EXAME[tipoExame] || 30);
 
     return {
-      id: editingAppointment ? editingAppointment.id : `${radId}_${data}_new_${Date.now()}`,
+      pacienteId: document.getElementById('newPacienteId') ? document.getElementById('newPacienteId').value : null,  // ← campo correto
       radiologiaId: radId,
       radiologiaNome: DataStore.nomeRadiologiaPorId(radId),
       data,
       horarioInicio,
       horarioFim,
       duracaoMin: DURACAO_POR_EXAME[tipoExame] || 30,
-      paciente: document.getElementById('newPaciente').value.trim(),
+      paciente: document.getElementById('newPaciente').value.trim(),  // nome só pra exibição
       pacienteCpf: document.getElementById('newCpf').value.trim(),
       pacienteTelefone: document.getElementById('newTelefone').value.trim(),
       pacienteNascimento: (() => {
         const v = document.getElementById('newNascimento').value.trim();
         if (!v || v.length < 10) return null;
         const [d, m, a] = v.split('/');
-        return (a && m && d) ? `${a}-${m}-${d}` : null;  // converte DD/MM/AAAA → AAAA-MM-DD para o backend
+        return (a && m && d) ? `${a}-${m}-${d}` : null;
       })(),
-      tipoExameId: tipoExame,   // ← campo que o backend consome direto (linha 1160)
-      tipoExame, // ← mantém como fallback (mas agora não vai ser usado)
+      tipoExameId: tipoExame,
       valor: VALOR_POR_EXAME[tipoExame] || 0,
       medicoId: document.getElementById('newMedico').value.trim() || null,
       medico: document.getElementById('newMedico').options[document.getElementById('newMedico').selectedIndex]?.text || '',
@@ -2697,7 +2696,7 @@ const NewAppointmentModal = (() => {
 
   function openEdit(ag) {
     editingAppointment = ag;
-    
+
     _populateRadiologiaSelect();
     _populateTipoExameSelect();
     fillFormForEdit(ag);
