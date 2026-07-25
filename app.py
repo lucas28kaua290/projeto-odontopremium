@@ -2080,53 +2080,72 @@ def financeiro_snapshot():
     data_fim      = request.args.get("dataFim")
     di, df, pi, pf = periodo_para_datas(periodo, data_inicio, data_fim)
 
-    rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id)
+    rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
 
     def _fat(d1, d2):
         r = query(
-            f"SELECT COALESCE(SUM(e.valor),0) AS t, COUNT(*) AS c "
-            f"FROM exames e WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql}",
-            [d1, d2] + rad_params, fetch="one"
+            f"SELECT COALESCE(SUM(te.valor_base),0) AS t, COUNT(a.id) AS c "
+            f"FROM agendamentos a "
+            f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+            f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a}",
+            [d1, d2] + rad_params_a, fetch="one"
         )
         return r or {"t": 0, "c": 0}
 
     fat_atual    = _fat(di, df)
     fat_anterior = _fat(pi, pf)
 
-    fat = to_decimal(fat_atual.get("t", 0))
+    fat     = to_decimal(fat_atual.get("t", 0))
     fat_ant = to_decimal(fat_anterior.get("t", 0))
-    exm = fat_atual.get("c", 0)
+    exm     = fat_atual.get("c", 0)
     exm_ant = fat_anterior.get("c", 0)
 
-    ticket = fat / max(1, exm)
+    ticket   = fat / max(1, exm)
     previsao = ticket * exm * 1.05
 
-    top_cli = query(
-        f"SELECT c.nome, COALESCE(SUM(e.valor),0) AS faturamento, "
-        f"       ROUND(COALESCE(SUM(e.valor),0) / %s * 100, 1) AS participacao "
-        f"FROM clinicas c JOIN exames e ON e.clinica_id = c.id "
-        f"WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql} "
+    # top_cli: usa agendamentos + tipos_exame.valor_base como proxy de faturamento
+    top_cli_rows = query(
+        f"SELECT c.nome, COALESCE(SUM(te.valor_base),0) AS faturamento "
+        f"FROM clinicas c "
+        f"JOIN agendamentos a ON a.clinica_id = c.id "
+        f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+        f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a} "
         f"GROUP BY c.id, c.nome ORDER BY faturamento DESC LIMIT 5",
-        [max(fat, 1), di, df] + rad_params
+        [di, df] + rad_params_a
     )
+    fat_total_cli = sum(to_decimal(r.get("faturamento", 0)) for r in top_cli_rows) or 1
+    top_cli = []
+    for r in top_cli_rows:
+        f_val = to_decimal(r.get("faturamento", 0))
+        top_cli.append({
+            "nome":         r["nome"],
+            "faturamento":  f_val,
+            "participacao": round(f_val / fat_total_cli * 100, 1),
+        })
 
     top_med = query(
-        f"SELECT m.nome, c.nome AS clinica, COUNT(e.id) AS exames, COALESCE(SUM(e.valor),0) AS faturamento "
-        f"FROM medicos m JOIN clinicas c ON c.id = m.clinica_id "
-        f"JOIN exames e ON e.medico_id = m.id "
-        f"WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql} "
+        f"SELECT m.nome, c.nome AS clinica, COUNT(a.id) AS exames, "
+        f"       COALESCE(SUM(te.valor_base),0) AS faturamento "
+        f"FROM medicos m "
+        f"JOIN clinicas c ON c.id = m.clinica_id "
+        f"JOIN agendamentos a ON a.medico_id = m.id "
+        f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+        f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a} "
         f"GROUP BY m.id, m.nome, c.nome ORDER BY faturamento DESC LIMIT 5",
-        [di, df] + rad_params
+        [di, df] + rad_params_a
     )
 
-    insights = []
     var = variacao_percentual(fat, fat_ant)
+    insights = []
     if var > 10:
         insights.append({"type": "positive", "text": f"Faturamento cresceu {var:.1f}% em relação ao período anterior."})
     elif var < -10:
         insights.append({"type": "warning", "text": f"Faturamento caiu {abs(var):.1f}% em relação ao período anterior."})
     else:
         insights.append({"type": "info", "text": f"Faturamento estável com variação de {var:.1f}%."})
+
+    if exm > 0:
+        insights.append({"type": "info", "text": f"{exm} exames realizados no período."})
 
     return ok({
         "kpis": {
@@ -2180,38 +2199,40 @@ def financeiro_evolucao():
     di_ano = di.replace(year=di.year - 1)
     df_ano = df.replace(year=df.year - 1)
 
-    rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id)
+    rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
 
     rows = query(
-        f"SELECT DATE_FORMAT(e.data_exame,'%%b/%%y') AS label, "
-        f"       COALESCE(SUM(e.valor),0) AS fat, COUNT(*) AS exm "
-        f"FROM exames e "
-        f"WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql} "
-        f"GROUP BY YEAR(e.data_exame), MONTH(e.data_exame) "
-        f"ORDER BY YEAR(e.data_exame), MONTH(e.data_exame)",
-        [di, df] + rad_params
+        f"SELECT DATE_FORMAT(a.data_agendamento,'%%b/%%y') AS label, "
+        f"       COALESCE(SUM(te.valor_base),0) AS fat, COUNT(a.id) AS exm "
+        f"FROM agendamentos a "
+        f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+        f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a} "
+        f"GROUP BY YEAR(a.data_agendamento), MONTH(a.data_agendamento) "
+        f"ORDER BY YEAR(a.data_agendamento), MONTH(a.data_agendamento)",
+        [di, df] + rad_params_a
     )
 
     rows_ano = query(
-        f"SELECT DATE_FORMAT(e.data_exame,'%%b/%%y') AS label, "
-        f"       COALESCE(SUM(e.valor),0) AS fat "
-        f"FROM exames e "
-        f"WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql} "
-        f"GROUP BY YEAR(e.data_exame), MONTH(e.data_exame) "
-        f"ORDER BY YEAR(e.data_exame), MONTH(e.data_exame)",
-        [di_ano, df_ano] + rad_params
+        f"SELECT DATE_FORMAT(a.data_agendamento,'%%b/%%y') AS label, "
+        f"       COALESCE(SUM(te.valor_base),0) AS fat "
+        f"FROM agendamentos a "
+        f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+        f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a} "
+        f"GROUP BY YEAR(a.data_agendamento), MONTH(a.data_agendamento) "
+        f"ORDER BY YEAR(a.data_agendamento), MONTH(a.data_agendamento)",
+        [di_ano, df_ano] + rad_params_a
     )
 
-    labels     = [r["label"] for r in rows]
-    fat_vals   = [to_decimal(r.get("fat", 0)) for r in rows]
-    exm_vals   = [r.get("exm", 0) for r in rows]
-    ano_dict   = {r["label"]: to_decimal(r.get("fat", 0)) for r in rows_ano}
-    fat_ano    = [ano_dict.get(l, 0) for l in labels]
+    labels   = [r["label"] for r in rows]
+    fat_vals = [to_decimal(r.get("fat", 0)) for r in rows]
+    exm_vals = [r.get("exm", 0) for r in rows]
+    ano_dict = {r["label"]: to_decimal(r.get("fat", 0)) for r in rows_ano}
+    fat_ano  = [ano_dict.get(l, 0) for l in labels]
 
     return ok({
-        "labels":       labels,
-        "faturamento":  fat_vals,
-        "exames":       exm_vals,
+        "labels":                 labels,
+        "faturamento":            fat_vals,
+        "exames":                 exm_vals,
         "faturamentoAnoAnterior": fat_ano,
     })
 
@@ -2288,21 +2309,30 @@ def financeiro_comparativo():
 @app.route("/v1/financeiro/por-radiologia", methods=["GET"])
 @require_auth
 def financeiro_por_radiologia():
+    radiologia_id = request.args.get("radiologiaId", "all")
     periodo       = request.args.get("periodo", "mes_atual")
     data_inicio   = request.args.get("dataInicio")
     data_fim      = request.args.get("dataFim")
     di, df, pi, pf = periodo_para_datas(periodo, data_inicio, data_fim)
+
+    # Filtro WHERE opcional por radiologia específica
+    rad_filter = ""
+    rad_filter_params = []
+    if radiologia_id != "all":
+        rad_filter = "AND r.id = %s"
+        rad_filter_params = [radiologia_id]
 
     rows = query(
         "SELECT r.id AS radiologiaId, r.nome AS radiologiaNome, "
         "       COALESCE(SUM(CASE WHEN a.data_agendamento BETWEEN %s AND %s THEN te.valor_base ELSE 0 END),0) AS faturamentoAtual, "
         "       COALESCE(SUM(CASE WHEN a.data_agendamento BETWEEN %s AND %s THEN te.valor_base ELSE 0 END),0) AS faturamentoAnterior, "
         "       COUNT(CASE WHEN a.data_agendamento BETWEEN %s AND %s THEN 1 END) AS examesAtual "
-        "FROM radiologias r "
-        "LEFT JOIN agendamentos a ON a.radiologia_id = r.id AND a.status='realizado' "
-        "LEFT JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+        f"FROM radiologias r "
+        f"LEFT JOIN agendamentos a ON a.radiologia_id = r.id AND a.status='realizado' "
+        f"LEFT JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+        f"WHERE 1=1 {rad_filter} "
         "GROUP BY r.id, r.nome ORDER BY faturamentoAtual DESC",
-        (di, df, pi, pf, di, df)
+        [di, df, pi, pf, di, df] + rad_filter_params
     )
 
     for r in rows:
@@ -2323,25 +2353,29 @@ def financeiro_top_clinicas():
     limite        = int(request.args.get("limite", 10))
     di, df, _, _  = periodo_para_datas(periodo, data_inicio, data_fim)
 
-    rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id)
+    rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
 
     total_r = query(
-        f"SELECT COALESCE(SUM(e.valor),0) AS total "
-        f"FROM exames e WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql}",
-        [di, df] + rad_params, fetch="one"
+        f"SELECT COALESCE(SUM(te.valor_base),0) AS total "
+        f"FROM agendamentos a "
+        f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+        f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a}",
+        [di, df] + rad_params_a, fetch="one"
     )
     total = to_decimal(total_r.get("total", 0)) if total_r else 1
 
     rows = query(
-        f"SELECT c.nome, COALESCE(SUM(e.valor),0) AS faturamento "
-        f"FROM clinicas c JOIN exames e ON e.clinica_id = c.id "
-        f"WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql} "
+        f"SELECT c.nome, COALESCE(SUM(te.valor_base),0) AS faturamento "
+        f"FROM clinicas c "
+        f"JOIN agendamentos a ON a.clinica_id = c.id "
+        f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+        f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a} "
         f"GROUP BY c.id, c.nome ORDER BY faturamento DESC LIMIT %s",
-        [di, df] + rad_params + [limite]
+        [di, df] + rad_params_a + [limite]
     )
     for r in rows:
         fat = to_decimal(r.get("faturamento", 0))
-        r["participacao"] = round(fat / total * 100, 1) if total else 0
+        r["participacao"] = round(fat / max(total, 1) * 100, 1)
     return ok(rows)
 
 
@@ -2355,16 +2389,18 @@ def financeiro_top_medicos():
     limite        = int(request.args.get("limite", 15))
     di, df, _, _  = periodo_para_datas(periodo, data_inicio, data_fim)
 
-    rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id)
+    rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
 
     rows = query(
-        f"SELECT m.nome, c.nome AS clinica, COUNT(e.id) AS exames, "
-        f"       COALESCE(SUM(e.valor),0) AS faturamento "
-        f"FROM medicos m JOIN clinicas c ON c.id = m.clinica_id "
-        f"JOIN exames e ON e.medico_id = m.id "
-        f"WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql} "
+        f"SELECT m.nome, c.nome AS clinica, COUNT(a.id) AS exames, "
+        f"       COALESCE(SUM(te.valor_base),0) AS faturamento "
+        f"FROM medicos m "
+        f"JOIN clinicas c ON c.id = m.clinica_id "
+        f"JOIN agendamentos a ON a.medico_id = m.id "
+        f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+        f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a} "
         f"GROUP BY m.id, m.nome, c.nome ORDER BY faturamento DESC LIMIT %s",
-        [di, df] + rad_params + [limite]
+        [di, df] + rad_params_a + [limite]
     )
     return ok(rows)
 
@@ -2378,21 +2414,23 @@ def financeiro_tipos_exame():
     data_fim      = request.args.get("dataFim")
     di, df, _, _  = periodo_para_datas(periodo, data_inicio, data_fim)
 
-    rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id)
+    rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
 
     total_r = query(
-        f"SELECT COUNT(*) AS t FROM exames e "
-        f"WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql}",
-        [di, df] + rad_params, fetch="one"
+        f"SELECT COUNT(a.id) AS t "
+        f"FROM agendamentos a "
+        f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a}",
+        [di, df] + rad_params_a, fetch="one"
     )
     total = total_r.get("t", 0) if total_r else 1
 
     rows = query(
-        f"SELECT te.label AS tipo, COUNT(*) AS quantidade "
-        f"FROM exames e JOIN tipos_exame te ON te.id = e.tipo_exame_id "
-        f"WHERE e.status='realizado' AND e.data_exame BETWEEN %s AND %s {rad_sql} "
+        f"SELECT te.label AS tipo, COUNT(a.id) AS quantidade "
+        f"FROM agendamentos a "
+        f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+        f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a} "
         f"GROUP BY te.label ORDER BY quantidade DESC",
-        [di, df] + rad_params
+        [di, df] + rad_params_a
     )
     for r in rows:
         r["participacao"] = round(r.get("quantidade", 0) / max(total, 1) * 100, 1)

@@ -90,6 +90,7 @@
     activeTab: 'visao-geral',
     customStart: null,
     customEnd: null,
+    viewMode: 'faturamento',   // ← ADICIONADO: 'faturamento' | 'quantidade'
     charts: {},
     goalEditing: null,
     goalEdits: {},
@@ -100,7 +101,7 @@
       porRadiologia: [],    // [{ id, label, faturamento, exames, variacao, participacao }]
       topClinicas:   [],    // [{ nome, faturamento, participacao }]
       tiposExame:    [],    // [{ tipo, quantidade, participacao }]
-      },
+    },
   };
 
 
@@ -1128,36 +1129,56 @@
 
     /* ----- KPIs ----- */
     async function renderKPIs(kpi) {
+      if (!kpi) return;
+
+      // Helper local: atualiza campo com segurança
+      function setField(el, selector, value) {
+        if (!el) return;
+        const f = el.querySelector(selector);
+        if (f) f.textContent = value;
+      }
+      function setFieldHTML(el, selector, html) {
+        if (!el) return;
+        const f = el.querySelector(selector);
+        if (f) f.innerHTML = html;
+      }
+
+      const ft = kpi.faturamentoTotal || {};
       const kpiRev = document.getElementById('kpiTotalRevenue');
       if (kpiRev) {
-        kpiRev.querySelector('[data-field="value"]').textContent = H.currency(kpi.faturamentoTotal.value);
-        kpiRev.querySelector('[data-field="change"]').innerHTML = H.changeBadge(kpi.faturamentoTotal.changeMonth);
-        kpiRev.querySelector('[data-field="yoy"]').textContent = `${kpi.faturamentoTotal.changeYoY > 0 ? '+' : ''}${kpi.faturamentoTotal.changeYoY}% vs. mesmo mês ano passado`;
+        setField(kpiRev, '[data-field="value"]', H.currency(ft.value ?? 0));
+        setFieldHTML(kpiRev, '[data-field="change"]', H.changeBadge(ft.changeMonth ?? 0));
+        const yoy = ft.changeYoY ?? 0;
+        setField(kpiRev, '[data-field="yoy"]', `${yoy > 0 ? '+' : ''}${yoy}% vs. mesmo mês ano passado`);
       }
 
+      const fl = kpi.faturamentoLiquido || {};
       const kpiNet = document.getElementById('kpiNetRevenue');
       if (kpiNet) {
-        kpiNet.querySelector('[data-field="value"]').textContent = H.currency(kpi.faturamentoLiquido.value);
-        kpiNet.querySelector('[data-field="context"]').textContent = kpi.faturamentoLiquido.context;
+        setField(kpiNet, '[data-field="value"]', H.currency(fl.value ?? 0));
+        setField(kpiNet, '[data-field="context"]', fl.context ?? '');
       }
 
+      const mg = kpi.margemLucro || {};
       const kpiMar = document.getElementById('kpiMargin');
       if (kpiMar) {
-        kpiMar.querySelector('[data-field="value"]').textContent = H.percent(kpi.margemLucro.value);
-        kpiMar.querySelector('[data-field="change"]').innerHTML = H.changeBadge(kpi.margemLucro.changeMonth);
+        setField(kpiMar, '[data-field="value"]', H.percent(mg.value ?? 0));
+        setFieldHTML(kpiMar, '[data-field="change"]', H.changeBadge(mg.changeMonth ?? 0));
       }
 
+      const te = kpi.totalExames || {};
       const kpiEx = document.getElementById('kpiTotalExams');
       if (kpiEx) {
-        kpiEx.querySelector('[data-field="value"]').textContent = H.number(kpi.totalExames.value);
-        kpiEx.querySelector('[data-field="change"]').innerHTML = H.changeBadge(kpi.totalExames.changeMonth);
+        setField(kpiEx, '[data-field="value"]', H.number(te.value ?? 0));
+        setFieldHTML(kpiEx, '[data-field="change"]', H.changeBadge(te.changeMonth ?? 0));
       }
 
+      const pv = kpi.previsao30d || {};
       const kpiFc = document.getElementById('kpiForecast');
       if (kpiFc) {
-        kpiFc.querySelector('[data-field="value"]').textContent = H.currency(kpi.previsao30d.value);
-        kpiFc.querySelector('[data-field="context30"]').textContent = `${H.currency(kpi.previsao30d.value)} próximos 30 dias`;
-        kpiFc.querySelector('[data-field="forecast60"]').textContent = `${H.currency(kpi.previsao30d.forecast60d)} próximos 60 dias`;
+        setField(kpiFc, '[data-field="value"]', H.currency(pv.value ?? 0));
+        setField(kpiFc, '[data-field="context30"]', `${H.currency(pv.value ?? 0)} próximos 30 dias`);
+        setField(kpiFc, '[data-field="forecast60"]', `${H.currency(pv.forecast60d ?? 0)} próximos 60 dias`);
       }
     }
 
@@ -1176,6 +1197,15 @@
     function renderEvolutionChart(d) {
       const ctx = document.getElementById('evolutionChart');
       if (!ctx) return;
+
+      // Estado vazio: sem dados no período
+      if (!d || !d.labels || d.labels.length === 0) {
+        H.destroyChart(ctx.id);
+        const wrap = ctx.closest('.chart-card__body') || ctx.parentElement;
+        if (wrap) wrap.setAttribute('data-empty', 'Sem dados no período selecionado');
+        return;
+      }
+
       const isQtd = State.viewMode === 'quantidade';
 
       if (isQtd) {
@@ -1307,7 +1337,12 @@
       const panel = document.getElementById('highlightsPanel');
       if (!panel) return;
 
-      const clinicasHtml = topClinicas.slice(0, 5).map((c, i) => `
+      const emptyRow = `<div class="highlight-row" style="color:var(--color-text-subtle);font-size:0.8rem;padding:8px 0">
+        Sem dados no período selecionado.
+      </div>`;
+
+      const clinicasHtml = topClinicas && topClinicas.length > 0
+        ? topClinicas.slice(0, 5).map((c, i) => `
     <div class="highlight-row">
       <span class="highlight-row__rank">${i + 1}</span>
       <div class="highlight-row__info">
@@ -1320,9 +1355,11 @@
         Participação: ${H.percent(c.participacao)} do total<br>
         Faturamento: ${H.currency(c.faturamento)}
       </div>
-    </div>`).join('');
+    </div>`).join('')
+        : emptyRow;
 
-      const medicosHtml = topMedicos.slice(0, 5).map((m, i) => `
+      const medicosHtml = topMedicos && topMedicos.length > 0
+        ? topMedicos.slice(0, 5).map((m, i) => `
     <div class="highlight-row">
       <span class="highlight-row__rank">${i + 1}</span>
       <div class="highlight-row__info">
@@ -1336,7 +1373,8 @@
         Exames: ${H.number(m.exames)}<br>
         Faturamento gerado: ${H.currency(m.faturamento)}
       </div>
-    </div>`).join('');
+    </div>`).join('')
+        : emptyRow;
 
       panel.innerHTML = `
     <div class="highlight-group">
@@ -1353,6 +1391,27 @@
     function renderExamTypesChart(tiposExame) {
       const ctx = document.getElementById('examTypesChart');
       if (!ctx) return;
+
+      if (!tiposExame || tiposExame.length === 0) {
+        H.destroyChart(ctx.id);
+        const parent = ctx.parentElement;
+        if (parent) parent.style.display = 'flex';
+        ctx.style.display = 'none';
+        const existing = ctx.parentElement?.querySelector('.chart-empty-msg');
+        if (!existing) {
+          const msg = document.createElement('div');
+          msg.className = 'chart-empty-msg';
+          msg.style.cssText = 'color:var(--color-text-subtle);font-size:0.8rem;text-align:center;width:100%;padding:24px 0';
+          msg.textContent = 'Sem dados no período selecionado.';
+          ctx.parentElement?.appendChild(msg);
+        }
+        return;
+      }
+
+      // Remove mensagem de vazio se existir
+      ctx.style.display = '';
+      const emptyMsg = ctx.parentElement?.querySelector('.chart-empty-msg');
+      if (emptyMsg) emptyMsg.remove();
 
       const colors = [
         CFG.colors.primary, CFG.colors.primaryLight,
@@ -1750,6 +1809,21 @@
 
     async function render() {
       const filtros = H.filtrosAtivos();
+
+      // Bind dos toggles de visualização (faturamento / quantidade)
+      // Usa delegação para não duplicar listeners em re-renders
+      if (!render._viewModeBound) {
+        render._viewModeBound = true;
+        document.querySelectorAll('[data-view-mode]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            State.viewMode = btn.dataset.viewMode;
+            document.querySelectorAll('[data-view-mode]').forEach(b => {
+              b.classList.toggle('is-active', b.dataset.viewMode === State.viewMode);
+            });
+            VisaoGeral.render();
+          });
+        });
+      }
 
       try {
         const [snapshot, evolucao, porRadiologiaRaw, tiposExame, ticketMedio, hierarquiaRaw] = await Promise.all([
@@ -2278,8 +2352,10 @@
         for (const row of (metasRaw || [])) {
           const rId = row.radiologia_id;
           if (!metaMap[rId]) metaMap[rId] = { mensal: 0, anual: 0 };
-          if (row.mes === mesAtual) metaMap[rId].mensal = Number(row.valor_meta || 0);
-          if (row.mes === null)     metaMap[rId].anual  = Number(row.valor_meta || 0);
+          // row.mes pode vir como inteiro (MySQL) ou null — coerção explícita
+          const rowMes = row.mes == null ? null : Number(row.mes);
+          if (rowMes === mesAtual)  metaMap[rId].mensal = Number(row.valor_meta || 0);
+          if (rowMes === null)      metaMap[rId].anual  = Number(row.valor_meta || 0);
         }
 
         // Monta mapa de realizados por radiologia (do endpoint por-radiologia)
@@ -2562,8 +2638,9 @@
         if (!preview || !State.goalEditing) return;
 
         const radioMeta = State._metasData?.porRadiologia?.find(r => r.id === State.goalEditing);
-        const pctAtual = radioMeta && data.meta > 0 ? (radioMeta.realizado / data.meta * 100) : 0;
         if (!radioMeta) return;
+        // Usa a meta atual do radioMeta (não `data.meta` que não existe neste escopo)
+        const pctAtual = radioMeta.meta > 0 ? (radioMeta.realizado / radioMeta.meta * 100) : 0;
 
         const newMeta = unmask(monthInput?.value || '0');
         if (!newMeta) { preview.innerHTML = ''; return; }
