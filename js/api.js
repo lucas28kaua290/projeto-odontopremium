@@ -148,7 +148,10 @@ const Api = (() => {
      * ]
      */
     async function getRadiologias() {
-        return request('/radiologias');
+        // Padrão único: retorna { data: array }
+        // Consumidores devem usar res.data para acessar o array
+        const data = await request('/radiologias');
+        return { data };
     }
 
     /**
@@ -159,7 +162,8 @@ const Api = (() => {
      * @param {string} radiologiaId - ex: 'rad_centro'
      */
     async function getRadiologia(radiologiaId) {
-        return request(`/radiologias/${radiologiaId}`);
+        const data = await request(`/radiologias/${radiologiaId}`);
+        return { data };
     }
 
 
@@ -204,7 +208,9 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/financeiro/kpis${qs}`);
+        // app.js acessa res.data — envolve em { data }
+        const data = await request(`/financeiro/kpis${qs}`);
+        return { data };
     }
 
 
@@ -241,7 +247,9 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/financeiro/evolucao/faturamento${qs}`);
+        // app.js consome res.data.labels / res.data.series — envolve em { data }
+        const data = await request(`/financeiro/evolucao/faturamento${qs}`);
+        return { data };
     }
 
     /**
@@ -261,7 +269,9 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/exames/evolucao/quantidade${qs}`);
+        // app.js consome res.data.labels / res.data.series — envolve em { data }
+        const data = await request(`/exames/evolucao/quantidade${qs}`);
+        return { data };
     }
 
 
@@ -306,7 +316,9 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/financeiro/comparativo/faturamento${qs}`);
+        // app.js consome res.data.itens / res.data.agrupamento — envolve em { data }
+        const data = await request(`/financeiro/comparativo/faturamento${qs}`);
+        return { data };
     }
 
     /**
@@ -324,7 +336,9 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/exames/comparativo/quantidade${qs}`);
+        // app.js consome res.data.itens / res.data.agrupamento — envolve em { data }
+        const data = await request(`/exames/comparativo/quantidade${qs}`);
+        return { data };
     }
 
 
@@ -368,7 +382,8 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/hierarquia/arvore${qs}`);
+        const data = await request(`/hierarquia/arvore${qs}`);
+        return { data };
     }
 
     /**
@@ -386,7 +401,8 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/radiologias/${radiologiaId}/clinicas${qs}`);
+        const data = await request(`/radiologias/${radiologiaId}/clinicas${qs}`);
+        return { data };
     }
 
     /**
@@ -423,7 +439,8 @@ const Api = (() => {
                 dataFim: filtros.dataFim,
             }),
         });
-        return request(`/medicos${qs}`);
+        const data = await request(`/medicos${qs}`);
+        return { data };
     }
 
 
@@ -460,7 +477,9 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/exames/kpis${qs}`);
+        // app.js acessa res.data — envolve em { data }
+        const data = await request(`/exames/kpis${qs}`);
+        return { data };
     }
 
     /**
@@ -491,7 +510,9 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/exames/distribuicao-por-tipo${qs}`);
+        // app.js consome res.data.tipos — envolve em { data }
+        const data = await request(`/exames/distribuicao-por-tipo${qs}`);
+        return { data };
     }
 
     /**
@@ -520,7 +541,9 @@ const Api = (() => {
             dataFim: filtros.dataFim,
             limite: filtros.limite || 6,
         });
-        return request(`/exames/ranking/clinicas${qs}`);
+        // app.js acessa res.data — envolve em { data }
+        const data = await request(`/exames/ranking/clinicas${qs}`);
+        return { data };
     }
 
     /**
@@ -551,7 +574,9 @@ const Api = (() => {
             dataFim: filtros.dataFim,
             limite: filtros.limite || 10,
         });
-        return request(`/exames/ranking/medicos${qs}`);
+        // app.js acessa res.data — envolve em { data }
+        const data = await request(`/exames/ranking/medicos${qs}`);
+        return { data };
     }
 
     /**
@@ -581,7 +606,9 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/exames/destaques${qs}`);
+        // app.js acessa res.data — envolve em { data }
+        const data = await request(`/exames/destaques${qs}`);
+        return { data };
     }
 
 
@@ -618,7 +645,8 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/medicos/${medicoId}/exames${qs}`);
+        const data = await request(`/medicos/${medicoId}/exames${qs}`);
+        return { data };
     }
 
     /**
@@ -653,7 +681,9 @@ const Api = (() => {
             dataFim: filtros.dataFim,
             limite: filtros.limite || 5,
         });
-        return request(`/medicos/spotlight${qs}`);
+        // app.js acessa res.data — envolve em { data }
+        const data = await request(`/medicos/spotlight${qs}`);
+        return { data };
     }
 
     /**
@@ -673,8 +703,12 @@ const Api = (() => {
         const qs = buildQuery({
             radiologiaId: filtros.radiologiaId || 'all',
             periodo: filtros.periodo || 'mes_atual',
+            dataInicio: filtros.dataInicio,
+            dataFim: filtros.dataFim,
         });
-        return request(`/medicos/clinicas-disponiveis${qs}`);
+        // app.js acessa res.data (array) — envolve em { data }
+        const data = await request(`/medicos/clinicas-disponiveis${qs}`);
+        return { data };
     }
 
 
@@ -710,7 +744,8 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/comissoes/kpis${qs}`);
+        const data = await request(`/comissoes/kpis${qs}`);
+        return { data };
     }
 
     /**
@@ -743,7 +778,8 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/comissoes/por-medico${qs}`);
+        const data = await request(`/comissoes/por-medico${qs}`);
+        return { data };
     }
 
     /**
@@ -767,7 +803,8 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/comissoes/por-radiologia${qs}`);
+        const data = await request(`/comissoes/por-radiologia${qs}`);
+        return { data };
     }
 
     /* ===========================================================================
@@ -811,7 +848,8 @@ const Api = (() => {
             pagina: filtros.pagina || 1,
             porPagina: filtros.porPagina || 8,
         });
-        return request(`/pacientes${qs}`);
+        const data = await request(`/pacientes${qs}`);
+        return { data };
     }
 
     /**
@@ -833,7 +871,8 @@ const Api = (() => {
      * }
      */
     async function getPaciente(pacienteId) {
-        return request(`/pacientes/${pacienteId}`);
+        const data = await request(`/pacientes/${pacienteId}`);
+        return { data };
     }
 
     /**
@@ -855,7 +894,8 @@ const Api = (() => {
      * }
      */
     async function getPacienteKPIs(pacienteId) {
-        return request(`/pacientes/${pacienteId}/kpis`);
+        const data = await request(`/pacientes/${pacienteId}/kpis`);
+        return { data };
     }
 
     /**
@@ -881,7 +921,8 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/pacientes/${pacienteId}/exames${qs}`);
+        const data = await request(`/pacientes/${pacienteId}/exames${qs}`);
+        return { data };
     }
 
     /**
@@ -907,7 +948,8 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/pacientes/${pacienteId}/agendamentos${qs}`);
+        const data = await request(`/pacientes/${pacienteId}/agendamentos${qs}`);
+        return { data };
     }
 
     // [API] GET /agendamentos
@@ -918,7 +960,8 @@ const Api = (() => {
             dataFim: filtros.dataFim,
             status: filtros.status,
         });
-        return request(`/agendamentos${qs}`);
+        const data = await request(`/agendamentos${qs}`);
+        return { data };
     }
 
     // [API] POST /agendamentos
@@ -957,7 +1000,8 @@ const Api = (() => {
      * ]
      */
     async function getPacienteNotas(pacienteId) {
-        return request(`/pacientes/${pacienteId}/notas`);
+        const data = await request(`/pacientes/${pacienteId}/notas`);
+        return { data };
     }
 
     /**
@@ -1072,7 +1116,8 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/financeiro/snapshot${qs}`);
+        const data = await request(`/financeiro/snapshot${qs}`);
+        return { data };
     }
 
     /**
@@ -1104,7 +1149,8 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/financeiro/kpis${qs}`);
+        const data = await request(`/financeiro/kpis${qs}`);
+        return { data };
     }
 
     /**
@@ -1135,7 +1181,8 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/financeiro/evolucao${qs}`);
+        const data = await request(`/financeiro/evolucao${qs}`);
+        return { data };
     }
 
     /**
@@ -1163,7 +1210,8 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/financeiro/por-radiologia${qs}`);
+        const data = await request(`/financeiro/por-radiologia${qs}`);
+        return { data };
     }
 
     /**
@@ -1192,7 +1240,8 @@ const Api = (() => {
             dataFim: filtros.dataFim,
             limite: filtros.limite || 10,
         });
-        return request(`/financeiro/top-clinicas${qs}`);
+        const data = await request(`/financeiro/top-clinicas${qs}`);
+        return { data };
     }
 
     /**
@@ -1221,7 +1270,8 @@ const Api = (() => {
             dataFim: filtros.dataFim,
             limite: filtros.limite || 15,
         });
-        return request(`/financeiro/top-medicos${qs}`);
+        const data = await request(`/financeiro/top-medicos${qs}`);
+        return { data };
     }
 
     /**
@@ -1248,7 +1298,8 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/financeiro/tipos-exame${qs}`);
+        const data = await request(`/financeiro/tipos-exame${qs}`);
+        return { data };
     }
 
     /**
@@ -1275,7 +1326,8 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/financeiro/ticket-medio-por-radiologia${qs}`);
+        const data = await request(`/financeiro/ticket-medio-por-radiologia${qs}`);
+        return { data };
     }
 
     /**
@@ -1301,7 +1353,8 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/financeiro/insights${qs}`);
+        const data = await request(`/financeiro/insights${qs}`);
+        return { data };
     }
 
     /**
@@ -1339,7 +1392,8 @@ const Api = (() => {
             dataInicio: filtros.dataInicio,
             dataFim: filtros.dataFim,
         });
-        return request(`/financeiro/hierarquia${qs}`);
+        const data = await request(`/financeiro/hierarquia${qs}`);
+        return { data };
     }
 
 
@@ -1373,7 +1427,8 @@ const Api = (() => {
             radiologiaId: filtros.radiologiaId || 'all',
             periodo: filtros.periodo || 'mes_atual',
         });
-        return request(`/metas${qs}`);
+        const data = await request(`/metas${qs}`);
+        return { data };
     }
 
     /**
@@ -1387,7 +1442,8 @@ const Api = (() => {
      * ]
      */
     async function getMetasHistorico() {
-        return request('/metas/historico');
+        const data = await request('/metas/historico');
+        return { data };
     }
 
     /**
@@ -1447,7 +1503,8 @@ const Api = (() => {
      * ]
      */
     async function getRelatoriosHistorico() {
-        return request('/relatorios/historico');
+        const data = await request('/relatorios/historico');
+        return { data };
     }
 
     /**
@@ -1476,7 +1533,8 @@ const Api = (() => {
             dataInicio: params.dataInicio,
             dataFim: params.dataFim,
         });
-        return request(`/relatorios/exportar${qs}`);
+        const data = await request(`/relatorios/exportar${qs}`);
+        return { data };
     }
 
     /**
@@ -1526,7 +1584,8 @@ const Api = (() => {
      * }
      */
     async function getConfiguracoesGeral() {
-        return request('/configuracoes/geral');
+        const data = await request('/configuracoes/geral');
+        return { data };
     }
 
     /**
@@ -1682,7 +1741,8 @@ const Api = (() => {
             busca: filtros.busca,
             status: filtros.status,
         });
-        return request(`/clinicas${qs}`);
+        const data = await request(`/clinicas${qs}`);
+        return { data };
     }
 
     /**
@@ -1836,7 +1896,8 @@ const Api = (() => {
             level: filtros.level,
             status: filtros.status,
         });
-        return request(`/usuarios${qs}`);
+        const data = await request(`/usuarios${qs}`);
+        return { data };
     }
 
     /**
@@ -1920,7 +1981,8 @@ const Api = (() => {
      * }
      */
     async function getParametros() {
-        return request('/parametros');
+        const data = await request('/parametros');
+        return { data };
     }
 
     /**
@@ -1964,7 +2026,8 @@ const Api = (() => {
      * ]
      */
     async function getPeriodosOpcoes() {
-        return request('/periodos/opcoes');
+        const data = await request('/periodos/opcoes');
+        return { data };
     }
 
     /**

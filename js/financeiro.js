@@ -1059,7 +1059,7 @@
     async function init() {
       try {
         const resp = await Api.getRadiologias();
-        State.radiologies = Array.isArray(resp) ? resp : [{ id: 'all', nome: 'Todas as Radiologias' }];
+        State.radiologies = Array.isArray(resp.data) ? resp.data : [{ id: 'all', nome: 'Todas as Radiologias' }];
       } catch (err) {
         console.error('[Filtros] Erro ao carregar radiologias:', err);
         State.radiologies = [{ id: 'all', nome: 'Todas as Radiologias' }];
@@ -1826,7 +1826,7 @@
       }
 
       try {
-        const [snapshot, evolucao, porRadiologiaRaw, tiposExame, ticketMedio, hierarquiaRaw] = await Promise.all([
+        const [snapshotRes, evolucaoRes, porRadiologiaRes, tiposExameRes, ticketMedioRes, hierarquiaRes] = await Promise.all([
           Api.getFinanceiroSnapshot(filtros),
           Api.getFinanceiroEvolucao(filtros),
           Api.getFinanceiroPorRadiologia(filtros),
@@ -1834,6 +1834,14 @@
           Api.getFinanceiroTicketMedioPorRadiologia(filtros),
           Api.getFinanceiroHierarquia(filtros),
         ]);
+
+        // Desembrulha .data (padrão único da API)
+        const snapshot      = snapshotRes.data;
+        const evolucao      = evolucaoRes.data;
+        const porRadiologiaRaw = porRadiologiaRes.data || [];
+        const tiposExame    = tiposExameRes.data || [];
+        const ticketMedio   = ticketMedioRes.data;
+        const hierarquiaRaw = hierarquiaRes.data || [];
 
         // Normaliza porRadiologia: backend retorna { radiologiaId, radiologiaNome, faturamentoAtual, examesAtual, variacao }
         // Frontend espera: { id, label, faturamento, exames, variacao, participacao }
@@ -2335,7 +2343,7 @@
       const mesAtual = hoje.getMonth() + 1; // 1-based
 
       try {
-        const [metasRaw, historico, evolucao, realizadoRaw] = await Promise.all([
+        const [metasRes, historicoRes, evolucaoRes2, realizadoRes] = await Promise.all([
           // Backend recebe `ano` e opcionalmente `mes`
           Api.getMetas({ ...filtros, ano: anoAtual }),
           Api.getMetasHistorico(filtros),
@@ -2343,6 +2351,12 @@
           // Busca faturamento realizado por radiologia para cruzar com as metas
           Api.getFinanceiroPorRadiologia(filtros),
         ]);
+
+        // Desembrulha .data (padrão único da API)
+        const metasRaw   = metasRes.data || [];
+        const historico  = historicoRes.data || [];
+        const evolucao   = evolucaoRes2.data;
+        const realizadoRaw = realizadoRes.data || [];
 
         // ------------------------------------------------------------------
         // Normaliza metasRaw (array flat) → shape esperado pelo JS
@@ -2422,7 +2436,8 @@
       if (!tbody) return;
 
       try {
-        const historico = await Api.getRelatoriosHistorico(H.filtrosAtivos());
+        const _historicoRes = await Api.getRelatoriosHistorico(H.filtrosAtivos());
+        const historico = _historicoRes.data || [];
         tbody.innerHTML = historico.map(r => `
       <tr>
         <td><span class="data-table__name-primary">${r.nome || '--'}</span></td>
