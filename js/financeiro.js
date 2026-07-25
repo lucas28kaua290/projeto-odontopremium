@@ -286,51 +286,83 @@
       if (canvasId === 'evolutionChart') {
         const fatPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Faturamento');
         const antPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Mesmo período ano anterior');
-        const exPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Exames');
+        const exPoint  = tooltip.dataPoints.find(p => p.dataset.label === 'Exames');
 
         if (fatPoint) {
           const fatVal = fatPoint.raw;
           const antVal = antPoint ? antPoint.raw : null;
-          let changeHtml = '';
-          if (antVal !== null && antVal > 0) {
-            const pct = ((fatVal - antVal) / antVal * 100);
-            const cls = pct > 0 ? 'cjs-tooltip__change--up' : pct < 0 ? 'cjs-tooltip__change--down' : 'cjs-tooltip__change--flat';
-            const arrow = pct > 0 ? '↑' : pct < 0 ? '↓' : '—';
-            changeHtml = `
-                <div class="cjs-tooltip__change-row">
-                    <span class="cjs-tooltip__change ${cls}">${arrow} ${Math.abs(pct).toFixed(1)}%</span>
-                    <span class="cjs-tooltip__change-context">vs. ano anterior</span>
-                </div>`;
-          }
+
+          // Variação % vs. ano anterior
+          const hasCmp = antVal !== null && antVal > 0;
+          const pctVar = hasCmp ? ((fatVal - antVal) / antVal * 100) : null;
+          const varCls = pctVar === null ? '' : pctVar > 0 ? 'cjs-tooltip__change--up' : pctVar < 0 ? 'cjs-tooltip__change--down' : 'cjs-tooltip__change--flat';
+          const varArrow = pctVar === null ? '' : pctVar > 0 ? '↑' : pctVar < 0 ? '↓' : '—';
+
+          const changeHtml = hasCmp ? `
+              <div class="cjs-tooltip__change-row">
+                <span class="cjs-tooltip__change ${varCls}">${varArrow} ${Math.abs(pctVar).toFixed(1)}%</span>
+                <span class="cjs-tooltip__change-context">vs. mesmo mês ano anterior</span>
+              </div>` : '';
+
+          // Barra de progresso vs. ano anterior (mesmo padrão do byRadiologyChart)
+          const barPct = hasCmp && antVal > 0 ? Math.min((fatVal / antVal) * 100, 200) : null;
+          const barColor = barPct === null ? CFG.colors.primary
+            : barPct >= 100 ? CFG.colors.positive
+            : barPct >= 75  ? CFG.colors.primary
+            : CFG.colors.warning;
+
+          const progressHtml = barPct !== null ? `
+              <div class="cjs-tooltip__divider"></div>
+              <div class="cjs-tooltip__breakdown">
+                <div class="cjs-tooltip__row">
+                  <div class="cjs-tooltip__row-top">
+                    <span class="cjs-tooltip__row-label">vs. ano anterior</span>
+                    <span class="cjs-tooltip__row-percent" style="color:${barColor}">
+                      ${barPct >= 100 ? '+' : ''}${(barPct - 100).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div class="cjs-tooltip__bar-track">
+                    <div class="cjs-tooltip__bar-fill"
+                      style="width:${Math.min(barPct, 100)}%;background:${barColor}">
+                    </div>
+                  </div>
+                </div>
+              </div>` : '';
 
           html = `
-                <div class="cjs-tooltip__eyebrow">${label}</div>
-                <div class="cjs-tooltip__headline">
+              <div class="cjs-tooltip__eyebrow">Evolução Mensal · ${label}</div>
+              <div class="cjs-tooltip__headline">
                 <span class="cjs-tooltip__headline-label">
-                    <span class="cjs-tooltip__dot" style="background:${CFG.colors.primary}"></span>Faturamento
+                  <span class="cjs-tooltip__dot" style="background:${CFG.colors.primary}"></span>Faturamento
                 </span>
                 <span class="cjs-tooltip__headline-value">${H.currency(fatVal)}</span>
-                </div>
-                ${changeHtml}`;
+              </div>
+              ${changeHtml}
+              ${progressHtml}`;
 
           if (exPoint) {
             html += `
-                <div class="cjs-tooltip__divider"></div>
-                <div class="cjs-tooltip__metrics">
-                    <div class="cjs-tooltip__metric">
-                    <span class="cjs-tooltip__metric-label">
-                        <span class="cjs-tooltip__dot cjs-tooltip__dot--sm" style="background:${CFG.colors.primaryLight}"></span>Exames
-                    </span>
-                    <span class="cjs-tooltip__metric-value">${H.number(exPoint.raw)}</span>
-                    </div>
-                    <div class="cjs-tooltip__metric">
-                    <span class="cjs-tooltip__metric-label">Ticket médio</span>
-                    <span class="cjs-tooltip__metric-value">${H.currency(Math.round(fatVal / Math.max(exPoint.raw, 1)))}</span>
-                    </div>
-                </div>`;
+              <div class="cjs-tooltip__divider"></div>
+              <div class="cjs-tooltip__metrics">
+                <div class="cjs-tooltip__metric">
+                  <span class="cjs-tooltip__metric-label">
+                    <span class="cjs-tooltip__dot cjs-tooltip__dot--sm" style="background:${CFG.colors.primaryLight}"></span>Exames
+                  </span>
+                  <span class="cjs-tooltip__metric-value">${H.number(exPoint.raw)}</span>
+                </div>
+                <div class="cjs-tooltip__metric">
+                  <span class="cjs-tooltip__metric-label">Ticket médio</span>
+                  <span class="cjs-tooltip__metric-value">${H.currency(Math.round(fatVal / Math.max(exPoint.raw, 1)))}</span>
+                </div>
+                ${hasCmp ? `
+                <div class="cjs-tooltip__metric">
+                  <span class="cjs-tooltip__metric-label">Mesmo mês ano anterior</span>
+                  <span class="cjs-tooltip__metric-value">${H.currency(antVal)}</span>
+                </div>` : ''}
+              </div>`;
           }
 
-          html += `<div class="cjs-tooltip__footer-note">Dados acumulados do mês</div>`;
+          html += `<div class="cjs-tooltip__footer-note">Dados acumulados do período</div>`;
         }
       }
 

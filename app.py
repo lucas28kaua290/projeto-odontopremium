@@ -236,6 +236,12 @@ def variacao_percentual(atual: float, anterior: float) -> float:
         return 100.0 if atual > 0 else 0.0
     return round((atual - anterior) / anterior * 100, 1)
 
+_MESES_PT = ['Jan','Fev','Mar','Abr','Mai','Jun',
+             'Jul','Ago','Set','Out','Nov','Dez']
+
+def mes_label(year: int, month: int) -> str:
+    """Retorna label no formato 'Jul/2026' em português."""
+    return f"{_MESES_PT[month - 1]}/{year}"
 
 # -----------------------------------------------------------------------------
 # 3. CONEXÃO COM BANCO DE DADOS
@@ -1537,7 +1543,7 @@ def exames_evolucao():
     rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
 
     rows = query(
-        f"SELECT DATE_FORMAT(a.data_agendamento, '%%b/%%y') AS label, "
+        f"SELECT YEAR(a.data_agendamento) AS ano, MONTH(a.data_agendamento) AS mes, "
         f"       r.id AS radiologiaId, r.nome AS nome, COUNT(*) AS dados "
         f"FROM agendamentos a "
         f"JOIN radiologias r ON r.id = a.radiologia_id "
@@ -1546,6 +1552,8 @@ def exames_evolucao():
         f"ORDER BY YEAR(a.data_agendamento), MONTH(a.data_agendamento)",
         [di, df] + rad_params_a
     )
+    for r in rows:
+        r["label"] = mes_label(r.pop("ano"), r.pop("mes"))
 
     return ok(_format_series(rows))
 
@@ -2173,7 +2181,7 @@ def financeiro_evolucao_faturamento():
     rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
 
     rows = query(
-        f"SELECT DATE_FORMAT(a.data_agendamento,'%%b/%%y') AS label, "
+        f"SELECT YEAR(a.data_agendamento) AS ano, MONTH(a.data_agendamento) AS mes, "
         f"       r.id AS radiologiaId, r.nome AS nome, "
         f"       COALESCE(SUM(te.valor_base),0) AS dados "
         f"FROM agendamentos a "
@@ -2184,6 +2192,8 @@ def financeiro_evolucao_faturamento():
         f"ORDER BY YEAR(a.data_agendamento), MONTH(a.data_agendamento)",
         [di, df] + rad_params_a
     )
+    for r in rows:
+        r["label"] = mes_label(r.pop("ano"), r.pop("mes"))
     return ok(_format_series(rows))
 
 
@@ -2202,7 +2212,7 @@ def financeiro_evolucao():
     rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
 
     rows = query(
-        f"SELECT DATE_FORMAT(a.data_agendamento,'%%b/%%y') AS label, "
+        f"SELECT YEAR(a.data_agendamento) AS ano, MONTH(a.data_agendamento) AS mes, "
         f"       COALESCE(SUM(te.valor_base),0) AS fat, COUNT(a.id) AS exm "
         f"FROM agendamentos a "
         f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
@@ -2211,9 +2221,11 @@ def financeiro_evolucao():
         f"ORDER BY YEAR(a.data_agendamento), MONTH(a.data_agendamento)",
         [di, df] + rad_params_a
     )
+    for r in rows:
+        r["label"] = mes_label(r.pop("ano"), r.pop("mes"))
 
     rows_ano = query(
-        f"SELECT DATE_FORMAT(a.data_agendamento,'%%b/%%y') AS label, "
+        f"SELECT YEAR(a.data_agendamento) AS ano, MONTH(a.data_agendamento) AS mes, "
         f"       COALESCE(SUM(te.valor_base),0) AS fat "
         f"FROM agendamentos a "
         f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
@@ -2222,11 +2234,16 @@ def financeiro_evolucao():
         f"ORDER BY YEAR(a.data_agendamento), MONTH(a.data_agendamento)",
         [di_ano, df_ano] + rad_params_a
     )
+    # Para o ano anterior, o label equivalente é o mesmo mês mas no ano atual
+    # (usado como chave de lookup no fat_ano abaixo)
+    ano_dict = {
+        mes_label(r["ano"] + 1, r["mes"]): to_decimal(r.get("fat", 0))
+        for r in rows_ano
+    }
 
     labels   = [r["label"] for r in rows]
     fat_vals = [to_decimal(r.get("fat", 0)) for r in rows]
     exm_vals = [r.get("exm", 0) for r in rows]
-    ano_dict = {r["label"]: to_decimal(r.get("fat", 0)) for r in rows_ano}
     fat_ano  = [ano_dict.get(l, 0) for l in labels]
 
     return ok({
