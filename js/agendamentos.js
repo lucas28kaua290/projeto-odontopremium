@@ -139,7 +139,7 @@ const DataStore = (() => {
 const AppState = (() => {
   let state = {
     radiologiaSelecionada: 'all',
-    periodo: 'este_mes',
+    periodo: 'todos',
     customDateStart: null,
     customDateEnd: null,
     busca: '',
@@ -175,6 +175,7 @@ const Filters = (() => {
     { id: 'esta_semana', label: 'Esta Semana' },
     { id: 'este_mes', label: 'Este Mês' },
     { id: 'proximos_30', label: 'Próximos 30 dias' },
+    { id: 'todos', label: 'Todos' },
     { id: 'custom', label: 'Personalizado' },
   ];
 
@@ -275,6 +276,12 @@ const DateUtils = (() => {
       case 'esta_semana': { const s = startOfWeek(hoje); return { start: s, end: addDays(s, 6) }; }
       case 'este_mes': { const s = new Date(hoje.getFullYear(), hoje.getMonth(), 1); return { start: s, end: new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0) }; }
       case 'proximos_30': return { start: hoje, end: addDays(hoje, 30) };
+      case 'todos': {
+        return {
+          start: addDays(hoje, -90),
+          end: addDays(hoje, 90)
+        };
+      }
       case 'custom': {
         if (state.customDateStart && state.customDateEnd) {
           return { start: new Date(`${state.customDateStart}T00:00:00`), end: new Date(`${state.customDateEnd}T00:00:00`) };
