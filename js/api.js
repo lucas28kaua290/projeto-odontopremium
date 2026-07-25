@@ -106,7 +106,11 @@ const Api = (() => {
             throw error;
         }
 
-        return response.json();
+        const body = await response.json();
+        if (body && typeof body === 'object' && 'success' in body && 'data' in body) {
+            return body.data;
+        }
+        return body;
     }
 
     /**
@@ -1398,10 +1402,10 @@ const Api = (() => {
      * Resposta esperada:
      * { sucesso: true, atualizadas: number }
      */
-    async function postMetasSalvar(edicoes) {
-        return request('/metas', {
+    async function postMetasSalvar(payload) {
+        return request('/metas/salvar', {
             method: 'POST',
-            body: JSON.stringify({ metas: edicoes }),
+            body: JSON.stringify(payload),
         });
     }
 
@@ -1419,8 +1423,8 @@ const Api = (() => {
      * Resposta esperada: objeto de meta atualizado
      * { id, nome, meta, anual, realizado, anoRealizado }
      */
-    async function updateMeta(radioId, dados) {
-        return request(`/metas/${radioId}`, {
+    async function updateMeta(metaId, dados) {
+        return request(`/metas/${metaId}`, {
             method: 'PUT',
             body: JSON.stringify(dados),
         });
@@ -1585,7 +1589,11 @@ const Api = (() => {
             throw new Error(`[IORD API] ${response.status} ${response.statusText} em "/configuracoes/logo"`);
         }
 
-        return response.json();
+        const body = await response.json();
+        if (body && typeof body === 'object' && 'success' in body && 'data' in body) {
+            return body.data;
+        }
+        return body;
     }
 
     /**

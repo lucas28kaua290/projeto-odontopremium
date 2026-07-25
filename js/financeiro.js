@@ -90,12 +90,8 @@
     activeTab: 'visao-geral',
     customStart: null,
     customEnd: null,
-    selectedForPayment: [],
-    commSearch: '',
-    commStatusFilter: 'todas',
     charts: {},
     goalEditing: null,
-    commRateEdits: {},
     goalEdits: {},
     // Dados carregados da API — usados como cache durante a sessão
     radiologies: [],    // populado em Filtros.init()
@@ -104,9 +100,7 @@
       porRadiologia: [],    // [{ id, label, faturamento, exames, variacao, participacao }]
       topClinicas:   [],    // [{ nome, faturamento, participacao }]
       tiposExame:    [],    // [{ tipo, quantidade, participacao }]
-      comissoesTree: [],    // dados reais de comissões por radiologia
-      commEvolucao:  { labels:[], pagas:[], pendentes:[] },
-    },
+      },
   };
 
 
@@ -137,16 +131,6 @@
       return `<span class="change-badge ${cls}">${arrow} ${Math.abs(pct).toFixed(1)}%</span>`;
     },
 
-    /** Badge de status de comissão */
-    statusBadge(status) {
-      const map = {
-        paid: { cls: 'status-badge--paid', label: 'Pago' },
-        pending: { cls: 'status-badge--pending', label: 'Pendente' },
-        partial: { cls: 'status-badge--partial', label: 'Parcial' },
-      };
-      const s = map[status] || map.pending;
-      return `<span class="status-badge ${s.cls}">${s.label}</span>`;
-    },
 
     /** Badge de formato de relatório */
     formatBadge(fmt) {
@@ -580,494 +564,7 @@
         }
       }
 
-      // ------------------------------------------------------------------
-      // GRÁFICOS DA ABA COMISSÕES
-      // ------------------------------------------------------------------
-
-      // Top 10 Clínicas (all) ou Top 10 Médicos (radio específica) — commTopDoctorsChart
-      else if (canvasId === 'commTopDoctorsChart') {
-        const p = tooltip.dataPoints[0];
-        const val = p.raw;
-        const idx = p.dataIndex;
-        const isAll = State.radiologia === 'all';
-
-        if (isAll) {
-          // ── Modo Clínica ──
-          const cli = (State._commTopClinicas || [])[idx];
-          const color = CFG.colors.primaryLight;
-
-          if (!cli) { el.style.opacity = '0'; return; }
-
-          const pctPago = cli.comissaoDevida > 0 ? (cli.pago / cli.comissaoDevida * 100) : 0;
-          const barColor = pctPago >= 100 ? '#0E8F63' : pctPago >= 50 ? '#B27A0E' : '#C23B32';
-
-          html = `
-                <div class="cjs-tooltip__eyebrow">Top Clínicas · Comissão Total</div>
-                <div class="cjs-tooltip__headline">
-                    <span class="cjs-tooltip__headline-label">
-                    <span class="cjs-tooltip__dot" style="background:${color}"></span>${cli.nome}
-                    </span>
-                    <span class="cjs-tooltip__headline-value">${H.currency(val)}</span>
-                </div>
-                <div class="cjs-tooltip__divider"></div>
-                <div class="cjs-tooltip__breakdown">
-                    <div class="cjs-tooltip__row">
-                    <div class="cjs-tooltip__row-top">
-                        <span class="cjs-tooltip__row-label">% quitado</span>
-                        <span class="cjs-tooltip__row-percent">${H.percent(pctPago)}</span>
-                    </div>
-                    <div class="cjs-tooltip__bar-track">
-                        <div class="cjs-tooltip__bar-fill" style="width:${Math.min(pctPago, 100)}%;background:${barColor}"></div>
-                    </div>
-                    </div>
-                </div>
-                <div class="cjs-tooltip__divider"></div>
-                <div class="cjs-tooltip__metrics">
-                    <div class="cjs-tooltip__metric">
-                    <span class="cjs-tooltip__metric-label">Já pago</span>
-                    <span class="cjs-tooltip__metric-value cjs-tooltip__metric-value--positive">${H.currency(cli.pago)}</span>
-                    </div>
-                    <div class="cjs-tooltip__metric">
-                    <span class="cjs-tooltip__metric-label">Pendente</span>
-                    <span class="cjs-tooltip__metric-value ${cli.pendente > 0 ? 'cjs-tooltip__metric-value--warning' : 'cjs-tooltip__metric-value--positive'}">${cli.pendente > 0 ? H.currency(cli.pendente) : 'Quitado'}</span>
-                    </div>
-                    <div class="cjs-tooltip__metric">
-                    <span class="cjs-tooltip__metric-label">Faturamento</span>
-                    <span class="cjs-tooltip__metric-value">${H.currency(cli.faturamento)}</span>
-                    </div>
-                    <div class="cjs-tooltip__metric">
-                    <span class="cjs-tooltip__metric-label">Médicos</span>
-                    <span class="cjs-tooltip__metric-value">${cli.nMedicos}</span>
-                    </div>
-                </div>
-                <div class="cjs-tooltip__footer-note">${cli.exames} exames · todas as radiologias</div>`;
-
-        } else {
-          // ── Modo Médico ──
-          const color = CFG.colors.primary;
-          // Dados reais de comissões por médico — populados por State._cache.comissoesMedicos
-          const allDoctors = (State._cache.comissoesMedicos || []);
-          const med = allDoctors
-            .filter(m => State.radiologia === 'all' || m.radiologiaId === State.radiologia)
-            .sort((a, b) => (b.comissaoDevida || 0) - (a.comissaoDevida || 0))
-            .slice(0, 10)[idx];
-
-          if (!med) { el.style.opacity = '0'; return; }
-
-          const pctPago = med.comissaoDevida > 0 ? (med.pago / med.comissaoDevida * 100) : 0;
-          const barColor = pctPago >= 100 ? '#0E8F63' : pctPago >= 50 ? '#B27A0E' : '#C23B32';
-          const statusCls = med.status === 'paid' ? 'cjs-tooltip__metric-value--positive'
-            : med.status === 'partial' ? 'cjs-tooltip__metric-value--warning'
-              : 'cjs-tooltip__metric-value--negative';
-          const statusLabel = med.status === 'paid' ? 'Quitado' : med.status === 'partial' ? 'Parcial' : 'Pendente';
-
-          html = `
-                <div class="cjs-tooltip__eyebrow">Top Médicos · Comissão Devida</div>
-                <div class="cjs-tooltip__headline">
-                    <span class="cjs-tooltip__headline-label">
-                    <span class="cjs-tooltip__dot" style="background:${color}"></span>${med.nome}
-                    </span>
-                    <span class="cjs-tooltip__headline-value">${H.currency(val)}</span>
-                </div>
-                <div class="cjs-tooltip__divider"></div>
-                <div class="cjs-tooltip__breakdown">
-                    <div class="cjs-tooltip__row">
-                    <div class="cjs-tooltip__row-top">
-                        <span class="cjs-tooltip__row-label">% quitado</span>
-                        <span class="cjs-tooltip__row-percent">${H.percent(pctPago)}</span>
-                    </div>
-                    <div class="cjs-tooltip__bar-track">
-                        <div class="cjs-tooltip__bar-fill" style="width:${Math.min(pctPago, 100)}%;background:${barColor}"></div>
-                    </div>
-                    </div>
-                </div>
-                <div class="cjs-tooltip__divider"></div>
-                <div class="cjs-tooltip__metrics">
-                    <div class="cjs-tooltip__metric">
-                    <span class="cjs-tooltip__metric-label">Já pago</span>
-                    <span class="cjs-tooltip__metric-value cjs-tooltip__metric-value--positive">${H.currency(med.pago)}</span>
-                    </div>
-                    <div class="cjs-tooltip__metric">
-                    <span class="cjs-tooltip__metric-label">Pendente</span>
-                    <span class="cjs-tooltip__metric-value ${med.pendente > 0 ? 'cjs-tooltip__metric-value--warning' : 'cjs-tooltip__metric-value--positive'}">${med.pendente > 0 ? H.currency(med.pendente) : 'Quitado'}</span>
-                    </div>
-                    <div class="cjs-tooltip__metric">
-                    <span class="cjs-tooltip__metric-label">Clínica</span>
-                    <span class="cjs-tooltip__metric-value">${med.clinicaNome}</span>
-                    </div>
-                    <div class="cjs-tooltip__metric">
-                    <span class="cjs-tooltip__metric-label">Status</span>
-                    <span class="cjs-tooltip__metric-value ${statusCls}">${statusLabel}</span>
-                    </div>
-                </div>
-                <div class="cjs-tooltip__footer-note">${med.exames} exames · ${med.radioNome}</div>`;
-        }
-
-        el.classList.add('chartjs-tooltip--compact');
-      }
-
-      // Distribuição por Radiologia (doughnut)
-      else if (canvasId === 'commByRadiologyChart') {
-        const p = tooltip.dataPoints[0];
-        const val = p.raw;
-        const isAll = State.radiologia === 'all';
-        const color = p.dataset.backgroundColor instanceof Array
-          ? p.dataset.backgroundColor[p.dataIndex]
-          : p.dataset.backgroundColor;
-
-        let eyebrow, total, extraMetrics = '';
-
-        if (isAll) {
-          const _ct = State._cache.comissoesTree || [];
-          total = _ct.reduce((s, r) => s + (r.comissaoDevida || 0), 0);
-          const radioTree = _ct[p.dataIndex];
-          eyebrow = 'Comissões por Radiologia';
-          if (radioTree) {
-            const pago = radioTree.pago;
-            const pendente = radioTree.pendente;
-            const pctPago = radioTree.comissaoDevida > 0 ? (pago / radioTree.comissaoDevida * 100) : 0;
-            extraMetrics = `
-                  <div class="cjs-tooltip__divider"></div>
-                  <div class="cjs-tooltip__metrics">
-                      <div class="cjs-tooltip__metric">
-                      <span class="cjs-tooltip__metric-label">Já pago</span>
-                      <span class="cjs-tooltip__metric-value" style="color:#5EEAA4">${H.currency(pago)}</span>
-                      </div>
-                      <div class="cjs-tooltip__metric">
-                      <span class="cjs-tooltip__metric-label">Pendente</span>
-                      <span class="cjs-tooltip__metric-value" style="color:#F5A623">${H.currency(pendente)}</span>
-                      </div>
-                      <div class="cjs-tooltip__metric">
-                      <span class="cjs-tooltip__metric-label">% quitado</span>
-                      <span class="cjs-tooltip__metric-value">${H.percent(pctPago)}</span>
-                      </div>
-                  </div>`;
-          }
-        } else {
-          const _ct = State._cache.comissoesTree || [];
-          const radioTree = _ct.find(r => r.id === State.radiologia);
-          const clinicas = (radioTree && radioTree.clinicas) ? radioTree.clinicas : [];
-          total = clinicas.reduce((s, c) => s + (c.comissaoDevida || 0), 0);
-          const clinica = clinicas[p.dataIndex];
-          const _radioNome = (State.radiologies || []).find(r => r.id === State.radiologia)?.nome || '';
-          eyebrow = `Comissões por Clínica · ${_radioNome}`;
-          if (clinica) {
-            const pctPago = clinica.comissaoDevida > 0 ? (clinica.pago / clinica.comissaoDevida * 100) : 0;
-            extraMetrics = `
-                  <div class="cjs-tooltip__divider"></div>
-                  <div class="cjs-tooltip__metrics">
-                      <div class="cjs-tooltip__metric">
-                      <span class="cjs-tooltip__metric-label">Já pago</span>
-                      <span class="cjs-tooltip__metric-value" style="color:#5EEAA4">${H.currency(clinica.pago)}</span>
-                      </div>
-                      <div class="cjs-tooltip__metric">
-                      <span class="cjs-tooltip__metric-label">Pendente</span>
-                      <span class="cjs-tooltip__metric-value" style="color:#F5A623">${H.currency(clinica.pendente)}</span>
-                      </div>
-                      <div class="cjs-tooltip__metric">
-                      <span class="cjs-tooltip__metric-label">% quitado</span>
-                      <span class="cjs-tooltip__metric-value">${H.percent(pctPago)}</span>
-                      </div>
-                      <div class="cjs-tooltip__metric">
-                      <span class="cjs-tooltip__metric-label">Médicos ativos</span>
-                      <span class="cjs-tooltip__metric-value">${clinica.medicos.length}</span>
-                      </div>
-                  </div>`;
-          }
-        }
-
-        const pct = total > 0 ? (val / total * 100) : 0;
-
-        html = `
-          <div class="cjs-tooltip__eyebrow">${eyebrow}</div>
-          <div class="cjs-tooltip__headline">
-              <span class="cjs-tooltip__headline-label">
-              <span class="cjs-tooltip__dot" style="background:${color}"></span>${label}
-              </span>
-              <span class="cjs-tooltip__headline-value">${H.currency(val)}</span>
-          </div>
-          <div class="cjs-tooltip__breakdown">
-              <div class="cjs-tooltip__row">
-              <div class="cjs-tooltip__row-top">
-                  <span class="cjs-tooltip__row-label">% do total de comissões</span>
-                  <span class="cjs-tooltip__row-percent">${H.percent(pct)}</span>
-              </div>
-              <div class="cjs-tooltip__bar-track">
-                  <div class="cjs-tooltip__bar-fill" style="width:${Math.min(pct * 2, 100)}%;background:${color}"></div>
-              </div>
-              </div>
-          </div>
-          ${extraMetrics}`;
-
-        el.classList.add('chartjs-tooltip--compact');
-      }
-
-      // Evolução Pagas vs Pendentes (enriquecido)
-      else if (canvasId === 'commEvolutionChart') {
-        const pagPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Pagas');
-        const pendPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Pendentes');
-        const totalPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Total do Mês');
-
-        const radioLabel = State.radiologia === 'all'
-          ? 'Todas as Radiologias'
-          : (State.radiologies || []).find(r => r.id === State.radiologia)?.nome || '';
-
-        const pago = pagPoint ? pagPoint.raw : 0;
-        const pendente = pendPoint ? pendPoint.raw : 0;
-        const total = pago + pendente;
-        const pctPago = total > 0 ? (pago / total * 100) : 0;
-        const barColor = pctPago >= 80 ? CFG.colors.positive : pctPago >= 50 ? CFG.colors.warning : CFG.colors.negative;
-
-        const _ce = State._cache.commEvolucao || { pagas: [], pendentes: [] };
-        const idx = tooltip.dataPoints[0]?.dataIndex ?? -1;
-        const pagAnterior = idx > 0 ? (_ce.pagas[idx - 1] ?? null) : null;
-        const pendAnterior = idx > 0 ? (_ce.pendentes[idx - 1] ?? null) : null;
-
-        function variacao(atual, anterior) {
-          if (anterior === null || anterior === 0) return null;
-          return ((atual - anterior) / anterior * 100);
-        }
-
-        function variacaoHtml(pct) {
-          if (pct === null) return '';
-          const cls = pct > 0 ? 'cjs-tooltip__change--up' : pct < 0 ? 'cjs-tooltip__change--down' : 'cjs-tooltip__change--flat';
-          const arrow = pct > 0 ? '↑' : pct < 0 ? '↓' : '—';
-          return `<span class="cjs-tooltip__change ${cls}" style="font-size:10px;padding:1px 5px">${arrow} ${Math.abs(pct).toFixed(1)}%</span>`;
-        }
-
-        const varPago = variacao(pago, pagAnterior);
-        const varPend = variacao(pendente, pendAnterior);
-
-        // Status contextual
-        const statusTexto = pctPago >= 80 ? '✓ Ótimo nível de quitação'
-          : pctPago >= 60 ? '~ Quitação razoável'
-            : '⚠ Atenção: muitas pendências';
-        const statusColor = pctPago >= 80 ? '#5EEAA4' : pctPago >= 60 ? '#F5CC6B' : '#F58A83';
-
-        html = `
-            <div class="cjs-tooltip__eyebrow">${label} · ${radioLabel}</div>
-
-            <div class="cjs-tooltip__headline">
-                <span class="cjs-tooltip__headline-label">Total de Comissões</span>
-                <span class="cjs-tooltip__headline-value">${H.currency(total)}</span>
-            </div>
-
-            <div class="cjs-tooltip__breakdown">
-                <div class="cjs-tooltip__row">
-                <div class="cjs-tooltip__row-top">
-                    <span class="cjs-tooltip__row-label">Taxa de quitação</span>
-                    <span class="cjs-tooltip__row-percent" style="color:${barColor}">${H.percent(pctPago)}</span>
-                </div>
-                <div class="cjs-tooltip__bar-track">
-                    <div class="cjs-tooltip__bar-fill" style="width:${Math.min(pctPago, 100)}%;background:${barColor}"></div>
-                </div>
-                </div>
-            </div>
-
-            <div class="cjs-tooltip__divider"></div>
-
-            <div class="cjs-tooltip__metrics">
-                <div class="cjs-tooltip__metric">
-                <span class="cjs-tooltip__metric-label">
-                    <span class="cjs-tooltip__dot cjs-tooltip__dot--sm" style="background:${CFG.colors.positive}"></span>Pagas
-                </span>
-                <span class="cjs-tooltip__metric-value" style="display:flex;align-items:center;gap:6px">
-                    <span class="cjs-tooltip__metric-value--positive">${H.currency(pago)}</span>
-                    ${variacaoHtml(varPago)}
-                </span>
-                </div>
-                <div class="cjs-tooltip__metric">
-                <span class="cjs-tooltip__metric-label">
-                    <span class="cjs-tooltip__dot cjs-tooltip__dot--sm" style="background:${CFG.colors.warning}"></span>Pendentes
-                </span>
-                <span class="cjs-tooltip__metric-value" style="display:flex;align-items:center;gap:6px">
-                    <span class="${pendente > 0 ? 'cjs-tooltip__metric-value--warning' : 'cjs-tooltip__metric-value--positive'}">${H.currency(pendente)}</span>
-                    ${variacaoHtml(varPend)}
-                </span>
-                </div>
-            </div>
-
-            <div class="cjs-tooltip__divider"></div>
-            <div class="cjs-tooltip__footer-note" style="color:${statusColor};font-weight:600">${statusTexto}</div>`;
-      }
-
-      // ------------------------------------------------------------------
-      // GRÁFICO: Distribuição de Comissões — pie (commDistributionChart)
-      // ------------------------------------------------------------------
-      else if (canvasId === 'commDistributionChart') {
-        const p = tooltip.dataPoints[0];
-        const val = p.raw;
-        const isAll = State.radiologia === 'all';
-        const color = p.dataset.backgroundColor instanceof Array
-          ? p.dataset.backgroundColor[p.dataIndex]
-          : p.dataset.backgroundColor;
-
-        let eyebrow, total, extraMetrics = '', footerNote = '';
-
-        if (isAll) {
-          total = MOCK_COMISSOES_TREE.reduce((s, r) => s + r.comissaoDevida, 0);
-          State._cache.comissoesTree || []
-          eyebrow = 'Distribuição de Comissões · Por Radiologia';
-          if (radioTree) {
-            const pctPago = radioTree.comissaoDevida > 0 ? (radioTree.pago / radioTree.comissaoDevida * 100) : 0;
-            footerNote = `${radioTree.clinicas.length} clínicas · ${radioTree.exames} exames`;
-            extraMetrics = `
-                    <div class="cjs-tooltip__divider"></div>
-                    <div class="cjs-tooltip__metrics">
-                        <div class="cjs-tooltip__metric">
-                        <span class="cjs-tooltip__metric-label">Já pago</span>
-                        <span class="cjs-tooltip__metric-value cjs-tooltip__metric-value--positive">${H.currency(radioTree.pago)}</span>
-                        </div>
-                        <div class="cjs-tooltip__metric">
-                        <span class="cjs-tooltip__metric-label">Pendente</span>
-                        <span class="cjs-tooltip__metric-value ${radioTree.pendente > 0 ? 'cjs-tooltip__metric-value--warning' : 'cjs-tooltip__metric-value--positive'}">${radioTree.pendente > 0 ? H.currency(radioTree.pendente) : 'Quitado'}</span>
-                        </div>
-                        <div class="cjs-tooltip__metric">
-                        <span class="cjs-tooltip__metric-label">% quitado</span>
-                        <span class="cjs-tooltip__metric-value">${H.percent(pctPago)}</span>
-                        </div>
-                        <div class="cjs-tooltip__metric">
-                        <span class="cjs-tooltip__metric-label">Faturamento</span>
-                        <span class="cjs-tooltip__metric-value">${H.currency(radioTree.faturamento)}</span>
-                        </div>
-                    </div>`;
-          }
-        } else {
-          const radioTree = MOCK_COMISSOES_TREE.find(r => r.id === `radio-${State.radiologia}`);
-          const clinicas = radioTree ? radioTree.clinicas : [];
-          total = clinicas.reduce((s, c) => s + c.comissaoDevida, 0);
-          const clinica = clinicas[p.dataIndex];
-          const radioLabel = CFG.radiologies.find(r => r.id === State.radiologia)?.label || '';
-          eyebrow = `Distribuição de Comissões · ${radioLabel}`;
-          if (clinica) {
-            const pctPago = clinica.comissaoDevida > 0 ? (clinica.pago / clinica.comissaoDevida * 100) : 0;
-            footerNote = `${clinica.medicos.length} médico(s) · ${clinica.exames} exames`;
-            extraMetrics = `
-                    <div class="cjs-tooltip__divider"></div>
-                    <div class="cjs-tooltip__metrics">
-                        <div class="cjs-tooltip__metric">
-                        <span class="cjs-tooltip__metric-label">Já pago</span>
-                        <span class="cjs-tooltip__metric-value cjs-tooltip__metric-value--positive">${H.currency(clinica.pago)}</span>
-                        </div>
-                        <div class="cjs-tooltip__metric">
-                        <span class="cjs-tooltip__metric-label">Pendente</span>
-                        <span class="cjs-tooltip__metric-value ${clinica.pendente > 0 ? 'cjs-tooltip__metric-value--warning' : 'cjs-tooltip__metric-value--positive'}">${clinica.pendente > 0 ? H.currency(clinica.pendente) : 'Quitado'}</span>
-                        </div>
-                        <div class="cjs-tooltip__metric">
-                        <span class="cjs-tooltip__metric-label">% quitado</span>
-                        <span class="cjs-tooltip__metric-value">${H.percent(pctPago)}</span>
-                        </div>
-                        <div class="cjs-tooltip__metric">
-                        <span class="cjs-tooltip__metric-label">Faturamento</span>
-                        <span class="cjs-tooltip__metric-value">${H.currency(clinica.faturamento)}</span>
-                        </div>
-                    </div>`;
-          }
-        }
-
-        const pct = total > 0 ? (val / total * 100) : 0;
-
-        html = `
-            <div class="cjs-tooltip__eyebrow">${eyebrow}</div>
-            <div class="cjs-tooltip__headline">
-                <span class="cjs-tooltip__headline-label">
-                <span class="cjs-tooltip__dot" style="background:${color}"></span>${label}
-                </span>
-                <span class="cjs-tooltip__headline-value">${H.currency(val)}</span>
-            </div>
-            <div class="cjs-tooltip__breakdown">
-                <div class="cjs-tooltip__row">
-                <div class="cjs-tooltip__row-top">
-                    <span class="cjs-tooltip__row-label">% do total de comissões</span>
-                    <span class="cjs-tooltip__row-percent">${H.percent(pct)}</span>
-                </div>
-                <div class="cjs-tooltip__bar-track">
-                    <div class="cjs-tooltip__bar-fill" style="width:${Math.min(pct * 2, 100)}%;background:${color}"></div>
-                </div>
-                </div>
-            </div>
-            ${extraMetrics}
-            ${footerNote ? `<div class="cjs-tooltip__footer-note">${footerNote}</div>` : ''}`;
-
-        el.classList.add('chartjs-tooltip--compact');
-      }
-
-      // ------------------------------------------------------------------
-      // GRÁFICO: Comissões por Radiologia/Clínica — barras empilhadas (commByEntityChart)
-      // ------------------------------------------------------------------
-      else if (canvasId === 'commByEntityChart') {
-        const pagoPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Pago');
-        const pendentPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Pendente');
-        const isAll = State.radiologia === 'all';
-        const radioLabel = isAll
-          ? 'Todas as Radiologias'
-          : (State.radiologies || []).find(r => r.id === State.radiologia)?.nome || '';
-
-        const pago = pagoPoint ? pagoPoint.raw : 0;
-        const pendente = pendentPoint ? pendentPoint.raw : 0;
-        const total = pago + pendente;
-        const pctPago = total > 0 ? (pago / total * 100) : 0;
-
-        // Enriquece com dados da entidade
-        let exames = null, faturamento = null, nMedicos = null;
-        if (isAll) {
-          const _ct = State._cache.comissoesTree || [];
-          const radio = _ct[pagoPoint?.dataIndex ?? 0];
-          if (radio) { exames = radio.exames; faturamento = radio.faturamento; nMedicos = radio.nMedicos || 0; }
-        } else {
-          const _ct = State._cache.comissoesTree || [];
-          const radioTree = _ct.find(r => r.id === State.radiologia);
-          const clinicas = (radioTree && radioTree.clinicas) ? radioTree.clinicas : [];
-          const cli = clinicas[pagoPoint?.dataIndex ?? 0];
-          if (cli) { exames = cli.exames; faturamento = cli.faturamento; nMedicos = cli.nMedicos || 0; }
-        }
-
-        html = `
-            <div class="cjs-tooltip__eyebrow">${isAll ? 'Comissões por Radiologia' : `Comissões por Clínica · ${radioLabel}`}</div>
-            <div class="cjs-tooltip__headline">
-                <span class="cjs-tooltip__headline-label">${label}</span>
-                <span class="cjs-tooltip__headline-value">${H.currency(total)}</span>
-            </div>
-            <div class="cjs-tooltip__breakdown">
-                <div class="cjs-tooltip__row">
-                <div class="cjs-tooltip__row-top">
-                    <span class="cjs-tooltip__row-label">
-                    <span class="cjs-tooltip__dot cjs-tooltip__dot--sm" style="background:${CFG.colors.primary}"></span>Pago
-                    </span>
-                    <span class="cjs-tooltip__row-percent">${H.percent(pctPago)}</span>
-                </div>
-                <div class="cjs-tooltip__bar-track">
-                    <div class="cjs-tooltip__bar-fill" style="width:${Math.min(pctPago, 100)}%;background:${CFG.colors.primary}"></div>
-                </div>
-                </div>
-            </div>
-            <div class="cjs-tooltip__divider"></div>
-            <div class="cjs-tooltip__metrics">
-                <div class="cjs-tooltip__metric">
-                <span class="cjs-tooltip__metric-label">
-                    <span class="cjs-tooltip__dot cjs-tooltip__dot--sm" style="background:${CFG.colors.primary}"></span>Pago
-                </span>
-                <span class="cjs-tooltip__metric-value cjs-tooltip__metric-value--positive">${H.currency(pago)}</span>
-                </div>
-                <div class="cjs-tooltip__metric">
-                <span class="cjs-tooltip__metric-label">
-                    <span class="cjs-tooltip__dot cjs-tooltip__dot--sm" style="background:${CFG.colors.primaryLight}"></span>Pendente
-                </span>
-                <span class="cjs-tooltip__metric-value ${pendente > 0 ? 'cjs-tooltip__metric-value--warning' : 'cjs-tooltip__metric-value--positive'}">${pendente > 0 ? H.currency(pendente) : 'Quitado'}</span>
-                </div>
-                ${faturamento !== null ? `
-                <div class="cjs-tooltip__metric">
-                <span class="cjs-tooltip__metric-label">Faturamento</span>
-                <span class="cjs-tooltip__metric-value">${H.currency(faturamento)}</span>
-                </div>` : ''}
-                ${nMedicos !== null ? `
-                <div class="cjs-tooltip__metric">
-                <span class="cjs-tooltip__metric-label">${isAll ? 'Médicos' : 'Médicos'}</span>
-                <span class="cjs-tooltip__metric-value">${nMedicos}</span>
-                </div>` : ''}
-            </div>
-            ${exames !== null ? `<div class="cjs-tooltip__footer-note">${exames} exames no período</div>` : ''}`;
-      }
+      
       // ------------------------------------------------------------------
       // GRÁFICO: Meta vs Realizado — tooltip individual por barra
       // ------------------------------------------------------------------
@@ -1513,6 +1010,7 @@
     function renderRadiologyPills() {
       const container = document.getElementById('radiologyFilters');
       if (!container) return;
+      if (!Array.isArray(State.radiologies)) State.radiologies = [{ id: 'all', nome: 'Todas as Radiologias' }];
       container.innerHTML = State.radiologies.map(r => `
     <button type="button"
       class="pill${State.radiologia === r.id ? ' is-active' : ''}"
@@ -1559,7 +1057,8 @@
 
     async function init() {
       try {
-        State.radiologies = await Api.getRadiologias();
+        const resp = await Api.getRadiologias();
+        State.radiologies = Array.isArray(resp) ? resp : [{ id: 'all', nome: 'Todas as Radiologias' }];
       } catch (err) {
         console.error('[Filtros] Erro ao carregar radiologias:', err);
         State.radiologies = [{ id: 'all', nome: 'Todas as Radiologias' }];
@@ -3130,10 +2629,18 @@
   =========================================================== */
   async function init() {
     ChartFactory.defaults();
-    await Filtros.init(); // carrega radiologias antes de qualquer render
+    try {
+      await Filtros.init();
+    } catch (err) {
+      console.error('[Bootstrap] Erro ao inicializar filtros/pills:', err);
+    }
     Tabs.init();
     Modais.init();
-    await VisaoGeral.render();
+    try {
+      await VisaoGeral.render();
+    } catch (err) {
+      console.error('[Bootstrap] Erro ao renderizar Visão Geral:', err);
+    }
     const dateInput = document.getElementById('paymentDate');
     if (dateInput) dateInput.value = H.today();
   }
