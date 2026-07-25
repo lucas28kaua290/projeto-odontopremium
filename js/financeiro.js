@@ -98,8 +98,15 @@
     commRateEdits: {},
     goalEdits: {},
     // Dados carregados da API — usados como cache durante a sessão
-    radiologies: [],   // populado em Filtros.init()
-    _metasData: null, // populado em Metas.render()
+    radiologies: [],    // populado em Filtros.init()
+    _metasData: null,   // populado em Metas.render()
+    _cache: {
+      porRadiologia: [],    // [{ id, label, faturamento, exames, variacao, participacao }]
+      topClinicas:   [],    // [{ nome, faturamento, participacao }]
+      tiposExame:    [],    // [{ tipo, quantidade, participacao }]
+      comissoesTree: [],    // dados reais de comissões por radiologia
+      commEvolucao:  { labels:[], pagas:[], pendentes:[] },
+    },
   };
 
 
@@ -353,9 +360,10 @@
 
         if (isAll) {
           // Tooltip: Radiologia
-          const total = MOCK_POR_RADIOLOGIA.reduce((s, r) => s + r.faturamento, 0);
+          const _pr = State._cache.porRadiologia;
+          const total = _pr.reduce((s, r) => s + r.faturamento, 0);
           const pct = total > 0 ? (val / total * 100) : 0;
-          const radioData = MOCK_POR_RADIOLOGIA[p.dataIndex];
+          const radioData = _pr[p.dataIndex];
 
           html = `
               <div class="cjs-tooltip__eyebrow">Radiologia</div>
@@ -396,14 +404,14 @@
               </div>`;
         } else {
           // Tooltip: Clínica (radiologia específica)
-          const radioData = MOCK_DATA_BY_RADIO[State.radiologia];
-          const clinicas = radioData ? radioData.topClinicas : [];
+          const clinicas = State._cache.topClinicas;
           const total = clinicas.reduce((s, c) => s + c.faturamento, 0);
           const pct = total > 0 ? (val / total * 100) : 0;
           const clinica = clinicas[p.dataIndex];
+          const _radioNome = (State.radiologies || []).find(r => r.id === State.radiologia)?.nome || '';
 
           html = `
-              <div class="cjs-tooltip__eyebrow">Clínica Referenciadora · ${MOCK_DATA_BY_RADIO[State.radiologia] ? CFG.radiologies.find(r => r.id === State.radiologia)?.label : ''}</div>
+              <div class="cjs-tooltip__eyebrow">Clínica Referenciadora · ${_radioNome}</div>
               <div class="cjs-tooltip__headline">
                   <span class="cjs-tooltip__headline-label">
                   <span class="cjs-tooltip__dot" style="background:${color}"></span>${label}
@@ -450,19 +458,18 @@
         let eyebrow, footerNote, pct;
 
         if (isAll) {
-          const filtered = MOCK_POR_RADIOLOGIA;
-          const total = filtered.reduce((s, r) => s + r.faturamento, 0);
+          const _pr = State._cache.porRadiologia;
+          const total = _pr.reduce((s, r) => s + r.faturamento, 0);
           pct = total > 0 ? (val / total * 100) : 0;
-          const item = filtered[p.dataIndex];
+          const item = _pr[p.dataIndex];
           eyebrow = 'Distribuição por Radiologia';
           footerNote = item ? H.number(item.exames) + ' exames no período' : '';
         } else {
-          const radioData = MOCK_DATA_BY_RADIO[State.radiologia];
-          const clinicas = radioData ? radioData.topClinicas : [];
+          const clinicas = State._cache.topClinicas;
           const total = clinicas.reduce((s, c) => s + c.faturamento, 0);
           pct = total > 0 ? (val / total * 100) : 0;
-          const radioLabel = CFG.radiologies.find(r => r.id === State.radiologia)?.label || '';
-          eyebrow = `Distribuição por Clínica · ${radioLabel}`;
+          const _radioNome = (State.radiologies || []).find(r => r.id === State.radiologia)?.nome || '';
+          eyebrow = `Distribuição por Clínica · ${_radioNome}`;
           footerNote = `${H.percent(pct)} do faturamento desta unidade`;
         }
 
@@ -496,7 +503,7 @@
       else if (canvasId === 'examTypesChart') {
         const p = tooltip.dataPoints[0];
         const val = p.raw;
-        const total = MOCK_TIPOS_EXAME.reduce((s, t) => s + t.quantidade, 0);
+        const total = State._cache.tiposExame.reduce((s, t) => s + (t.quantidade || 0), 0);
         const pct = total > 0 ? (val / total * 100) : 0;
         const color = p.dataset.backgroundColor instanceof Array
           ? p.dataset.backgroundColor[p.dataIndex]
@@ -638,15 +645,11 @@
         } else {
           // ── Modo Médico ──
           const color = CFG.colors.primary;
-          const allDoctors = MOCK_COMISSOES_TREE
-            .flatMap(r => r.clinicas.flatMap(c => c.medicos.map(m => ({ ...m, clinicaNome: c.nome, radioNome: r.nome }))));
+          // Dados reais de comissões por médico — populados por State._cache.comissoesMedicos
+          const allDoctors = (State._cache.comissoesMedicos || []);
           const med = allDoctors
-            .filter(m => {
-              // filtra pela radio ativa
-              const radioTree = MOCK_COMISSOES_TREE.find(r => r.id === `radio-${State.radiologia}`);
-              return radioTree ? radioTree.clinicas.some(c => c.medicos.some(dm => dm.id === m.id)) : true;
-            })
-            .sort((a, b) => b.comissaoDevida - a.comissaoDevida)
+            .filter(m => State.radiologia === 'all' || m.radiologiaId === State.radiologia)
+            .sort((a, b) => (b.comissaoDevida || 0) - (a.comissaoDevida || 0))
             .slice(0, 10)[idx];
 
           if (!med) { el.style.opacity = '0'; return; }
@@ -715,8 +718,9 @@
         let eyebrow, total, extraMetrics = '';
 
         if (isAll) {
-          total = MOCK_COMISSOES_TREE.reduce((s, r) => s + r.comissaoDevida, 0);
-          const radioTree = MOCK_COMISSOES_TREE[p.dataIndex];
+          const _ct = State._cache.comissoesTree || [];
+          total = _ct.reduce((s, r) => s + (r.comissaoDevida || 0), 0);
+          const radioTree = _ct[p.dataIndex];
           eyebrow = 'Comissões por Radiologia';
           if (radioTree) {
             const pago = radioTree.pago;
@@ -740,12 +744,13 @@
                   </div>`;
           }
         } else {
-          const radioTree = MOCK_COMISSOES_TREE.find(r => r.id === `radio-${State.radiologia}`);
-          const clinicas = radioTree ? radioTree.clinicas : [];
-          total = clinicas.reduce((s, c) => s + c.comissaoDevida, 0);
+          const _ct = State._cache.comissoesTree || [];
+          const radioTree = _ct.find(r => r.id === State.radiologia);
+          const clinicas = (radioTree && radioTree.clinicas) ? radioTree.clinicas : [];
+          total = clinicas.reduce((s, c) => s + (c.comissaoDevida || 0), 0);
           const clinica = clinicas[p.dataIndex];
-          const radioLabel = CFG.radiologies.find(r => r.id === State.radiologia)?.label || '';
-          eyebrow = `Comissões por Clínica · ${radioLabel}`;
+          const _radioNome = (State.radiologies || []).find(r => r.id === State.radiologia)?.nome || '';
+          eyebrow = `Comissões por Clínica · ${_radioNome}`;
           if (clinica) {
             const pctPago = clinica.comissaoDevida > 0 ? (clinica.pago / clinica.comissaoDevida * 100) : 0;
             extraMetrics = `
@@ -805,7 +810,7 @@
 
         const radioLabel = State.radiologia === 'all'
           ? 'Todas as Radiologias'
-          : CFG.radiologies.find(r => r.id === State.radiologia)?.label || '';
+          : (State.radiologies || []).find(r => r.id === State.radiologia)?.nome || '';
 
         const pago = pagPoint ? pagPoint.raw : 0;
         const pendente = pendPoint ? pendPoint.raw : 0;
@@ -813,11 +818,10 @@
         const pctPago = total > 0 ? (pago / total * 100) : 0;
         const barColor = pctPago >= 80 ? CFG.colors.positive : pctPago >= 50 ? CFG.colors.warning : CFG.colors.negative;
 
-        // Calcula variação mês anterior para pagas e pendentes
-        const d = MOCK_COMM_EVOLUCAO_BY_RADIO[State.radiologia] || MOCK_COMM_EVOLUCAO;
+        const _ce = State._cache.commEvolucao || { pagas: [], pendentes: [] };
         const idx = tooltip.dataPoints[0]?.dataIndex ?? -1;
-        const pagAnterior = idx > 0 ? d.pagas[idx - 1] : null;
-        const pendAnterior = idx > 0 ? d.pendentes[idx - 1] : null;
+        const pagAnterior = idx > 0 ? (_ce.pagas[idx - 1] ?? null) : null;
+        const pendAnterior = idx > 0 ? (_ce.pendentes[idx - 1] ?? null) : null;
 
         function variacao(atual, anterior) {
           if (anterior === null || anterior === 0) return null;
@@ -902,7 +906,7 @@
 
         if (isAll) {
           total = MOCK_COMISSOES_TREE.reduce((s, r) => s + r.comissaoDevida, 0);
-          const radioTree = MOCK_COMISSOES_TREE[p.dataIndex];
+          State._cache.comissoesTree || []
           eyebrow = 'Distribuição de Comissões · Por Radiologia';
           if (radioTree) {
             const pctPago = radioTree.comissaoDevida > 0 ? (radioTree.pago / radioTree.comissaoDevida * 100) : 0;
@@ -997,7 +1001,7 @@
         const isAll = State.radiologia === 'all';
         const radioLabel = isAll
           ? 'Todas as Radiologias'
-          : CFG.radiologies.find(r => r.id === State.radiologia)?.label || '';
+          : (State.radiologies || []).find(r => r.id === State.radiologia)?.nome || '';
 
         const pago = pagoPoint ? pagoPoint.raw : 0;
         const pendente = pendentPoint ? pendentPoint.raw : 0;
@@ -1007,12 +1011,15 @@
         // Enriquece com dados da entidade
         let exames = null, faturamento = null, nMedicos = null;
         if (isAll) {
-          const radio = MOCK_COMISSOES_TREE[pagoPoint?.dataIndex ?? 0];
-          if (radio) { exames = radio.exames; faturamento = radio.faturamento; nMedicos = radio.clinicas.reduce((s, c) => s + c.medicos.length, 0); }
+          const _ct = State._cache.comissoesTree || [];
+          const radio = _ct[pagoPoint?.dataIndex ?? 0];
+          if (radio) { exames = radio.exames; faturamento = radio.faturamento; nMedicos = radio.nMedicos || 0; }
         } else {
-          const radioTree = MOCK_COMISSOES_TREE.find(r => r.id === `radio-${State.radiologia}`);
-          const cli = radioTree?.clinicas[pagoPoint?.dataIndex ?? 0];
-          if (cli) { exames = cli.exames; faturamento = cli.faturamento; nMedicos = cli.medicos.length; }
+          const _ct = State._cache.comissoesTree || [];
+          const radioTree = _ct.find(r => r.id === State.radiologia);
+          const clinicas = (radioTree && radioTree.clinicas) ? radioTree.clinicas : [];
+          const cli = clinicas[pagoPoint?.dataIndex ?? 0];
+          if (cli) { exames = cli.exames; faturamento = cli.faturamento; nMedicos = cli.nMedicos || 0; }
         }
 
         html = `
@@ -1707,7 +1714,7 @@
           },
           {
             label: 'Mesmo período ano anterior',
-            data: d.faturamentoAno,
+            data: d.faturamentoAnoAnterior || [],
             borderColor: CFG.colors.border,
             borderDash: [5, 4], borderWidth: 1.8,
             pointRadius: 0, tension: 0.4, yAxisID: 'y',
@@ -2246,26 +2253,53 @@
       const filtros = H.filtrosAtivos();
 
       try {
-        const [snapshot, evolucao, tiposExame, ticketMedio, hierarquia] = await Promise.all([
+        const [snapshot, evolucao, porRadiologiaRaw, tiposExame, ticketMedio, hierarquiaRaw] = await Promise.all([
           Api.getFinanceiroSnapshot(filtros),
           Api.getFinanceiroEvolucao(filtros),
+          Api.getFinanceiroPorRadiologia(filtros),
           Api.getFinanceiroTiposExame(filtros),
           Api.getFinanceiroTicketMedioPorRadiologia(filtros),
           Api.getFinanceiroHierarquia(filtros),
         ]);
 
-        // Salva ticket médio no state para uso no gráfico de barras quando radiologia específica
-        State._ticketMedio = snapshot.kpis?.ticketMedio?.value;
+        // Normaliza porRadiologia: backend retorna { radiologiaId, radiologiaNome, faturamentoAtual, examesAtual, variacao }
+        // Frontend espera: { id, label, faturamento, exames, variacao, participacao }
+        const totalFat = porRadiologiaRaw.reduce((s, r) => s + Number(r.faturamentoAtual || 0), 0);
+        const porRadiologia = porRadiologiaRaw.map(r => ({
+          id:           r.radiologiaId,
+          label:        r.radiologiaNome,
+          faturamento:  Number(r.faturamentoAtual || 0),
+          exames:       Number(r.examesAtual || 0),
+          variacao:     Number(r.variacao || 0),
+          participacao: totalFat > 0 ? Math.round(Number(r.faturamentoAtual || 0) / totalFat * 1000) / 10 : 0,
+        }));
+
+        // Salva no cache para uso pelos tooltips
+        State._cache.porRadiologia = porRadiologia;
+        State._cache.topClinicas   = snapshot.topClinicas || [];
+        State._cache.tiposExame    = tiposExame || [];
+        State._ticketMedio         = snapshot.kpis?.ticketMedio?.value;
+
+        // Normaliza hierarquia: backend retorna flat [{ radiologiaId, radiologiaNome, faturamento, exames, variacao }]
+        // Frontend espera tree: [{ id, nome, faturamento, exames, variacao, clinicas:[] }]
+        const hierarquia = (hierarquiaRaw || []).map(r => ({
+          id:        r.radiologiaId,
+          nome:      r.radiologiaNome,
+          faturamento: Number(r.faturamento || 0),
+          exames:    Number(r.exames || 0),
+          variacao:  Number(r.variacao || 0),
+          clinicas:  [],  // backend não retorna clínicas aninhadas neste endpoint
+        }));
 
         renderKPIs(snapshot.kpis);
-        renderInsights(snapshot.insights);
+        renderInsights(snapshot.insights || []);
         renderEvolutionChart(evolucao);
-        renderByRadiologyChart(snapshot.porRadiologia, snapshot.topClinicas);
-        renderDistribuicaoChart(snapshot.porRadiologia, snapshot.topClinicas);
-        renderHighlightsPanel(snapshot.topClinicas, snapshot.topMedicos);
+        renderByRadiologyChart(porRadiologia, snapshot.topClinicas || []);
+        renderDistribuicaoChart(porRadiologia, snapshot.topClinicas || []);
+        renderHighlightsPanel(snapshot.topClinicas || [], snapshot.topMedicos || []);
         renderExamTypesChart(tiposExame);
         renderAvgTicketChart(ticketMedio);
-        renderResumoTable(snapshot.porRadiologia);
+        renderResumoTable(porRadiologia);
         renderHierTable(hierarquia);
       } catch (err) {
         console.error('[VisaoGeral] Erro ao carregar dados:', err);
@@ -2460,7 +2494,7 @@
 
       State._goalChartData = {
         isAll, labels, dataMeta, dataRealizado,
-        radioLabel: CFG.radiologies.find(r => r.id === State.radiologia)?.label || 'Todas',
+        radioLabel: (State.radiologies || []).find(r => r.id === State.radiologia)?.nome || 'Todas',
       };
 
       // Título dinâmico
@@ -2544,7 +2578,7 @@
             <!-- Nome -->
             <div class="meta-row__cell meta-row__cell--name">
               <span class="meta-row__name">${r.nome}</span>
-              <span class="meta-row__id">${r.id.charAt(0).toUpperCase() + r.id.slice(1)}</span>
+              <span class="meta-row__id">${r.id ? (r.id.charAt(0).toUpperCase() + r.id.slice(1)) : ''}</span>
             </div>
 
             <!-- Meta Mensal editável -->
@@ -2672,14 +2706,19 @@
       const tbody = document.getElementById('adjustmentHistoryBody');
       if (!tbody) return;
 
+      if (!historico || !historico.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Nenhum ajuste registrado.</td></tr>`;
+        return;
+      }
+
       tbody.innerHTML = historico.map(a => `
     <tr>
-      <td>${H.formatDate(a.data)}</td>
-      <td><span class="badge badge--info">${a.tipo}</span></td>
-      <td>${a.descricao}</td>
-      <td class="data-table__num">${a.anterior}</td>
-      <td class="data-table__num"><strong>${a.novo}</strong></td>
-      <td>${a.responsavel}</td>
+      <td>${H.formatDate(a.criado_em || a.data)}</td>
+      <td><span class="badge badge--info">${a.tipo || '--'}</span></td>
+      <td>${a.descricao || '--'}</td>
+      <td class="data-table__num">${a.valor_anterior != null ? H.currency(a.valor_anterior) : (a.anterior || '--')}</td>
+      <td class="data-table__num"><strong>${a.valor_novo != null ? H.currency(a.valor_novo) : (a.novo || '--')}</strong></td>
+      <td>${a.responsavel || (a.responsavel_id ? `#${a.responsavel_id}` : '--')}</td>
     </tr>`).join('');
     }
 
@@ -2693,7 +2732,17 @@
 
         newBtn.addEventListener('click', async () => {
           try {
-            await Api.postMetasSalvar({ metas: State.goalEdits });
+            const hoje = new Date();
+            const ano = hoje.getFullYear();
+            const mes = hoje.getMonth() + 1;
+            // Converte mapa de edições no array que o backend espera
+            const payload = Object.entries(State.goalEdits).flatMap(([radioId, vals]) => {
+              const items = [];
+              if (vals.meta  !== undefined) items.push({ radiologiaId: radioId, ano, mes,  valorMeta: vals.meta });
+              if (vals.anual !== undefined) items.push({ radiologiaId: radioId, ano, mes: null, valorMeta: vals.anual });
+              return items;
+            });
+            await Api.postMetasSalvar({ metas: payload });
             H.toast('Metas salvas com sucesso!', 'success');
             State.goalEdits = {};
             document.querySelectorAll('.meta-input').forEach(inp => inp.classList.remove('is-modified'));
@@ -2708,13 +2757,68 @@
 
     async function render() {
       const filtros = H.filtrosAtivos();
+      const hoje = new Date();
+      const anoAtual = hoje.getFullYear();
+      const mesAtual = hoje.getMonth() + 1; // 1-based
 
       try {
-        const [metas, historico, evolucao] = await Promise.all([
-          Api.getMetas(filtros),
+        const [metasRaw, historico, evolucao, realizadoRaw] = await Promise.all([
+          // Backend recebe `ano` e opcionalmente `mes`
+          Api.getMetas({ ...filtros, ano: anoAtual }),
           Api.getMetasHistorico(filtros),
-          Api.getFinanceiroEvolucao(filtros), // necessário para o gráfico quando radiologia específica
+          Api.getFinanceiroEvolucao(filtros),
+          // Busca faturamento realizado por radiologia para cruzar com as metas
+          Api.getFinanceiroPorRadiologia(filtros),
         ]);
+
+        // ------------------------------------------------------------------
+        // Normaliza metasRaw (array flat) → shape esperado pelo JS
+        // ------------------------------------------------------------------
+        // Monta mapa de metas mensais e anuais por radiologia
+        const metaMap = {}; // { [radiologiaId]: { mensal: valor, anual: valor } }
+        for (const row of (metasRaw || [])) {
+          const rId = row.radiologia_id;
+          if (!metaMap[rId]) metaMap[rId] = { mensal: 0, anual: 0 };
+          if (row.mes === mesAtual) metaMap[rId].mensal = Number(row.valor_meta || 0);
+          if (row.mes === null)     metaMap[rId].anual  = Number(row.valor_meta || 0);
+        }
+
+        // Monta mapa de realizados por radiologia (do endpoint por-radiologia)
+        const realizadoMap = {}; // { [radiologiaId]: { mensal: valor, anual: valor } }
+        for (const r of (realizadoRaw || [])) {
+          realizadoMap[r.radiologiaId] = {
+            mensal: Number(r.faturamentoAtual || 0),
+            anual:  Number(r.faturamentoAtual || 0), // simplificado — ajuste se houver endpoint de anual
+          };
+        }
+
+        // Constrói porRadiologia combinado
+        const radiologiasKnown = State.radiologies.filter(r => r.id !== 'all');
+        const porRadiologia = radiologiasKnown.map(radio => {
+          const m = metaMap[radio.id] || { mensal: 0, anual: 0 };
+          const rz = realizadoMap[radio.id] || { mensal: 0, anual: 0 };
+          return {
+            id:           radio.id,
+            nome:         radio.nome,
+            meta:         m.mensal,
+            anual:        m.anual,
+            realizado:    rz.mensal,
+            anoRealizado: rz.anual,
+          };
+        });
+
+        // Totais consolidados (soma de todas as radiologias)
+        const totalMetaMensal    = porRadiologia.reduce((s, r) => s + r.meta, 0);
+        const totalRealizadoMes  = porRadiologia.reduce((s, r) => s + r.realizado, 0);
+        const totalMetaAnual     = porRadiologia.reduce((s, r) => s + r.anual, 0);
+        const totalRealizadoAno  = porRadiologia.reduce((s, r) => s + r.anoRealizado, 0);
+
+        // Shape final esperado pelas funções de render
+        const metas = {
+          mensal:        { meta: totalMetaMensal,  realizado: totalRealizadoMes },
+          anual:         { meta: totalMetaAnual,   realizado: totalRealizadoAno },
+          porRadiologia,
+        };
 
         State._metasData = metas;
 
@@ -2746,11 +2850,11 @@
         const historico = await Api.getRelatoriosHistorico(H.filtrosAtivos());
         tbody.innerHTML = historico.map(r => `
       <tr>
-        <td><span class="data-table__name-primary">${r.nome}</span></td>
-        <td>${r.periodo}</td>
-        <td>${r.radiologia}</td>
-        <td>${H.formatDateTime(r.geradoEm)}</td>
-        <td>${H.formatBadge(r.formato)}</td>
+        <td><span class="data-table__name-primary">${r.nome || '--'}</span></td>
+        <td>${r.periodo || '--'}</td>
+        <td>${r.radiologia_id || r.radiologia || 'Todas'}</td>
+        <td>${H.formatDateTime(r.criado_em || r.geradoEm)}</td>
+        <td>${H.formatBadge(r.formato || 'PDF')}</td>
         <td class="data-table__action">
           <button type="button" class="download-btn" aria-label="Baixar ${r.nome}">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -2873,7 +2977,7 @@
       if (sub) sub.textContent = `Radiologia ${data.radioNome}`;
 
       // Snapshot do estado atual
-      const radioMeta = MOCK_METAS.porRadiologia.find(r => r.id === data.radioId);
+      const radioMeta = (State._metasData?.porRadiologia || []).find(r => r.id === data.radioId);
       const pctAtual = radioMeta && data.meta > 0 ? (radioMeta.realizado / data.meta * 100) : 0;
       const snap = document.getElementById('modalGoalSnapshot');
       if (snap && radioMeta) {
