@@ -1707,6 +1707,52 @@
     box-shadow: var(--shadow-sm);
 }
 
+/* Estado padrão: barra escondida até o JS detectar alteração
+   nos campos (adiciona .cfg-actions-bar--visible) */
+.cfg-actions-bar[hidden] {
+    display: none;
+}
+
+/* Quando há alterações pendentes: vira uma barra fixa no rodapé
+   da viewport, flutuando sobre o conteúdo ao rolar a página */
+.cfg-actions-bar--sticky {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 500;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    box-shadow: 0 -6px 20px -8px rgba(19, 39, 43, 0.25);
+    animation: cfgActionsBarIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes cfgActionsBarIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Espaçador inserido pelo JS logo após a barra sticky, para o
+   conteúdo da página não ficar escondido atrás dela ao rolar
+   até o final */
+.cfg-actions-spacer {
+    height: 0;
+    transition: height 0.18s ease;
+}
+
+.cfg-actions-spacer--active {
+    height: 76px;
+}
+
 
 /* =============================================================
    16. MODAIS
@@ -2398,9 +2444,8 @@
         align-items: stretch;
     }
 
-    .page-header__actions {
-        justify-content: flex-end;
-    }
+    /* .page-header__actions: sem conteúdo desde a remoção dos
+       botões globais de Salvar/Descartar (agora por seção) */
 
     .fin-tabs {
         overflow-x: auto;

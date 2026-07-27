@@ -222,8 +222,8 @@
         async init() {
             this.bindSave()
             this.bindDiscard()
-            this.bindLogoUpload()
-            this.bindColorPicker()
+            this.bindNewExamButton()
+            this.bindChangesDetection()
             this.bindToggleSubs()
 
             // Carrega dados reais da aba Geral
@@ -244,8 +244,6 @@
             if (!btn) return
             btn.addEventListener('click', async () => {
                 const payload = {
-                    systemName: document.getElementById('systemName')?.value?.trim(),
-                    systemTagline: document.getElementById('systemTagline')?.value?.trim(),
                     companyName: document.getElementById('companyName')?.value?.trim(),
                     companyFantasy: document.getElementById('companyFantasy')?.value?.trim(),
                     companyCNPJ: document.getElementById('companyCNPJ')?.value?.trim(),
@@ -255,7 +253,6 @@
                     companyAddress: document.getElementById('companyAddress')?.value?.trim(),
                     notifications: {
                         email: { enabled: document.getElementById('toggleEmail')?.checked ?? false },
-                        whatsapp: { enabled: document.getElementById('toggleWhatsapp')?.checked ?? false },
                     },
                     regionalization: {
                         language: document.getElementById('cfgLanguage')?.value,
@@ -269,6 +266,7 @@
                 try {
                     await Api.postConfiguracoesGeral(payload)
                     Toast.show('Configurações gerais salvas com sucesso.')
+                    if (GeralModule._hideBar) GeralModule._hideBar()
                 } catch (err) {
                     console.error(err)
                     const msg = err?.body?.message || 'Erro ao salvar configurações.'
@@ -285,6 +283,7 @@
                     const res = await Api.getConfiguracoesGeral()
                     GeralModule.fillForm(res.data || {})
                     Toast.show('Alterações descartadas.', 'warning')
+                    if (GeralModule._hideBar) GeralModule._hideBar()
                 } catch (err) {
                     console.error(err)
                     Toast.show('Erro ao recarregar configurações.', 'error')
@@ -295,8 +294,6 @@
         /** Preenche os campos do formulário com os dados vindos da API */
         fillForm(dados) {
             const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? '' }
-            set('systemName', dados.systemName)
-            set('systemTagline', dados.systemTagline)
             set('companyName', dados.companyName)
             set('companyFantasy', dados.companyFantasy)
             set('companyCNPJ', dados.companyCNPJ)
@@ -312,68 +309,73 @@
 
             const toggleEmail = document.getElementById('toggleEmail')
             if (toggleEmail) toggleEmail.checked = dados.notifications?.email?.enabled ?? true
-            const toggleWA = document.getElementById('toggleWhatsapp')
-            if (toggleWA) toggleWA.checked = dados.notifications?.whatsapp?.enabled ?? true
 
-                // Dispara update visual dos sub-configs
-                ;['toggleEmail', 'toggleWhatsapp'].forEach(id => {
-                    document.getElementById(id)?.dispatchEvent(new Event('change'))
-                })
+            // Dispara update visual do sub-config de e-mail
+            document.getElementById('toggleEmail')?.dispatchEvent(new Event('change'))
         },
 
-        bindLogoUpload() {
-            const btn = document.getElementById('btnUploadLogo')
-            const input = document.getElementById('logoInput')
-            const preview = document.getElementById('logoPreview')
-            const area = document.getElementById('logoUploadArea')
-            if (!btn || !input) return
+        /**
+         * Detecta qualquer alteração nos inputs/selects/checkboxes do painel Geral
+         * e exibe a barra de ações sticky no rodapé. A barra some após salvar ou descartar.
+         */
+        bindChangesDetection() {
+            const panel = document.getElementById('tab-geral')
+            const bar = document.getElementById('btnGeralSave')?.closest('.cfg-actions-bar')
+            if (!panel || !bar) return
 
-            const doUpload = () => input.click()
-            btn.addEventListener('click', doUpload)
-            area.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') doUpload() })
+            // Guarda estado inicial (após fillForm ter sido chamado)
+            let _snapshot = null
+            const snapshot = () => panel.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"]), select, textarea')
+                .forEach(el => { el.dataset.origVal = el.value })
+            const checkboxSnap = () => panel.querySelectorAll('input[type="checkbox"]')
+                .forEach(el => { el.dataset.origChecked = el.checked ? '1' : '0' })
 
-            input.addEventListener('change', async () => {
-                const file = input.files[0]
-                if (!file) return
-                if (file.size > 2 * 1024 * 1024) {
-                    Toast.show('Arquivo muito grande. Máx. 2MB.', 'error')
-                    return
+            // Chama snapshot depois que a API preencher o form (pequeno delay)
+            setTimeout(() => { snapshot(); checkboxSnap() }, 400)
+
+            const showBar = () => {
+                bar.removeAttribute('hidden')
+                bar.classList.add('cfg-actions-bar--sticky')
+                // Espaçador para não tampar conteúdo
+                if (!document.getElementById('_geralSpacer')) {
+                    const sp = document.createElement('div')
+                    sp.id = '_geralSpacer'
+                    sp.className = 'cfg-actions-spacer cfg-actions-spacer--active'
+                    bar.parentNode.insertBefore(sp, bar)
                 }
+            }
 
-                // Preview local imediato
-                const reader = new FileReader()
-                reader.onload = e => {
-                    const placeholder = preview.querySelector('.logo-upload-area__placeholder')
-                    if (placeholder) placeholder.remove()
-                    let img = preview.querySelector('img')
-                    if (!img) { img = document.createElement('img'); preview.appendChild(img) }
-                    img.src = e.target.result
+            const hideBar = () => {
+                bar.setAttribute('hidden', '')
+                bar.classList.remove('cfg-actions-bar--sticky')
+                const sp = document.getElementById('_geralSpacer')
+                if (sp) sp.remove()
+                // Atualiza snapshot para o novo estado salvo/descartado
+                setTimeout(() => { snapshot(); checkboxSnap() }, 100)
+            }
+
+            const hasChanges = () => {
+                for (const el of panel.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"]), select, textarea')) {
+                    if (el.dataset.origVal !== undefined && el.value !== el.dataset.origVal) return true
                 }
-                reader.readAsDataURL(file)
-
-                // Upload real
-                try {
-                    await Api.postConfiguracoesLogo(file)
-                    Toast.show('Logo enviado com sucesso.')
-                } catch (err) {
-                    console.error(err)
-                    Toast.show('Erro ao enviar logo.', 'error')
+                for (const el of panel.querySelectorAll('input[type="checkbox"]')) {
+                    const orig = el.dataset.origChecked
+                    if (orig !== undefined && (el.checked ? '1' : '0') !== orig) return true
                 }
-            })
-        },
+                return false
+            }
 
-        bindColorPicker() {
-            const picker = document.getElementById('radColor')
-            const label = document.getElementById('radColorLabel')
-            if (!picker || !label) return
-            picker.addEventListener('input', () => { label.textContent = picker.value })
+            panel.addEventListener('input', () => { if (hasChanges()) showBar() })
+            panel.addEventListener('change', () => { if (hasChanges()) showBar(); else hideBar() })
+
+            // Esconde a barra depois de salvar ou descartar com sucesso
+            GeralModule._hideBar = hideBar
         },
 
         /** Mostrar/ocultar sub-config das notificações conforme toggle */
         bindToggleSubs() {
             const pairs = [
                 { toggleId: 'toggleEmail', subId: 'emailSubConfig' },
-                { toggleId: 'toggleWhatsapp', subId: 'whatsappSubConfig' },
             ]
             pairs.forEach(({ toggleId, subId }) => {
                 const toggle = document.getElementById(toggleId)
@@ -1092,7 +1094,7 @@
                 this.renderExamDurations()
                 this.renderWAMessages()
                 this.fillSchedulingForm()
-                this.fillFinancialForm()
+                this.bindChangesDetection()
             } catch (err) {
                 console.error(err)
                 Toast.show('Erro ao carregar parâmetros.', 'error')
@@ -1118,6 +1120,19 @@
                 aria-label="Duração de ${Utils.escapeHtml(e.label)} em minutos"
             >
             <span class="exam-duration-item__unit">min</span>
+          </div>
+          <div class="exam-duration-item__input-wrap" style="margin-top:6px;">
+            <span class="exam-duration-item__unit" style="border-right:none;border-left:none;padding-right:4px;">R$</span>
+            <input
+                type="number"
+                class="exam-duration-item__input exam-duration-item__value"
+                data-exam-id="${Utils.escapeHtml(e.id)}"
+                value="${e.value ?? 0}"
+                min="0"
+                step="0.01"
+                aria-label="Valor de ${Utils.escapeHtml(e.label)} em reais"
+                placeholder="0,00"
+            >
           </div>
         </div>
       `).join('')
@@ -1185,19 +1200,16 @@
             setChk('toggleAutoBlock', s.bloquearAutomatico)
         },
 
-        /** Preenche os campos financeiros com dados vindos da API */
-        fillFinancialForm() {
-            const f = this.data.financial || {}
-            const set = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val }
-            set('paramComissao', f.comissaoPadrao)
-            set('paramImpostos', f.impostos)
-            set('paramVencimento', f.vencimentoComissoes)
-        },
-
         collectData() {
             const durations = {}
             document.querySelectorAll('.exam-duration-item__input[data-exam-id]').forEach(inp => {
                 durations[inp.dataset.examId] = parseInt(inp.value, 10) || 0
+            })
+
+            // Coleta também o valor (R$) de cada exame
+            const examValues = {}
+            document.querySelectorAll('.exam-duration-item__value[data-exam-id]').forEach(inp => {
+                examValues[inp.dataset.examId] = parseFloat(inp.value) || 0
             })
 
             const messages = []
@@ -1220,13 +1232,49 @@
                 bloquearAutomatico: document.getElementById('toggleAutoBlock')?.checked,
             }
 
-            const financial = {
-                comissaoPadrao: parseFloat(document.getElementById('paramComissao')?.value),
-                impostos: parseFloat(document.getElementById('paramImpostos')?.value),
-                vencimentoComissoes: parseInt(document.getElementById('paramVencimento')?.value, 10),
+            return { durations, examValues, messages, scheduling }
+        },
+
+        /** Barra sticky de salvar para a aba Parâmetros */
+        bindChangesDetection() {
+            const panel = document.getElementById('tab-parametros')
+            const bar = document.getElementById('btnParamSave')?.closest('.cfg-actions-bar')
+            if (!panel || !bar) return
+
+            const showBar = () => {
+                bar.removeAttribute('hidden')
+                bar.classList.add('cfg-actions-bar--sticky')
+                if (!document.getElementById('_paramSpacer')) {
+                    const sp = document.createElement('div')
+                    sp.id = '_paramSpacer'
+                    sp.className = 'cfg-actions-spacer cfg-actions-spacer--active'
+                    bar.parentNode.insertBefore(sp, bar)
+                }
             }
 
-            return { durations, messages, scheduling, financial }
+            const hideBar = () => {
+                bar.setAttribute('hidden', '')
+                bar.classList.remove('cfg-actions-bar--sticky')
+                const sp = document.getElementById('_paramSpacer')
+                if (sp) sp.remove()
+            }
+
+            panel.addEventListener('input', showBar)
+            panel.addEventListener('change', showBar)
+
+            ParametrosModule._hideBar = hideBar
+        },
+
+        /** Botão "+ Novo Exame" */
+        bindNewExamButton() {
+            document.getElementById('btnNewExamType')?.addEventListener('click', () => {
+                const label = prompt('Nome do tipo de exame (ex: Tomografia):')
+                if (!label?.trim()) return
+                const id = 'exam-' + Date.now()
+                const newExam = { id, label: label.trim(), duration: 30, value: 0 }
+                this.data.examDurations.push(newExam)
+                this.renderExamDurations()
+            })
         },
 
         /** [API] POST /parametros */
@@ -1236,6 +1284,7 @@
                 try {
                     await Api.postParametros(payload)
                     Toast.show('Parâmetros salvos com sucesso.')
+                    if (ParametrosModule._hideBar) ParametrosModule._hideBar()
                 } catch (err) {
                     console.error(err)
                     Toast.show('Erro ao salvar parâmetros.', 'error')
@@ -1251,12 +1300,11 @@
                     if (!this.data.examDurations) this.data.examDurations = []
                     if (!this.data.whatsappMessages) this.data.whatsappMessages = []
                     if (!this.data.scheduling) this.data.scheduling = {}
-                    if (!this.data.financial) this.data.financial = {}
                     this.renderExamDurations()
                     this.renderWAMessages()
                     this.fillSchedulingForm()
-                    this.fillFinancialForm()
                     Toast.show('Alterações descartadas.', 'warning')
+                    if (ParametrosModule._hideBar) ParametrosModule._hideBar()
                 } catch (err) {
                     console.error(err)
                     Toast.show('Erro ao recarregar parâmetros.', 'error')
@@ -1440,12 +1488,22 @@
             openModal('modalClinicBackdrop')
         },
 
+        populateRadiologySelect(selectedId = '') {
+            const select = document.getElementById('clinicRadiology')
+            if (!select) return
+            select.innerHTML = `<option value="">Selecione a radiologia...</option>` +
+                State.radiologias.map(r =>
+                    `<option value="${Utils.escapeHtml(r.id)}" ${String(r.id) === String(selectedId) ? 'selected' : ''}>${Utils.escapeHtml(r.name)}</option>`
+                ).join('')
+        },
+
         clearForm() {
             ;['modalClinicId', 'clinicName', 'clinicCity', 'clinicPhone', 'clinicEmail', 'clinicAddress'].forEach(id => {
                 const el = document.getElementById(id); if (el) el.value = ''
             })
             const state = document.getElementById('clinicState'); if (state) state.value = 'RN'
             const status = document.getElementById('clinicStatus'); if (status) status.value = 'ativo'
+            this.populateRadiologySelect()
         },
 
         fillForm(c) {
@@ -1457,6 +1515,7 @@
             document.getElementById('clinicEmail').value = c.email || ''
             document.getElementById('clinicAddress').value = c.address || ''
             document.getElementById('clinicStatus').value = c.status || 'ativo'
+            this.populateRadiologySelect(c.radiologyId || c.radiologia_id || '')
         },
 
         renderLinkedDoctors(clinicId) {
@@ -1489,9 +1548,13 @@
             const name = document.getElementById('clinicName')?.value?.trim()
             if (!name) { Toast.show('Informe o nome da clínica.', 'error'); return }
 
+            const radiologyId = document.getElementById('clinicRadiology')?.value
+            if (!radiologyId) { Toast.show('Selecione a radiologia vinculada.', 'error'); return }
+
             const payload = {
                 id: document.getElementById('modalClinicId')?.value || null,
                 name,
+                radiologyId,
                 city: document.getElementById('clinicCity')?.value?.trim() || '',
                 state: document.getElementById('clinicState')?.value || 'RN',
                 phone: document.getElementById('clinicPhone')?.value?.trim() || '',
@@ -1569,7 +1632,6 @@
             })
             const spec = document.getElementById('doctorSpecialty'); if (spec) spec.value = ''
             const status = document.getElementById('doctorStatus'); if (status) status.value = 'ativo'
-            const comissao = document.getElementById('doctorComissao'); if (comissao) comissao.value = '30'
         },
 
         fillForm(m) {
@@ -1579,7 +1641,6 @@
             document.getElementById('doctorCRO').value = m.cro || ''
             document.getElementById('doctorPhone').value = m.phone || ''
             document.getElementById('doctorEmail').value = m.email || ''
-            document.getElementById('doctorComissao').value = m.comissao ?? 30
             document.getElementById('doctorStatus').value = m.status || 'ativo'
         },
 
@@ -1596,7 +1657,6 @@
                 phone: document.getElementById('doctorPhone')?.value?.trim() || '',
                 email: document.getElementById('doctorEmail')?.value?.trim() || '',
                 clinicId: document.getElementById('doctorClinic')?.value || '',
-                comissao: parseFloat(document.getElementById('doctorComissao')?.value) || 30,
                 status: document.getElementById('doctorStatus')?.value || 'ativo',
             }
 
@@ -1611,7 +1671,6 @@
                         phone: criado.phone || payload.phone,
                         email: criado.email || payload.email,
                         status: criado.status || payload.status,
-                        comissao: payload.comissao,
                     })
                     Toast.show('Médico cadastrado com sucesso.')
                 } else {
@@ -1625,7 +1684,6 @@
                         phone: atualizado.phone || payload.phone,
                         email: atualizado.email || payload.email,
                         status: atualizado.status || payload.status,
-                        comissao: payload.comissao,
                     }
                     Toast.show('Médico atualizado com sucesso.')
                 }

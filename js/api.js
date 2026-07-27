@@ -1733,7 +1733,7 @@ const Api = (() => {
      *
      * Resposta esperada:
      * [
-     *   { id, name, city, state, phone, email, address, status }
+     *   { id, name, city, state, phone, email, address, status, radiologyId }
      * ]
      */
     async function getClinicas(filtros = {}) {
@@ -1752,6 +1752,7 @@ const Api = (() => {
      *
      * @param {object} dados
      * @param {string} dados.name
+     * @param {string} dados.radiologyId  - OBRIGATÓRIO: id da radiologia vinculada
      * @param {string} dados.city
      * @param {string} dados.state
      * @param {string} dados.phone
@@ -1774,9 +1775,9 @@ const Api = (() => {
      * [API] PUT /clinicas/:clinicaId
      *
      * @param {string} clinicaId
-     * @param {object} dados - mesmos campos de postClinica
+     * @param {object} dados - mesmos campos de postClinica (incluindo radiologyId)
      *
-     * Resposta esperada: objeto clínica atualizado
+     * Resposta esperada: objeto clínica atualizado (incluindo radiologyId)
      */
     async function updateClinica(clinicaId, dados) {
         return request(`/clinicas/${clinicaId}`, {
@@ -1966,7 +1967,7 @@ const Api = (() => {
      *
      * Resposta esperada:
      * {
-     *   examDurations: [ { id, label, duration } ],
+     *   examDurations: [ { id, label, duration, valor_base } ],
      *   whatsappMessages: [
      *     { id, event, active, text }
      *   ],
@@ -1993,9 +1994,9 @@ const Api = (() => {
      *
      * @param {object} dados
      * @param {object} dados.durations        - { [examId]: number } duração em minutos
+     * @param {object} dados.examValues       - { [examId]: number } valor base em R$
      * @param {Array}  dados.messages         - [ { id, active, text } ]
      * @param {object} dados.scheduling       - campos de agendamento
-     * @param {object} dados.financial        - campos financeiros
      *
      * Resposta esperada: { sucesso: true }
      */

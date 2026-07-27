@@ -610,7 +610,8 @@ def listar_clinicas():
     status = request.args.get("status", "")
 
     sql    = "SELECT id, nome AS name, cidade AS city, estado AS state, " \
-             "       telefone AS phone, email, endereco AS address, status " \
+             "       telefone AS phone, email, endereco AS address, status, " \
+             "       radiologia_id AS radiologyId " \
              "FROM clinicas WHERE 1=1"
     params = []
 
@@ -631,7 +632,7 @@ def listar_clinicas():
 @require_admin
 def criar_clinica():
     data = request.get_json(silent=True) or {}
-    missing = validate_required(data, ["name"])
+    missing = validate_required(data, ["name", "radiologyId"])
     if missing:
         return err("Campos obrigatórios ausentes.", 400, missing)
 
@@ -639,15 +640,16 @@ def criar_clinica():
         return err("E-mail inválido.", 400)
 
     new_id = insert(
-        "INSERT INTO clinicas (nome, cidade, estado, telefone, email, endereco, status) "
-        "VALUES (%s,%s,%s,%s,%s,%s,%s)",
+        "INSERT INTO clinicas (nome, cidade, estado, telefone, email, endereco, status, radiologia_id) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
         (data["name"], data.get("city"), data.get("state"),
          data.get("phone"), data.get("email"), data.get("address"),
-         data.get("status", "ativo"))
+         data.get("status", "ativo"), data.get("radiologyId"))
     )
     nova = query(
         "SELECT id, nome AS name, cidade AS city, estado AS state, "
-        "telefone AS phone, email, endereco AS address, status FROM clinicas WHERE id = %s",
+        "telefone AS phone, email, endereco AS address, status, "
+        "radiologia_id AS radiologyId FROM clinicas WHERE id = %s",
         (new_id,), fetch="one"
     )
     return created(nova, "Clínica criada com sucesso.")
@@ -666,15 +668,16 @@ def atualizar_clinica(clinica_id):
 
     query(
         "UPDATE clinicas SET nome=%s, cidade=%s, estado=%s, telefone=%s, "
-        "email=%s, endereco=%s, status=%s WHERE id = %s",
+        "email=%s, endereco=%s, status=%s, radiologia_id=%s WHERE id = %s",
         (data.get("name"), data.get("city"), data.get("state"),
          data.get("phone"), data.get("email"), data.get("address"),
-         data.get("status", "ativo"), clinica_id),
+         data.get("status", "ativo"), data.get("radiologyId"), clinica_id),
         fetch="none"
     )
     updated = query(
         "SELECT id, nome AS name, cidade AS city, estado AS state, "
-        "telefone AS phone, email, endereco AS address, status FROM clinicas WHERE id = %s",
+        "telefone AS phone, email, endereco AS address, status, "
+        "radiologia_id AS radiologyId FROM clinicas WHERE id = %s",
         (clinica_id,), fetch="one"
     )
     return ok(updated, "Clínica atualizada com sucesso.")
@@ -2897,7 +2900,7 @@ def parametros_get():
                 resultado[chave] = {}
 
     tipos = query("SELECT id, label, duracao_min AS duration, valor_base FROM tipos_exame ORDER BY label")
-    exam_durations = [{"id": t["id"], "label": t["label"], "duration": t["duration"], "valor_base": float(t["valor_base"] or 0)} for t in tipos]
+    exam_durations = [{"id": t["id"], "label": t["label"], "duration": t["duration"], "value": float(t["valor_base"] or 0)} for t in tipos]
 
     return ok({
         "examDurations":    exam_durations,
@@ -2912,15 +2915,21 @@ def parametros_get():
 def parametros_post():
     data = request.get_json(silent=True) or {}
 
-    durations  = data.get("durations", {})
-    messages   = data.get("messages", [])
-    scheduling = data.get("scheduling", {})
-    financial  = data.get("financial", {})
+    durations   = data.get("durations", {})
+    exam_values = data.get("examValues", {})
+    messages    = data.get("messages", [])
+    scheduling  = data.get("scheduling", {})
 
     for exam_id, duracao in durations.items():
         query(
             "UPDATE tipos_exame SET duracao_min = %s WHERE id = %s",
             (int(duracao), exam_id), fetch="none"
+        )
+
+    for exam_id, valor in exam_values.items():
+        query(
+            "UPDATE tipos_exame SET valor_base = %s WHERE id = %s",
+            (float(valor), exam_id), fetch="none"
         )
 
     def _salvar_param(chave, valor):
@@ -2935,8 +2944,6 @@ def parametros_post():
         _salvar_param("whatsapp_messages", messages)
     if scheduling:
         _salvar_param("scheduling", scheduling)
-    if financial:
-        _salvar_param("financial", financial)
 
     return ok({"sucesso": True}, "Parâmetros salvos com sucesso.")
 
