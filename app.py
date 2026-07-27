@@ -2729,6 +2729,32 @@ def configuracoes_post():
 def configuracoes_logo():
     return ok({"logo_url": "/uploads/logo.png"}, "Logo atualizada.")
 
+@app.route("/v1/configuracoes/geral", methods=["GET"])
+@require_auth
+def configuracoes_geral_get():
+    row = query("SELECT valor FROM configuracoes WHERE chave = %s", ("geral",), fetch="one")
+    if not row:
+        return not_found("Configuração 'geral' não encontrada.")
+    try:
+        dados = json.loads(row["valor"])
+    except (TypeError, ValueError):
+        dados = {}
+    return ok(dados)
+
+
+@app.route("/v1/configuracoes/geral", methods=["POST"])
+@require_admin
+def configuracoes_geral_post():
+    dados = request.get_json(silent=True)
+    if dados is None:
+        return err("Corpo da requisição inválido ou ausente.", 400)
+    valor = json.dumps(dados, ensure_ascii=False)
+    query(
+        "INSERT INTO configuracoes (chave, valor) VALUES (%s, %s) "
+        "ON DUPLICATE KEY UPDATE valor = %s",
+        ("geral", valor, valor), fetch="none"
+    )
+    return ok(None, "Configurações gerais salvas com sucesso.")
 
 # -----------------------------------------------------------------------------
 # 17. USUÁRIOS

@@ -220,174 +220,147 @@
     =========================================================== */
     const GeralModule = {
         async init() {
-    this.bindSave()
-    this.bindDiscard()
-    this.bindLogoUpload()
-    this.bindColorPicker()
-    this.bindToggleSubs()
+            this.bindSave()
+            this.bindDiscard()
+            this.bindLogoUpload()
+            this.bindColorPicker()
+            this.bindToggleSubs()
 
-    // Carrega dados reais da aba Geral
-    try {
-        const res = await Api.getConfiguracoesGeral()
-        const dados = res.data || {}
-        this.fillForm(GeralModule.normalizarDados(dados))
-    } catch (err) {
-        console.error(err)
-        Toast.show('Erro ao carregar configurações gerais.', 'error')
-    }
-},
+            // Carrega dados reais da aba Geral
+            try {
+                const res = await Api.getConfiguracoesGeral()
+                this.fillForm(res.data || {})
+            } catch (err) {
+                console.error(err)
+                Toast.show('Erro ao carregar configurações gerais.', 'error')
+            }
+        },
 
-/**
- * Normaliza o retorno de /configuracoes/geral (ou /configuracoes) para o
- * formato esperado pelo fillForm. O backend atual usa /v1/configuracoes
- * com chaves: nome_sistema, logo_url, tema, idioma, fuso_horario.
- * O backend de /v1/configuracoes/geral pode retornar estrutura completa.
- */
-normalizarDados(dados) {
-    // Suporte a ambas as estruturas (backend atual e futura extensão)
-    return {
-        systemName:     dados.systemName    || dados.nome_sistema    || '',
-        systemTagline:  dados.systemTagline || dados.tagline         || '',
-        companyName:    dados.companyName   || dados.empresa_nome    || '',
-        companyFantasy: dados.companyFantasy|| dados.empresa_fantasia|| '',
-        companyCNPJ:    dados.companyCNPJ   || dados.cnpj            || '',
-        companyPhone:   dados.companyPhone  || dados.empresa_telefone|| '',
-        companyEmail:   dados.companyEmail  || dados.empresa_email   || '',
-        companySite:    dados.companySite   || dados.empresa_site    || '',
-        companyAddress: dados.companyAddress|| dados.empresa_endereco|| '',
-        notifications: {
-            email:    { enabled: dados.notifications?.email?.enabled    ?? true },
-            whatsapp: { enabled: dados.notifications?.whatsapp?.enabled ?? true },
-        },
-        regionalization: {
-            language:   dados.regionalization?.language   || dados.idioma        || 'pt_BR',
-            timezone:   dados.regionalization?.timezone   || dados.fuso_horario  || 'America/Sao_Paulo',
-            currency:   dados.regionalization?.currency   || dados.moeda         || 'BRL',
-            dateFormat: dados.regionalization?.dateFormat || dados.formato_data  || 'DD/MM/AAAA',
-            timeFormat: dados.regionalization?.timeFormat || dados.formato_hora  || '24h',
-        },
-    }
-},
 
         /** [API] POST /configuracoes/geral */
         /** [API] POST /configuracoes/geral */
-bindSave() {
-    const btn = document.getElementById('btnGeralSave')
-    if (!btn) return
-    btn.addEventListener('click', async () => {
-        const payload = {
-            systemName: document.getElementById('systemName')?.value?.trim(),
-            systemTagline: document.getElementById('systemTagline')?.value?.trim(),
-            companyName: document.getElementById('companyName')?.value?.trim(),
-            companyFantasy: document.getElementById('companyFantasy')?.value?.trim(),
-            companyCNPJ: document.getElementById('companyCNPJ')?.value?.trim(),
-            companyPhone: document.getElementById('companyPhone')?.value?.trim(),
-            companyEmail: document.getElementById('companyEmail')?.value?.trim(),
-            companySite: document.getElementById('companySite')?.value?.trim(),
-            companyAddress: document.getElementById('companyAddress')?.value?.trim(),
-            language: document.getElementById('cfgLanguage')?.value,
-            timezone: document.getElementById('cfgTimezone')?.value,
-            currency: document.getElementById('cfgCurrency')?.value,
-            dateFormat: document.getElementById('cfgDateFormat')?.value,
-            timeFormat: document.getElementById('cfgTimeFormat')?.value,
-        }
+        bindSave() {
+            const btn = document.getElementById('btnGeralSave')
+            if (!btn) return
+            btn.addEventListener('click', async () => {
+                const payload = {
+                    systemName: document.getElementById('systemName')?.value?.trim(),
+                    systemTagline: document.getElementById('systemTagline')?.value?.trim(),
+                    companyName: document.getElementById('companyName')?.value?.trim(),
+                    companyFantasy: document.getElementById('companyFantasy')?.value?.trim(),
+                    companyCNPJ: document.getElementById('companyCNPJ')?.value?.trim(),
+                    companyPhone: document.getElementById('companyPhone')?.value?.trim(),
+                    companyEmail: document.getElementById('companyEmail')?.value?.trim(),
+                    companySite: document.getElementById('companySite')?.value?.trim(),
+                    companyAddress: document.getElementById('companyAddress')?.value?.trim(),
+                    notifications: {
+                        email: { enabled: document.getElementById('toggleEmail')?.checked ?? false },
+                        whatsapp: { enabled: document.getElementById('toggleWhatsapp')?.checked ?? false },
+                    },
+                    regionalization: {
+                        language: document.getElementById('cfgLanguage')?.value,
+                        timezone: document.getElementById('cfgTimezone')?.value,
+                        currency: document.getElementById('cfgCurrency')?.value,
+                        dateFormat: document.getElementById('cfgDateFormat')?.value,
+                        timeFormat: document.getElementById('cfgTimeFormat')?.value,
+                    },
+                }
 
-        try {
-            await Api.postConfiguracoesGeral(payload)
-            Toast.show('Configurações gerais salvas com sucesso.')
-        } catch (err) {
-            console.error(err)
-            const msg = err?.body?.message || 'Erro ao salvar configurações.'
-            Toast.show(msg, 'error')
-        }
-    })
-},
+                try {
+                    await Api.postConfiguracoesGeral(payload)
+                    Toast.show('Configurações gerais salvas com sucesso.')
+                } catch (err) {
+                    console.error(err)
+                    const msg = err?.body?.message || 'Erro ao salvar configurações.'
+                    Toast.show(msg, 'error')
+                }
+            })
+        },
 
-bindDiscard() {
-    const btn = document.getElementById('btnGeralDiscard')
-    if (!btn) return
-    btn.addEventListener('click', async () => {
-        try {
-            const res = await Api.getConfiguracoesGeral()
-            const dados = res.data || {}
-            GeralModule.fillForm(GeralModule.normalizarDados(dados))
-            Toast.show('Alterações descartadas.', 'warning')
-        } catch (err) {
-            console.error(err)
-            Toast.show('Erro ao recarregar configurações.', 'error')
-        }
-    })
-},
+        bindDiscard() {
+            const btn = document.getElementById('btnGeralDiscard')
+            if (!btn) return
+            btn.addEventListener('click', async () => {
+                try {
+                    const res = await Api.getConfiguracoesGeral()
+                    GeralModule.fillForm(res.data || {})
+                    Toast.show('Alterações descartadas.', 'warning')
+                } catch (err) {
+                    console.error(err)
+                    Toast.show('Erro ao recarregar configurações.', 'error')
+                }
+            })
+        },
 
-/** Preenche os campos do formulário com os dados vindos da API */
-fillForm(dados) {
-    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? '' }
-    set('systemName',    dados.systemName)
-    set('systemTagline', dados.systemTagline)
-    set('companyName',   dados.companyName)
-    set('companyFantasy',dados.companyFantasy)
-    set('companyCNPJ',   dados.companyCNPJ)
-    set('companyPhone',  dados.companyPhone)
-    set('companyEmail',  dados.companyEmail)
-    set('companySite',   dados.companySite)
-    set('companyAddress',dados.companyAddress)
-    set('cfgLanguage',   dados.regionalization?.language)
-    set('cfgTimezone',   dados.regionalization?.timezone)
-    set('cfgCurrency',   dados.regionalization?.currency)
-    set('cfgDateFormat', dados.regionalization?.dateFormat)
-    set('cfgTimeFormat', dados.regionalization?.timeFormat)
+        /** Preenche os campos do formulário com os dados vindos da API */
+        fillForm(dados) {
+            const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? '' }
+            set('systemName', dados.systemName)
+            set('systemTagline', dados.systemTagline)
+            set('companyName', dados.companyName)
+            set('companyFantasy', dados.companyFantasy)
+            set('companyCNPJ', dados.companyCNPJ)
+            set('companyPhone', dados.companyPhone)
+            set('companyEmail', dados.companyEmail)
+            set('companySite', dados.companySite)
+            set('companyAddress', dados.companyAddress)
+            set('cfgLanguage', dados.regionalization?.language)
+            set('cfgTimezone', dados.regionalization?.timezone)
+            set('cfgCurrency', dados.regionalization?.currency)
+            set('cfgDateFormat', dados.regionalization?.dateFormat)
+            set('cfgTimeFormat', dados.regionalization?.timeFormat)
 
-    const toggleEmail = document.getElementById('toggleEmail')
-    if (toggleEmail) toggleEmail.checked = dados.notifications?.email?.enabled ?? true
-    const toggleWA = document.getElementById('toggleWhatsapp')
-    if (toggleWA) toggleWA.checked = dados.notifications?.whatsapp?.enabled ?? true
+            const toggleEmail = document.getElementById('toggleEmail')
+            if (toggleEmail) toggleEmail.checked = dados.notifications?.email?.enabled ?? true
+            const toggleWA = document.getElementById('toggleWhatsapp')
+            if (toggleWA) toggleWA.checked = dados.notifications?.whatsapp?.enabled ?? true
 
-    // Dispara update visual dos sub-configs
-    ;['toggleEmail', 'toggleWhatsapp'].forEach(id => {
-        document.getElementById(id)?.dispatchEvent(new Event('change'))
-    })
-},
+                // Dispara update visual dos sub-configs
+                ;['toggleEmail', 'toggleWhatsapp'].forEach(id => {
+                    document.getElementById(id)?.dispatchEvent(new Event('change'))
+                })
+        },
 
-bindLogoUpload() {
-    const btn     = document.getElementById('btnUploadLogo')
-    const input   = document.getElementById('logoInput')
-    const preview = document.getElementById('logoPreview')
-    const area    = document.getElementById('logoUploadArea')
-    if (!btn || !input) return
+        bindLogoUpload() {
+            const btn = document.getElementById('btnUploadLogo')
+            const input = document.getElementById('logoInput')
+            const preview = document.getElementById('logoPreview')
+            const area = document.getElementById('logoUploadArea')
+            if (!btn || !input) return
 
-    const doUpload = () => input.click()
-    btn.addEventListener('click', doUpload)
-    area.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') doUpload() })
+            const doUpload = () => input.click()
+            btn.addEventListener('click', doUpload)
+            area.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') doUpload() })
 
-    input.addEventListener('change', async () => {
-        const file = input.files[0]
-        if (!file) return
-        if (file.size > 2 * 1024 * 1024) {
-            Toast.show('Arquivo muito grande. Máx. 2MB.', 'error')
-            return
-        }
+            input.addEventListener('change', async () => {
+                const file = input.files[0]
+                if (!file) return
+                if (file.size > 2 * 1024 * 1024) {
+                    Toast.show('Arquivo muito grande. Máx. 2MB.', 'error')
+                    return
+                }
 
-        // Preview local imediato
-        const reader = new FileReader()
-        reader.onload = e => {
-            const placeholder = preview.querySelector('.logo-upload-area__placeholder')
-            if (placeholder) placeholder.remove()
-            let img = preview.querySelector('img')
-            if (!img) { img = document.createElement('img'); preview.appendChild(img) }
-            img.src = e.target.result
-        }
-        reader.readAsDataURL(file)
+                // Preview local imediato
+                const reader = new FileReader()
+                reader.onload = e => {
+                    const placeholder = preview.querySelector('.logo-upload-area__placeholder')
+                    if (placeholder) placeholder.remove()
+                    let img = preview.querySelector('img')
+                    if (!img) { img = document.createElement('img'); preview.appendChild(img) }
+                    img.src = e.target.result
+                }
+                reader.readAsDataURL(file)
 
-        // Upload real
-        try {
-            await Api.postConfiguracoesLogo(file)
-            Toast.show('Logo enviado com sucesso.')
-        } catch (err) {
-            console.error(err)
-            Toast.show('Erro ao enviar logo.', 'error')
-        }
-    })
-},
+                // Upload real
+                try {
+                    await Api.postConfiguracoesLogo(file)
+                    Toast.show('Logo enviado com sucesso.')
+                } catch (err) {
+                    console.error(err)
+                    Toast.show('Erro ao enviar logo.', 'error')
+                }
+            })
+        },
 
         bindColorPicker() {
             const picker = document.getElementById('radColor')
@@ -430,39 +403,39 @@ bindLogoUpload() {
     =========================================================== */
     const RadiologiasModule = {
         async init() {
-    this.renderCards() // renderiza vazio/loading enquanto carrega
-    this.bindNewButton()
+            this.renderCards() // renderiza vazio/loading enquanto carrega
+            this.bindNewButton()
 
-    try {
-        const res = await Api.getRadiologias()
-        const lista = res.data || []
-        // Normaliza snake_case → camelCase e remove o item "all"
-        State.radiologias = lista
-            .filter(r => r.id !== 'all')
-            .map(RadiologiasModule.normalizar)
-        this.renderCards()
-    } catch (err) {
-        console.error(err)
-        Toast.show('Erro ao carregar radiologias.', 'error')
-    }
-},
+            try {
+                const res = await Api.getRadiologias()
+                const lista = res.data || []
+                // Normaliza snake_case → camelCase e remove o item "all"
+                State.radiologias = lista
+                    .filter(r => r.id !== 'all')
+                    .map(RadiologiasModule.normalizar)
+                this.renderCards()
+            } catch (err) {
+                console.error(err)
+                Toast.show('Erro ao carregar radiologias.', 'error')
+            }
+        },
 
-/** Converte snake_case do backend para camelCase usado no frontend */
-normalizar(r) {
-    return {
-        id:         r.id,
-        name:       r.nome        || r.name        || '',
-        phone:      r.telefone    || r.phone        || '',
-        email:      r.email       || '',
-        address:    r.endereco    || r.address      || '',
-        openTime:   (r.horario_abertura  || r.openTime  || '07:00').substring(0, 5),
-        closeTime:  (r.horario_fechamento || r.closeTime || '18:00').substring(0, 5),
-        technician: r.tecnico     || r.technician   || '',
-        cro:        r.cro         || '',
-        status:     r.status      || 'ativo',
-        color:      r.cor         || r.color        || '#018093',
-    }
-},
+        /** Converte snake_case do backend para camelCase usado no frontend */
+        normalizar(r) {
+            return {
+                id: r.id,
+                name: r.nome || r.name || '',
+                phone: r.telefone || r.phone || '',
+                email: r.email || '',
+                address: r.endereco || r.address || '',
+                openTime: (r.horario_abertura || r.openTime || '07:00').substring(0, 5),
+                closeTime: (r.horario_fechamento || r.closeTime || '18:00').substring(0, 5),
+                technician: r.tecnico || r.technician || '',
+                cro: r.cro || '',
+                status: r.status || 'ativo',
+                color: r.cor || r.color || '#018093',
+            }
+        },
 
         renderCards() {
             const grid = document.getElementById('radiologyCardsGrid')
@@ -578,15 +551,15 @@ normalizar(r) {
             if (!confirmed) return
 
             try {
-    await Api.deleteRadiologia(id)
-    State.radiologias = State.radiologias.filter(r => r.id !== id)
-    this.renderCards()
-    Toast.show('Radiologia excluída com sucesso.')
-} catch (err) {
-    console.error(err)
-    const msg = err?.body?.message || 'Erro ao excluir radiologia.'
-    Toast.show(msg, 'error')
-}
+                await Api.deleteRadiologia(id)
+                State.radiologias = State.radiologias.filter(r => r.id !== id)
+                this.renderCards()
+                Toast.show('Radiologia excluída com sucesso.')
+            } catch (err) {
+                console.error(err)
+                const msg = err?.body?.message || 'Erro ao excluir radiologia.'
+                Toast.show(msg, 'error')
+            }
         },
     }
 
@@ -595,39 +568,39 @@ normalizar(r) {
     =========================================================== */
     const ClinicasMedicosModule = {
         async init() {
-    this.initSubTabs()
-    this.bindSearches()
-    this.bindNewButtons()
+            this.initSubTabs()
+            this.bindSearches()
+            this.bindNewButtons()
 
-    try {
-        const [resClinicas, resMedicos] = await Promise.all([
-            Api.getClinicas(),
-            Api.getMedicos(),
-        ])
-        State.clinicas = resClinicas.data || []
-        // getMedicos sem filtro de clínica retorna com faturamento por período;
-        // pode duplicar médicos por medico_radiologia — deduplica pelo id
-        const medicosRaw = resMedicos.data || []
-        const seen = new Set()
-        State.medicos = medicosRaw
-            .filter(m => { if (seen.has(m.id)) return false; seen.add(m.id); return true })
-            .map(m => ({
-                id:        m.id,
-                name:      m.name      || '',
-                specialty: m.specialty || '',
-                clinicId:  m.clinicId  || m.clinica_id || null,
-                phone:     m.phone     || m.telefone   || '',
-                email:     m.email     || '',
-                status:    m.status    || 'ativo',
-                comissao:  m.comissao  ?? m.comissao_percentual ?? 30,
-            }))
-        this.renderClinicsTable()
-        this.renderDoctorsTable()
-    } catch (err) {
-        console.error(err)
-        Toast.show('Erro ao carregar clínicas e médicos.', 'error')
-    }
-},
+            try {
+                const [resClinicas, resMedicos] = await Promise.all([
+                    Api.getClinicas(),
+                    Api.getMedicos(),
+                ])
+                State.clinicas = resClinicas.data || []
+                // getMedicos sem filtro de clínica retorna com faturamento por período;
+                // pode duplicar médicos por medico_radiologia — deduplica pelo id
+                const medicosRaw = resMedicos.data || []
+                const seen = new Set()
+                State.medicos = medicosRaw
+                    .filter(m => { if (seen.has(m.id)) return false; seen.add(m.id); return true })
+                    .map(m => ({
+                        id: m.id,
+                        name: m.name || '',
+                        specialty: m.specialty || '',
+                        clinicId: m.clinicId || m.clinica_id || null,
+                        phone: m.phone || m.telefone || '',
+                        email: m.email || '',
+                        status: m.status || 'ativo',
+                        comissao: m.comissao ?? m.comissao_percentual ?? 30,
+                    }))
+                this.renderClinicsTable()
+                this.renderDoctorsTable()
+            } catch (err) {
+                console.error(err)
+                Toast.show('Erro ao carregar clínicas e médicos.', 'error')
+            }
+        },
 
         /* --- Sub-abas internas Clínicas | Médicos --- */
         initSubTabs() {
@@ -740,17 +713,17 @@ normalizar(r) {
             })
 
             if (!confirmed) return
-try {
-    await Api.deleteClinica(id)
-    State.clinicas = State.clinicas.filter(c => String(c.id) !== String(id))
-    this.renderDoctorsTable() // atualiza contagem de médicos vinculados
-    this.renderClinicsTable()
-    Toast.show('Clínica excluída.')
-} catch (err) {
-    console.error(err)
-    const msg = err?.body?.message || 'Erro ao excluir clínica.'
-    Toast.show(msg, 'error')
-}
+            try {
+                await Api.deleteClinica(id)
+                State.clinicas = State.clinicas.filter(c => String(c.id) !== String(id))
+                this.renderDoctorsTable() // atualiza contagem de médicos vinculados
+                this.renderClinicsTable()
+                Toast.show('Clínica excluída.')
+            } catch (err) {
+                console.error(err)
+                const msg = err?.body?.message || 'Erro ao excluir clínica.'
+                Toast.show(msg, 'error')
+            }
         },
 
         /* ---- MÉDICOS ---- */
@@ -847,17 +820,17 @@ try {
             })
 
             if (!confirmed) return
-try {
-    await Api.deleteMedico(id)
-    State.medicos = State.medicos.filter(m => String(m.id) !== String(id))
-    this.renderDoctorsTable()
-    this.renderClinicsTable() // atualiza contagem de médicos por clínica
-    Toast.show('Médico excluído.')
-} catch (err) {
-    console.error(err)
-    const msg = err?.body?.message || 'Erro ao excluir médico.'
-    Toast.show(msg, 'error')
-}
+            try {
+                await Api.deleteMedico(id)
+                State.medicos = State.medicos.filter(m => String(m.id) !== String(id))
+                this.renderDoctorsTable()
+                this.renderClinicsTable() // atualiza contagem de médicos por clínica
+                Toast.show('Médico excluído.')
+            } catch (err) {
+                console.error(err)
+                const msg = err?.body?.message || 'Erro ao excluir médico.'
+                Toast.show(msg, 'error')
+            }
         },
 
         /* ---- Buscas e filtros ---- */
@@ -898,23 +871,23 @@ try {
     =========================================================== */
     const UsuariosModule = {
         async init() {
-    this.renderPermissionMatrix()
-    this.bindSearch()
-    this.bindNewButton()
+            this.renderPermissionMatrix()
+            this.bindSearch()
+            this.bindNewButton()
 
-    try {
-        const res = await Api.getUsuarios()
-        State.usuarios = (res.data || []).map(u => ({
-            ...u,
-            lastAccess: u.lastAccess || u.ultimo_acesso || null,
-        }))
-        this.renderKPIs()
-        this.renderUsersTable()
-    } catch (err) {
-        console.error(err)
-        Toast.show('Erro ao carregar usuários.', 'error')
-    }
-},
+            try {
+                const res = await Api.getUsuarios()
+                State.usuarios = (res.data || []).map(u => ({
+                    ...u,
+                    lastAccess: u.lastAccess || u.ultimo_acesso || null,
+                }))
+                this.renderKPIs()
+                this.renderUsersTable()
+            } catch (err) {
+                console.error(err)
+                Toast.show('Erro ao carregar usuários.', 'error')
+            }
+        },
 
         renderKPIs() {
             const row = document.getElementById('usersKpiRow')
@@ -1066,17 +1039,17 @@ try {
             })
 
             if (!confirmed) return
-try {
-    await Api.deleteUsuario(id)
-    State.usuarios = State.usuarios.filter(u => String(u.id) !== String(id))
-    this.renderKPIs()
-    this.renderUsersTable()
-    Toast.show('Usuário removido.')
-} catch (err) {
-    console.error(err)
-    const msg = err?.body?.message || 'Erro ao remover usuário.'
-    Toast.show(msg, 'error')
-}
+            try {
+                await Api.deleteUsuario(id)
+                State.usuarios = State.usuarios.filter(u => String(u.id) !== String(id))
+                this.renderKPIs()
+                this.renderUsersTable()
+                Toast.show('Usuário removido.')
+            } catch (err) {
+                console.error(err)
+                const msg = err?.body?.message || 'Erro ao remover usuário.'
+                Toast.show(msg, 'error')
+            }
         },
 
         bindSearch() {
@@ -1105,26 +1078,26 @@ try {
         data: null,
 
         async init() {
-    this.bindSave()
-    this.bindDiscard()
+            this.bindSave()
+            this.bindDiscard()
 
-    try {
-        const res = await Api.getParametros()
-        this.data = res.data || {}
-        // Garante estrutura mínima para evitar erros de renderização
-        if (!this.data.examDurations)    this.data.examDurations    = []
-        if (!this.data.whatsappMessages) this.data.whatsappMessages = []
-        if (!this.data.scheduling)       this.data.scheduling       = {}
-        if (!this.data.financial)        this.data.financial        = {}
-        this.renderExamDurations()
-        this.renderWAMessages()
-        this.fillSchedulingForm()
-        this.fillFinancialForm()
-    } catch (err) {
-        console.error(err)
-        Toast.show('Erro ao carregar parâmetros.', 'error')
-    }
-},
+            try {
+                const res = await Api.getParametros()
+                this.data = res.data || {}
+                // Garante estrutura mínima para evitar erros de renderização
+                if (!this.data.examDurations) this.data.examDurations = []
+                if (!this.data.whatsappMessages) this.data.whatsappMessages = []
+                if (!this.data.scheduling) this.data.scheduling = {}
+                if (!this.data.financial) this.data.financial = {}
+                this.renderExamDurations()
+                this.renderWAMessages()
+                this.fillSchedulingForm()
+                this.fillFinancialForm()
+            } catch (err) {
+                console.error(err)
+                Toast.show('Erro ao carregar parâmetros.', 'error')
+            }
+        },
 
         renderExamDurations() {
             const grid = document.getElementById('examDurationGrid')
@@ -1188,40 +1161,40 @@ try {
             })
 
             // Toggle ativo/inativo
-        list.querySelectorAll('.wa-msg-toggle').forEach(toggle => {
-            toggle.addEventListener('change', () => {
-                const label = toggle.closest('.wa-message-item__active').querySelector('span')
-                if (label) label.textContent = toggle.checked ? 'Ativa' : 'Inativa'
+            list.querySelectorAll('.wa-msg-toggle').forEach(toggle => {
+                toggle.addEventListener('change', () => {
+                    const label = toggle.closest('.wa-message-item__active').querySelector('span')
+                    if (label) label.textContent = toggle.checked ? 'Ativa' : 'Inativa'
+                })
             })
-        })
-    },
+        },
 
-    /** Preenche os campos de agendamento com dados vindos da API */
-    fillSchedulingForm() {
-        const s = this.data.scheduling || {}
-        const set = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val }
-        const setChk = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.checked = !!val }
+        /** Preenche os campos de agendamento com dados vindos da API */
+        fillSchedulingForm() {
+            const s = this.data.scheduling || {}
+            const set = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val }
+            const setChk = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.checked = !!val }
 
-        set('paramAntecedencia',  s.antecedenciaMin)
-        set('paramCancelamento',  s.prazoCancelamento)
-        set('paramConfirmacao',   s.enviarConfirmacao)
-        set('paramIntervalo',     s.intervaloMin)
-        set('paramMaxDia',        s.maxDia)
-        setChk('toggleConfirmLink',     s.exigirConfirmacaoLink)
-        setChk('toggleSelfReschedule',  s.permitirReagendamento)
-        setChk('toggleAutoBlock',       s.bloquearAutomatico)
-    },
+            set('paramAntecedencia', s.antecedenciaMin)
+            set('paramCancelamento', s.prazoCancelamento)
+            set('paramConfirmacao', s.enviarConfirmacao)
+            set('paramIntervalo', s.intervaloMin)
+            set('paramMaxDia', s.maxDia)
+            setChk('toggleConfirmLink', s.exigirConfirmacaoLink)
+            setChk('toggleSelfReschedule', s.permitirReagendamento)
+            setChk('toggleAutoBlock', s.bloquearAutomatico)
+        },
 
-    /** Preenche os campos financeiros com dados vindos da API */
-    fillFinancialForm() {
-        const f = this.data.financial || {}
-        const set = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val }
-        set('paramComissao',  f.comissaoPadrao)
-        set('paramImpostos',  f.impostos)
-        set('paramVencimento', f.vencimentoComissoes)
-    },
+        /** Preenche os campos financeiros com dados vindos da API */
+        fillFinancialForm() {
+            const f = this.data.financial || {}
+            const set = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val }
+            set('paramComissao', f.comissaoPadrao)
+            set('paramImpostos', f.impostos)
+            set('paramVencimento', f.vencimentoComissoes)
+        },
 
-    collectData() {
+        collectData() {
             const durations = {}
             document.querySelectorAll('.exam-duration-item__input[data-exam-id]').forEach(inp => {
                 durations[inp.dataset.examId] = parseInt(inp.value, 10) || 0
@@ -1258,38 +1231,38 @@ try {
 
         /** [API] POST /parametros */
         bindSave() {
-    document.getElementById('btnParamSave')?.addEventListener('click', async () => {
-        const payload = this.collectData()
-        try {
-            await Api.postParametros(payload)
-            Toast.show('Parâmetros salvos com sucesso.')
-        } catch (err) {
-            console.error(err)
-            Toast.show('Erro ao salvar parâmetros.', 'error')
-        }
-    })
-},
+            document.getElementById('btnParamSave')?.addEventListener('click', async () => {
+                const payload = this.collectData()
+                try {
+                    await Api.postParametros(payload)
+                    Toast.show('Parâmetros salvos com sucesso.')
+                } catch (err) {
+                    console.error(err)
+                    Toast.show('Erro ao salvar parâmetros.', 'error')
+                }
+            })
+        },
 
-bindDiscard() {
-    document.getElementById('btnParamDiscard')?.addEventListener('click', async () => {
-        try {
-            const res = await Api.getParametros()
-            this.data = res.data || {}
-            if (!this.data.examDurations)    this.data.examDurations    = []
-            if (!this.data.whatsappMessages) this.data.whatsappMessages = []
-            if (!this.data.scheduling)       this.data.scheduling       = {}
-            if (!this.data.financial)        this.data.financial        = {}
-            this.renderExamDurations()
-            this.renderWAMessages()
-            this.fillSchedulingForm()
-            this.fillFinancialForm()
-            Toast.show('Alterações descartadas.', 'warning')
-        } catch (err) {
-            console.error(err)
-            Toast.show('Erro ao recarregar parâmetros.', 'error')
-        }
-    })
-},
+        bindDiscard() {
+            document.getElementById('btnParamDiscard')?.addEventListener('click', async () => {
+                try {
+                    const res = await Api.getParametros()
+                    this.data = res.data || {}
+                    if (!this.data.examDurations) this.data.examDurations = []
+                    if (!this.data.whatsappMessages) this.data.whatsappMessages = []
+                    if (!this.data.scheduling) this.data.scheduling = {}
+                    if (!this.data.financial) this.data.financial = {}
+                    this.renderExamDurations()
+                    this.renderWAMessages()
+                    this.fillSchedulingForm()
+                    this.fillFinancialForm()
+                    Toast.show('Alterações descartadas.', 'warning')
+                } catch (err) {
+                    console.error(err)
+                    Toast.show('Erro ao recarregar parâmetros.', 'error')
+                }
+            })
+        },
     }
 
     /* ===========================================================
@@ -1401,42 +1374,42 @@ bindDiscard() {
 
         /** [API] POST /radiologias | PUT /radiologias/:id */
         async save() {
-    const name = document.getElementById('radName')?.value?.trim()
-    if (!name) { Toast.show('Informe o nome da unidade.', 'error'); return }
+            const name = document.getElementById('radName')?.value?.trim()
+            if (!name) { Toast.show('Informe o nome da unidade.', 'error'); return }
 
-    const payload = {
-        id: document.getElementById('modalRadiologyId')?.value || null,
-        name,
-        phone:      document.getElementById('radPhone')?.value?.trim() || '',
-        email:      document.getElementById('radEmail')?.value?.trim() || '',
-        address:    document.getElementById('radAddress')?.value?.trim() || '',
-        openTime:   document.getElementById('radOpenTime')?.value || '08:00',
-        closeTime:  document.getElementById('radCloseTime')?.value || '18:00',
-        technician: document.getElementById('radTechnician')?.value?.trim() || '',
-        cro:        document.getElementById('radCRO')?.value?.trim() || '',
-        status:     document.getElementById('radStatus')?.value || 'ativo',
-        color:      document.getElementById('radColor')?.value || '#018093',
-    }
+            const payload = {
+                id: document.getElementById('modalRadiologyId')?.value || null,
+                name,
+                phone: document.getElementById('radPhone')?.value?.trim() || '',
+                email: document.getElementById('radEmail')?.value?.trim() || '',
+                address: document.getElementById('radAddress')?.value?.trim() || '',
+                openTime: document.getElementById('radOpenTime')?.value || '08:00',
+                closeTime: document.getElementById('radCloseTime')?.value || '18:00',
+                technician: document.getElementById('radTechnician')?.value?.trim() || '',
+                cro: document.getElementById('radCRO')?.value?.trim() || '',
+                status: document.getElementById('radStatus')?.value || 'ativo',
+                color: document.getElementById('radColor')?.value || '#018093',
+            }
 
-    try {
-        if (State.modal.mode === 'create') {
-            const criada = RadiologiasModule.normalizar(await Api.postRadiologia(payload))
-            State.radiologias.push(criada)
-            Toast.show('Radiologia cadastrada com sucesso.')
-        } else {
-            const atualizada = RadiologiasModule.normalizar(await Api.updateRadiologia(payload.id, payload))
-            const idx = State.radiologias.findIndex(r => r.id === payload.id)
-            if (idx !== -1) State.radiologias[idx] = atualizada
-            Toast.show('Radiologia atualizada com sucesso.')
-        }
-        closeModal('modalRadiologyBackdrop')
-        RadiologiasModule.renderCards()
-    } catch (err) {
-        console.error(err)
-        const msg = err?.body?.message || 'Erro ao salvar radiologia.'
-        Toast.show(msg, 'error')
-    }
-},
+            try {
+                if (State.modal.mode === 'create') {
+                    const criada = RadiologiasModule.normalizar(await Api.postRadiologia(payload))
+                    State.radiologias.push(criada)
+                    Toast.show('Radiologia cadastrada com sucesso.')
+                } else {
+                    const atualizada = RadiologiasModule.normalizar(await Api.updateRadiologia(payload.id, payload))
+                    const idx = State.radiologias.findIndex(r => r.id === payload.id)
+                    if (idx !== -1) State.radiologias[idx] = atualizada
+                    Toast.show('Radiologia atualizada com sucesso.')
+                }
+                closeModal('modalRadiologyBackdrop')
+                RadiologiasModule.renderCards()
+            } catch (err) {
+                console.error(err)
+                const msg = err?.body?.message || 'Erro ao salvar radiologia.'
+                Toast.show(msg, 'error')
+            }
+        },
     }
 
     /* ---- MODAL: CLÍNICA ---- */
@@ -1513,40 +1486,40 @@ bindDiscard() {
 
         /** [API] POST /clinicas | PUT /clinicas/:id */
         async save() {
-    const name = document.getElementById('clinicName')?.value?.trim()
-    if (!name) { Toast.show('Informe o nome da clínica.', 'error'); return }
+            const name = document.getElementById('clinicName')?.value?.trim()
+            if (!name) { Toast.show('Informe o nome da clínica.', 'error'); return }
 
-    const payload = {
-        id:      document.getElementById('modalClinicId')?.value || null,
-        name,
-        city:    document.getElementById('clinicCity')?.value?.trim() || '',
-        state:   document.getElementById('clinicState')?.value || 'RN',
-        phone:   document.getElementById('clinicPhone')?.value?.trim() || '',
-        email:   document.getElementById('clinicEmail')?.value?.trim() || '',
-        address: document.getElementById('clinicAddress')?.value?.trim() || '',
-        status:  document.getElementById('clinicStatus')?.value || 'ativo',
-    }
+            const payload = {
+                id: document.getElementById('modalClinicId')?.value || null,
+                name,
+                city: document.getElementById('clinicCity')?.value?.trim() || '',
+                state: document.getElementById('clinicState')?.value || 'RN',
+                phone: document.getElementById('clinicPhone')?.value?.trim() || '',
+                email: document.getElementById('clinicEmail')?.value?.trim() || '',
+                address: document.getElementById('clinicAddress')?.value?.trim() || '',
+                status: document.getElementById('clinicStatus')?.value || 'ativo',
+            }
 
-    try {
-        if (State.modal.mode === 'create') {
-            const criada = await Api.postClinica(payload)
-            State.clinicas.push(criada)
-            Toast.show('Clínica cadastrada com sucesso.')
-        } else {
-            const atualizada = await Api.updateClinica(payload.id, payload)
-            const idx = State.clinicas.findIndex(c => String(c.id) === String(payload.id))
-            if (idx !== -1) State.clinicas[idx] = atualizada
-            Toast.show('Clínica atualizada com sucesso.')
-        }
-        closeModal('modalClinicBackdrop')
-        ClinicasMedicosModule.renderClinicsTable()
-        ClinicasMedicosModule.renderDoctorsTable()
-    } catch (err) {
-        console.error(err)
-        const msg = err?.body?.message || 'Erro ao salvar clínica.'
-        Toast.show(msg, 'error')
-    }
-},
+            try {
+                if (State.modal.mode === 'create') {
+                    const criada = await Api.postClinica(payload)
+                    State.clinicas.push(criada)
+                    Toast.show('Clínica cadastrada com sucesso.')
+                } else {
+                    const atualizada = await Api.updateClinica(payload.id, payload)
+                    const idx = State.clinicas.findIndex(c => String(c.id) === String(payload.id))
+                    if (idx !== -1) State.clinicas[idx] = atualizada
+                    Toast.show('Clínica atualizada com sucesso.')
+                }
+                closeModal('modalClinicBackdrop')
+                ClinicasMedicosModule.renderClinicsTable()
+                ClinicasMedicosModule.renderDoctorsTable()
+            } catch (err) {
+                console.error(err)
+                const msg = err?.body?.message || 'Erro ao salvar clínica.'
+                Toast.show(msg, 'error')
+            }
+        },
     }
 
     /* ---- MODAL: MÉDICO ---- */
@@ -1612,59 +1585,59 @@ bindDiscard() {
 
         /** [API] POST /medicos | PUT /medicos/:id */
         async save() {
-    const name = document.getElementById('doctorName')?.value?.trim()
-    if (!name) { Toast.show('Informe o nome do médico.', 'error'); return }
+            const name = document.getElementById('doctorName')?.value?.trim()
+            if (!name) { Toast.show('Informe o nome do médico.', 'error'); return }
 
-    const payload = {
-        id:        document.getElementById('modalDoctorId')?.value || null,
-        name,
-        specialty: document.getElementById('doctorSpecialty')?.value || '',
-        cro:       document.getElementById('doctorCRO')?.value?.trim() || '',
-        phone:     document.getElementById('doctorPhone')?.value?.trim() || '',
-        email:     document.getElementById('doctorEmail')?.value?.trim() || '',
-        clinicId:  document.getElementById('doctorClinic')?.value || '',
-        comissao:  parseFloat(document.getElementById('doctorComissao')?.value) || 30,
-        status:    document.getElementById('doctorStatus')?.value || 'ativo',
-    }
-
-    try {
-        if (State.modal.mode === 'create') {
-            const criado = await Api.postMedico(payload)
-            State.medicos.push({
-                id:        criado.id,
-                name:      criado.name      || payload.name,
-                specialty: criado.specialty || payload.specialty,
-                clinicId:  criado.clinicId  || criado.clinica_id || payload.clinicId,
-                phone:     criado.phone     || payload.phone,
-                email:     criado.email     || payload.email,
-                status:    criado.status    || payload.status,
-                comissao:  payload.comissao,
-            })
-            Toast.show('Médico cadastrado com sucesso.')
-        } else {
-            const atualizado = await Api.updateMedico(payload.id, payload)
-            const idx = State.medicos.findIndex(m => String(m.id) === String(payload.id))
-            if (idx !== -1) State.medicos[idx] = {
-                ...State.medicos[idx],
-                name:      atualizado.name      || payload.name,
-                specialty: atualizado.specialty || payload.specialty,
-                clinicId:  atualizado.clinicId  || atualizado.clinica_id || payload.clinicId,
-                phone:     atualizado.phone     || payload.phone,
-                email:     atualizado.email     || payload.email,
-                status:    atualizado.status    || payload.status,
-                comissao:  payload.comissao,
+            const payload = {
+                id: document.getElementById('modalDoctorId')?.value || null,
+                name,
+                specialty: document.getElementById('doctorSpecialty')?.value || '',
+                cro: document.getElementById('doctorCRO')?.value?.trim() || '',
+                phone: document.getElementById('doctorPhone')?.value?.trim() || '',
+                email: document.getElementById('doctorEmail')?.value?.trim() || '',
+                clinicId: document.getElementById('doctorClinic')?.value || '',
+                comissao: parseFloat(document.getElementById('doctorComissao')?.value) || 30,
+                status: document.getElementById('doctorStatus')?.value || 'ativo',
             }
-            Toast.show('Médico atualizado com sucesso.')
-        }
-        closeModal('modalDoctorBackdrop')
-        ClinicasMedicosModule.renderDoctorsTable()
-        ClinicasMedicosModule.renderClinicsTable()
-    } catch (err) {
-        console.error(err)
-        const msg = err?.body?.message || 'Erro ao salvar médico.'
-        Toast.show(msg, 'error')
-    }
-},
+
+            try {
+                if (State.modal.mode === 'create') {
+                    const criado = await Api.postMedico(payload)
+                    State.medicos.push({
+                        id: criado.id,
+                        name: criado.name || payload.name,
+                        specialty: criado.specialty || payload.specialty,
+                        clinicId: criado.clinicId || criado.clinica_id || payload.clinicId,
+                        phone: criado.phone || payload.phone,
+                        email: criado.email || payload.email,
+                        status: criado.status || payload.status,
+                        comissao: payload.comissao,
+                    })
+                    Toast.show('Médico cadastrado com sucesso.')
+                } else {
+                    const atualizado = await Api.updateMedico(payload.id, payload)
+                    const idx = State.medicos.findIndex(m => String(m.id) === String(payload.id))
+                    if (idx !== -1) State.medicos[idx] = {
+                        ...State.medicos[idx],
+                        name: atualizado.name || payload.name,
+                        specialty: atualizado.specialty || payload.specialty,
+                        clinicId: atualizado.clinicId || atualizado.clinica_id || payload.clinicId,
+                        phone: atualizado.phone || payload.phone,
+                        email: atualizado.email || payload.email,
+                        status: atualizado.status || payload.status,
+                        comissao: payload.comissao,
+                    }
+                    Toast.show('Médico atualizado com sucesso.')
+                }
+                closeModal('modalDoctorBackdrop')
+                ClinicasMedicosModule.renderDoctorsTable()
+                ClinicasMedicosModule.renderClinicsTable()
+            } catch (err) {
+                console.error(err)
+                const msg = err?.body?.message || 'Erro ao salvar médico.'
+                Toast.show(msg, 'error')
+            }
+        },
     }
 
     /* ---- MODAL: USUÁRIO ---- */
@@ -1753,48 +1726,48 @@ bindDiscard() {
 
         /** [API] POST /usuarios | PUT /usuarios/:id */
         async save() {
-    const name  = document.getElementById('userName')?.value?.trim()
-    const email = document.getElementById('userEmail')?.value?.trim()
-    if (!name)  { Toast.show('Informe o nome do usuário.', 'error');  return }
-    if (!email) { Toast.show('Informe o e-mail do usuário.', 'error'); return }
+            const name = document.getElementById('userName')?.value?.trim()
+            const email = document.getElementById('userEmail')?.value?.trim()
+            if (!name) { Toast.show('Informe o nome do usuário.', 'error'); return }
+            if (!email) { Toast.show('Informe o e-mail do usuário.', 'error'); return }
 
-    const payload = {
-        id:        document.getElementById('modalUserId')?.value || null,
-        name,
-        email,
-        phone:     document.getElementById('userPhone')?.value?.trim() || '',
-        role:      document.getElementById('userRole')?.value?.trim() || '',
-        level:     document.getElementById('userLevel')?.value || 'recepcao',
-        radiologia:document.getElementById('userRadiology')?.value || 'todas',
-        status:    document.getElementById('userStatus')?.value || 'ativo',
-    }
-
-    try {
-        if (State.modal.mode === 'create') {
-            const criado = await Api.postUsuario(payload)
-            State.usuarios.push({
-                ...criado,
-                lastAccess: criado.lastAccess || criado.ultimo_acesso || null,
-            })
-            Toast.show('Usuário criado. Um e-mail de boas-vindas foi enviado.')
-        } else {
-            const atualizado = await Api.updateUsuario(payload.id, payload)
-            const idx = State.usuarios.findIndex(u => String(u.id) === String(payload.id))
-            if (idx !== -1) State.usuarios[idx] = {
-                ...atualizado,
-                lastAccess: State.usuarios[idx].lastAccess,
+            const payload = {
+                id: document.getElementById('modalUserId')?.value || null,
+                name,
+                email,
+                phone: document.getElementById('userPhone')?.value?.trim() || '',
+                role: document.getElementById('userRole')?.value?.trim() || '',
+                level: document.getElementById('userLevel')?.value || 'recepcao',
+                radiologia: document.getElementById('userRadiology')?.value || 'todas',
+                status: document.getElementById('userStatus')?.value || 'ativo',
             }
-            Toast.show('Usuário atualizado com sucesso.')
-        }
-        closeModal('modalUserBackdrop')
-        UsuariosModule.renderKPIs()
-        UsuariosModule.renderUsersTable()
-    } catch (err) {
-        console.error(err)
-        const msg = err?.body?.message || 'Erro ao salvar usuário.'
-        Toast.show(msg, 'error')
-    }
-},
+
+            try {
+                if (State.modal.mode === 'create') {
+                    const criado = await Api.postUsuario(payload)
+                    State.usuarios.push({
+                        ...criado,
+                        lastAccess: criado.lastAccess || criado.ultimo_acesso || null,
+                    })
+                    Toast.show('Usuário criado. Um e-mail de boas-vindas foi enviado.')
+                } else {
+                    const atualizado = await Api.updateUsuario(payload.id, payload)
+                    const idx = State.usuarios.findIndex(u => String(u.id) === String(payload.id))
+                    if (idx !== -1) State.usuarios[idx] = {
+                        ...atualizado,
+                        lastAccess: State.usuarios[idx].lastAccess,
+                    }
+                    Toast.show('Usuário atualizado com sucesso.')
+                }
+                closeModal('modalUserBackdrop')
+                UsuariosModule.renderKPIs()
+                UsuariosModule.renderUsersTable()
+            } catch (err) {
+                console.error(err)
+                const msg = err?.body?.message || 'Erro ao salvar usuário.'
+                Toast.show(msg, 'error')
+            }
+        },
     }
 
     /* ===========================================================
