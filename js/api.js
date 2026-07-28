@@ -2035,11 +2035,10 @@ const Api = (() => {
      * Resposta esperada: { id, label, duration, value }
      */
     async function postTipoExame(dados) {
-        const { data } = await request('/tipos-exame', {
+        return request('/tipos-exame', {
             method: 'POST',
             body: JSON.stringify(dados),
         });
-        return { data };
     }
 
     /* ===========================================================================

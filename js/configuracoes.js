@@ -1763,10 +1763,12 @@
             if (confirmBtn) confirmBtn.disabled = true
 
             try {
-                const { data: saved } = await Api.postTipoExame({ id: localId, label, duration, value })
+                const saved = await Api.postTipoExame({ id: localId, label, duration, value })
+
+                if (!ParametrosModule.data) ParametrosModule.data = { examDurations: [] }
+                if (!ParametrosModule.data.examDurations) ParametrosModule.data.examDurations = []
 
                 if (isCreate) {
-                    // Substitui o id temporário local pelo id real vindo do banco
                     ParametrosModule.data.examDurations.push({
                         id:       saved.id,
                         label:    saved.label,
