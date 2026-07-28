@@ -643,11 +643,16 @@
         </div>
 
         <div class="form-row form-row--2">
-          <div class="form-field form-field--span2">
-            <label class="form-field__label" for="newPaciente">Nome completo <span
-                class="form-field__required">*</span></label>
-            <input type="text" id="newPaciente" class="form-field__input" placeholder="Ex: Maria Silva" required>
+          <div class="form-field form-field--span2" style="position:relative;">
+            <label class="form-field__label" for="newPaciente">
+              Nome completo <span class="form-field__required">*</span>
+              <span id="newPacienteTag" class="form-field__dep-hint" hidden>— paciente existente</span>
+            </label>
+            <input type="text" id="newPaciente" class="form-field__input"
+              placeholder="Digite o nome ou CPF para buscar..." required autocomplete="off">
             <input type="hidden" id="newPacienteId" value="">
+            <!-- Dropdown de sugestões do autocomplete -->
+            <div id="pacienteAutocompleteDropdown" class="autocomplete-dropdown" hidden></div>
           </div>
         </div>
 
@@ -841,9 +846,14 @@
 
     </div>
   </div>
+  <script src="js/login.js"></script>
+  <script src="js/auth.js"></script>
   <script src="js/api.js"></script>
   <script src="js/agendamentos.js"></script>
   <script src="js/profile-dropdown.js"></script>
+  <script>
+    try { window.IORDAuth.requireLogin() } catch (e) { }
+  </script>
 </body>
 
 </html>

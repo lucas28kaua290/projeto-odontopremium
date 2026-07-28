@@ -952,6 +952,23 @@ const Api = (() => {
         return { data };
     }
 
+    /**
+     * Busca pacientes para o autocomplete do campo "Nome do Paciente" no modal
+     * de novo agendamento. Retorna apenas os campos essenciais (id, nome, cpf,
+     * telefone, nascimento) sem enriquecer com histórico, para manter a resposta
+     * rápida.
+     *
+     * [API] GET /v1/pacientes/busca
+     *
+     * @param {string} busca - texto digitado pelo usuário (mínimo 2 caracteres)
+     * @returns {Promise<Array>} lista de pacientes { id, nome, cpf, telefone, nascimento }
+     */
+    async function searchPacientes(busca) {
+        const qs = buildQuery({ busca, limite: 8 });
+        const data = await request(`/pacientes/busca${qs}`);
+        return Array.isArray(data) ? data : (data?.itens || []);
+    }
+
     // [API] GET /agendamentos
     async function getAgendamentos(filtros = {}) {
         const qs = buildQuery({
@@ -2101,7 +2118,7 @@ const Api = (() => {
      */
     function filtrosDoState(appState) {
         return {
-            radiologiaId: appState.radiologiaSelecionada || 'all',
+            radiologiaId: IORDPermissions.getRadiologiaFiltro(appState.radiologiaSelecionada || 'all'),
             periodo: appState.periodo || 'mes_atual',
             dataInicio: appState.customDateStart || undefined,
             dataFim: appState.customDateEnd || undefined,
@@ -2162,6 +2179,7 @@ const Api = (() => {
         getPacienteNotas,
         postPaciente,
         updatePaciente,
+        searchPacientes,
         postPacienteNota,
         getAgendamentos,
         postAgendamento,

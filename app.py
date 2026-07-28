@@ -1443,6 +1443,36 @@ def listar_pacientes():
     return ok(pacientes)
 
 
+@app.route("/v1/pacientes/busca", methods=["GET"])
+@require_auth
+def buscar_pacientes_autocomplete():
+    """
+    Endpoint leve para autocomplete do campo de paciente no modal de agendamento.
+    Retorna apenas id, nome, cpf, telefone, nascimento e endereco — sem histórico
+    de exames — para manter a resposta rápida mesmo com muitos pacientes.
+
+    [API] GET /v1/pacientes/busca?busca=maria&limite=8
+    """
+    busca  = request.args.get("busca", "").strip()
+    limite = min(int(request.args.get("limite", 8)), 20)
+
+    if not busca or len(busca) < 2:
+        return ok([])
+
+    like = f"%{busca}%"
+    rows = query(
+        "SELECT id, nome, cpf, telefone, email, "
+        "       DATE_FORMAT(nascimento, '%%Y-%%m-%%d') AS nascimento, "
+        "       endereco "
+        "FROM pacientes "
+        "WHERE status = 'ativo' "
+        "  AND (nome LIKE %s OR cpf LIKE %s OR telefone LIKE %s) "
+        "ORDER BY nome "
+        "LIMIT %s",
+        (like, like, like, limite)
+    )
+    return ok(rows)
+
 @app.route("/v1/pacientes", methods=["POST"])
 @require_auth
 def criar_paciente():

@@ -1,424 +1,497 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pacientes · IORD — Painel de Gestão</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link rel="shortcut icon" href="favicon-iord.png" type="image/x-icon">
-<link rel="stylesheet" href="css/pacientes.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pacientes · IORD — Painel de Gestão</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap"
+    rel="stylesheet">
+  <link rel="shortcut icon" href="favicon-iord.png" type="image/x-icon">
+  <link rel="stylesheet" href="css/pacientes.css">
 </head>
+
 <body>
 
-<!-- =============================================================
+  <!-- =============================================================
      HEADER
 ============================================================= -->
-<header class="app-header">
-  <div class="app-header__brand">
-    <div class="brand-mark" aria-hidden="true">
-        <img src="logo-iord.png" alt="IORD" class="logo-img"/>
+  <header class="app-header">
+    <div class="app-header__brand">
+      <div class="brand-mark" aria-hidden="true">
+        <img src="logo-iord.png" alt="IORD" class="logo-img" />
+      </div>
+      <div class="brand-text">
+        <span class="brand-text__name">IORD</span>
+        <span class="brand-text__subtitle">Painel de Gestão · Radiologias Odontológicas</span>
+      </div>
     </div>
-    <div class="brand-text">
-      <span class="brand-text__name">IORD</span>
-      <span class="brand-text__subtitle">Painel de Gestão · Radiologias Odontológicas</span>
-    </div>
-  </div>
 
-  <div class="app-header__user">
-    
-    <div class="header-divider"></div>
-    <div class="user-info">
-      <span class="user-info__name">Dr. Iago</span>
-      <span class="user-info__role">Administrador Geral</span>
-    </div>
-    <div class="user-avatar">DI</div>
-  </div>
-</header>
+    <div class="app-header__user">
 
-<!-- =============================================================
-     SHELL (Sidebar + Conteúdo)
-============================================================= -->
-<div class="app-shell">
-
-  <!-- SIDEBAR -->
-  <aside class="sidebar" id="sidebar">
-    <nav class="sidebar__nav" aria-label="Navegação principal">
-      <ul class="nav-list">
-        <li class="nav-item">
-          <a href="dashboard.html" class="nav-link" data-page="dashboard">
-            <span class="nav-link__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 13h6V4H4v9zm0 7h6v-5H4v5zm10 0h6V11h-6v9zm0-16v5h6V4h-6z" fill="currentColor"/></svg></span>
-            <span class="nav-link__label">Dashboard</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="agendamentos.html" class="nav-link" data-page="agendamentos">
-            <span class="nav-link__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M7 2v3M17 2v3M3 9h18M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <span class="nav-link__label">Agendamentos</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="pacientes.html" class="nav-link is-active" data-page="pacientes">
-            <span class="nav-link__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <span class="nav-link__label">Pacientes</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="financeiro.html" class="nav-link" data-page="financeiro">
-            <span class="nav-link__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <span class="nav-link__label">Financeiro</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="configuracoes.html" class="nav-link" data-page="configuracoes">
-            <span class="nav-link__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <span class="nav-link__label">Configurações</span>
-          </a>
-        </li>
-      </ul>
-    </nav>
-    <div class="sidebar__footer">
-      <span class="sidebar__version">v1.2.0 &middot; build interno</span>
+      <div class="header-divider"></div>
+      <div class="user-info">
+        <span class="user-info__name">Dr. Iago</span>
+        <span class="user-info__role">Administrador Geral</span>
+      </div>
+      <div class="user-avatar">DI</div>
     </div>
-  </aside>
+  </header>
 
   <!-- =============================================================
+     SHELL (Sidebar + Conteúdo)
+============================================================= -->
+  <div class="app-shell">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <nav class="sidebar__nav" aria-label="Navegação principal">
+        <ul class="nav-list">
+          <li class="nav-item">
+            <a href="dashboard.html" class="nav-link" data-page="dashboard">
+              <span class="nav-link__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 13h6V4H4v9zm0 7h6v-5H4v5zm10 0h6V11h-6v9zm0-16v5h6V4h-6z" fill="currentColor" />
+                </svg></span>
+              <span class="nav-link__label">Dashboard</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="agendamentos.html" class="nav-link" data-page="agendamentos">
+              <span class="nav-link__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M7 2v3M17 2v3M3 9h18M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z"
+                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                </svg></span>
+              <span class="nav-link__label">Agendamentos</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="pacientes.html" class="nav-link is-active" data-page="pacientes">
+              <span class="nav-link__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"
+                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                </svg></span>
+              <span class="nav-link__label">Pacientes</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="financeiro.html" class="nav-link" data-page="financeiro">
+              <span class="nav-link__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor"
+                    stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                </svg></span>
+              <span class="nav-link__label">Financeiro</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="configuracoes.html" class="nav-link" data-page="configuracoes">
+              <span class="nav-link__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" stroke-width="1.8" />
+                  <path
+                    d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
+                    stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                </svg></span>
+              <span class="nav-link__label">Configurações</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+      <div class="sidebar__footer">
+        <span class="sidebar__version">v1.2.0 &middot; build interno</span>
+      </div>
+    </aside>
+
+    <!-- =============================================================
        CONTEÚDO PRINCIPAL
   ============================================================= -->
-  <main class="main-content">
+    <main class="main-content">
 
-    <!-- ======================================================
+      <!-- ======================================================
          VIEW: LISTA DE PACIENTES
     ======================================================= -->
-    <div id="view-lista" class="view">
+      <div id="view-lista" class="view">
 
-      <!-- Header da tela -->
-      <div class="page-header">
-        <div class="page-header__text">
-          <h1 class="page-header__title">Pacientes</h1>
-          <p class="page-header__subtitle">Consulte, cadastre e acompanhe o histórico de pacientes das unidades.</p>
+        <!-- Header da tela -->
+        <div class="page-header">
+          <div class="page-header__text">
+            <h1 class="page-header__title">Pacientes</h1>
+            <p class="page-header__subtitle">Consulte, cadastre e acompanhe o histórico de pacientes das unidades.</p>
+          </div>
+          <button class="btn btn--primary btn--lg" id="btn-novo-paciente">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+            </svg>
+            Novo Paciente
+          </button>
         </div>
-        <button class="btn btn--primary btn--lg" id="btn-novo-paciente">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-          Novo Paciente
+
+        <!-- Barra de busca poderosa -->
+        <div class="search-bar">
+          <div class="search-bar__main">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+              class="search-bar__icon">
+              <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8" />
+              <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+            <input type="text" id="input-busca" class="search-bar__input"
+              placeholder="Buscar paciente por nome, CPF, telefone ou código interno…" autocomplete="off">
+            <button class="search-bar__clear" id="btn-clear-search" title="Limpar busca" aria-label="Limpar busca">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="search-bar__divider"></div>
+
+          <div class="search-bar__scope">
+            <span class="filters-bar__label">Buscar por</span>
+            <div class="pill-group" id="scope-pills">
+              <button class="pill is-active" data-scope="todos">Todas as opções</button>
+              <button class="pill" data-scope="nome">Nome</button>
+              <button class="pill" data-scope="cpf">CPF</button>
+              <button class="pill" data-scope="telefone">Telefone / WhatsApp</button>
+              <button class="pill" data-scope="codigo">Código Interno</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filtros rápidos + resumo -->
+        <div class="section-toolbar">
+          <div>
+            <h2 class="section-toolbar__title">Lista de pacientes</h2>
+            <p class="section-toolbar__subtitle"><span id="contador-resultados">0</span> pacientes encontrados</p>
+          </div>
+          <div class="section-toolbar__actions">
+            <div class="pill-group" id="quick-filter-pills">
+              <button class="pill is-active" data-filter="todos">Todos</button>
+              <button class="pill" data-filter="ativos">Ativos</button>
+              <button class="pill" data-filter="novos">Novos</button>
+              <button class="pill" data-filter="agendamentos">Com agendamentos recentes</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabela de pacientes -->
+        <div class="table-card">
+          <div class="table-card__scroll">
+            <table class="data-table" id="tabela-pacientes">
+              <thead>
+                <tr>
+                  <th>Paciente</th>
+                  <th>CPF</th>
+                  <th>Telefone</th>
+                  <th>Último exame</th>
+                  <th class="data-table__num">Total de exames</th>
+                  <th>Radiologia mais frequentada</th>
+                  <th class="data-table__action">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-pacientes-body">
+                <!-- Linhas geradas via JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Estado vazio (exibido via JS quando não há resultados) -->
+          <div class="empty-state" id="empty-state" hidden>
+            <div class="empty-state__icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.5" />
+                <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+              </svg>
+            </div>
+            <p class="empty-state__title">Nenhum paciente encontrado</p>
+            <p class="empty-state__hint">Tente ajustar os termos da busca ou os filtros aplicados.</p>
+          </div>
+
+          <div class="table-card__footer" id="tabela-footer">
+            <span class="table-card__hint">Mostrando <strong id="paginacao-exibindo">0</strong> de <strong
+                id="paginacao-total">0</strong> pacientes</span>
+            <div class="pagination" id="paginacao">
+              <!-- Paginação gerada via JS -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ======================================================
+         VIEW: PERFIL DO PACIENTE (2 Colunas: Info à esquerda, Histórico à direita)
+    ======================================================= -->
+      <div id="view-perfil" class="view" hidden>
+
+        <!-- Breadcrumb / voltar -->
+        <button class="btn--back" id="btn-voltar-lista">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+          Voltar para Pacientes
+        </button>
+
+        <!-- Header do perfil -->
+        <div class="profile-header">
+          <div class="profile-header__identity">
+            <div class="profile-avatar" id="perfil-avatar">JS</div>
+            <div class="profile-header__info">
+              <div class="profile-header__name-row">
+                <h1 class="profile-header__name" id="perfil-nome">—</h1>
+                <span class="status-tag status-tag--active" id="perfil-status">Ativo</span>
+              </div>
+              <div class="profile-header__meta" id="perfil-meta">
+                <!-- JS: CPF · Idade · Código interno -->
+              </div>
+            </div>
+          </div>
+          <div class="profile-header__actions">
+            <button class="btn btn--ghost" id="btn-exportar-pdf">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2Z"
+                  stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+                <path d="M14 2V8H20" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+              </svg>
+              Exportar perfil em PDF
+            </button>
+            <button class="btn btn--primary" id="btn-editar-paciente">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M11 4H6C4.9 4 4 4.9 4 6V18C4 19.1 4.9 20 6 20H18C19.1 20 20 19.1 20 18V13"
+                  stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                <path
+                  d="M18.5 2.5C19.33 1.67 20.67 1.67 21.5 2.5C22.33 3.33 22.33 4.67 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z"
+                  stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+              </svg>
+              Editar paciente
+            </button>
+          </div>
+        </div>
+
+        <!-- Resumo (KPIs do paciente) -->
+        <div class="kpi-grid kpi-grid--profile">
+          <div class="kpi-card">
+            <div class="kpi-card__header">
+              <span class="kpi-card__label">Total de visitas</span>
+              <div class="kpi-card__icon kpi-card__icon--primary">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="3" y="4.5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.8" />
+                  <path d="M3 9.5H21" stroke="currentColor" stroke-width="1.8" />
+                </svg>
+              </div>
+            </div>
+            <span class="kpi-card__value" id="kpi-visitas">0</span>
+            <div class="kpi-card__footer"><span class="kpi-card__context">exames realizados</span></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card__header">
+              <span class="kpi-card__label">Total gasto</span>
+              <div class="kpi-card__icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2V22" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                  <path
+                    d="M17 5.5H9.5C8.12 5.5 7 6.62 7 8C7 9.38 8.12 10.5 9.5 10.5H14.5C15.88 10.5 17 11.62 17 13C17 14.38 15.88 15.5 14.5 15.5H6.5"
+                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+              </div>
+            </div>
+            <span class="kpi-card__value" id="kpi-total-gasto">R$ 0</span>
+            <div class="kpi-card__footer"><span class="kpi-card__context">desde o cadastro</span></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card__header">
+              <span class="kpi-card__label">Paciente desde</span>
+              <div class="kpi-card__icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="3" y="4.5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.8" />
+                  <path d="M8 2.5V6.5M16 2.5V6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+              </div>
+            </div>
+            <span class="kpi-card__value kpi-card__value--sm" id="kpi-paciente-desde">—</span>
+            <div class="kpi-card__footer"><span class="kpi-card__context" id="kpi-tempo-relativo">—</span></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card__header">
+              <span class="kpi-card__label">Radiologia mais frequentada</span>
+              <div class="kpi-card__icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 21H21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                  <path d="M5 21V7L12 3L19 7V21" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                </svg>
+              </div>
+            </div>
+            <span class="kpi-card__value kpi-card__value--sm" id="kpi-radiologia-frequente">—</span>
+            <div class="kpi-card__footer"><span class="kpi-card__context" id="kpi-radiologia-visitas">—</span></div>
+          </div>
+        </div>
+
+        <!-- Grid principal: 2 Colunas (Esquerda: Dados / Direita: Histórico) -->
+        <div class="profile-grid">
+
+          <!-- COLUNA ESQUERDA: Dados, Ações e Contato -->
+          <div class="profile-col profile-col--side">
+
+            <!-- Dados Pessoais -->
+            <div class="info-card">
+              <div class="info-card__header">
+                <h3 class="info-card__title">Dados pessoais</h3>
+              </div>
+              <dl class="info-list" id="perfil-info-basica">
+                <!-- Gerado via JS -->
+              </dl>
+            </div>
+
+            <!-- Card de Próximos Passos -->
+
+            <!-- Card de Contato Rápido -->
+            <div class="info-card">
+              <div class="info-card__header">
+                <h3 class="info-card__title">Contato rápido</h3>
+              </div>
+              <div class="contact-quick-list" id="perfil-contato-rapido">
+                <!-- Preenchido via JS -->
+              </div>
+            </div>
+
+            <!-- Observações / Notas -->
+            <div class="info-card">
+              <div class="info-card__header">
+                <h3 class="info-card__title">Observações clínicas</h3>
+                <button class="btn btn--text btn--sm" id="btn-add-nota">+ Adicionar nota</button>
+              </div>
+              <ul class="notes-list" id="perfil-notas">
+                <!-- Gerado via JS -->
+              </ul>
+            </div>
+
+          </div>
+
+          <!-- COLUNA DIREITA: Ocupada 100% pelo Histórico -->
+          <div class="profile-col profile-col--main">
+
+            <!-- Toggle Exames / Agendamentos -->
+            <div class="charts-section__toolbar">
+              <h2 class="charts-section__title">Histórico</h2>
+              <div class="view-toggle" id="historico-toggle">
+                <button class="view-toggle__btn is-active" data-historico="exames">Exames</button>
+                <button class="view-toggle__btn" data-historico="agendamentos">Agendamentos</button>
+              </div>
+            </div>
+
+            <!-- Histórico de exames (timeline) -->
+            <div class="table-card" id="painel-exames">
+              <ul class="timeline" id="timeline-exames">
+                <!-- Gerado via JS -->
+              </ul>
+            </div>
+
+            <!-- Histórico de agendamentos -->
+            <div class="table-card" id="painel-agendamentos" hidden>
+              <div class="table-card__scroll">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Horário</th>
+                      <th>Unidade</th>
+                      <th>Tipo de exame</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabela-agendamentos-body">
+                    <!-- Gerado via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <!-- =============================================================
+     MODAL: NOVO / EDITAR PACIENTE
+============================================================= -->
+  <div class="modal-overlay" id="modal-paciente" hidden>
+    <div class="modal-card modal-card--lg">
+      <div class="modal-card__header">
+        <h3 class="modal-card__title" id="modal-titulo">Novo Paciente</h3>
+        <button class="btn--icon-only btn--ghost" id="btn-fechar-modal" aria-label="Fechar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
         </button>
       </div>
 
-      <!-- Barra de busca poderosa -->
-      <div class="search-bar">
-        <div class="search-bar__main">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="search-bar__icon"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-          <input type="text" id="input-busca" class="search-bar__input" placeholder="Buscar paciente por nome, CPF, telefone ou código interno…" autocomplete="off">
-          <button class="search-bar__clear" id="btn-clear-search" title="Limpar busca" aria-label="Limpar busca">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          </button>
-        </div>
-
-        <div class="search-bar__divider"></div>
-
-        <div class="search-bar__scope">
-          <span class="filters-bar__label">Buscar por</span>
-          <div class="pill-group" id="scope-pills">
-            <button class="pill is-active" data-scope="todos">Todas as opções</button>
-            <button class="pill" data-scope="nome">Nome</button>
-            <button class="pill" data-scope="cpf">CPF</button>
-            <button class="pill" data-scope="telefone">Telefone / WhatsApp</button>
-            <button class="pill" data-scope="codigo">Código Interno</button>
+      <form class="modal-card__body" id="form-paciente">
+        <div class="form-grid">
+          <div class="form-field form-field--full">
+            <label for="f-nome">Nome completo</label>
+            <input type="text" id="f-nome" name="nome" placeholder="Ex.: Juliana Sales de Andrade" required>
+          </div>
+          <div class="form-field">
+            <label for="f-cpf">CPF</label>
+            <input type="text" id="f-cpf" name="cpf" placeholder="000.000.000-00" required>
+          </div>
+          <div class="form-field">
+            <label for="f-telefone">Telefone / WhatsApp</label>
+            <input type="text" id="f-telefone" name="telefone" placeholder="(00) 00000-0000" required>
+          </div>
+          <div class="form-field">
+            <label for="f-nascimento">Data de nascimento</label>
+            <input type="date" id="f-nascimento" name="nascimento">
+          </div>
+          <div class="form-field">
+            <label for="f-email">E-mail</label>
+            <input type="email" id="f-email" name="email" placeholder="paciente@email.com">
+          </div>
+          <div class="form-field form-field--full">
+            <label for="f-endereco">Endereço</label>
+            <input type="text" id="f-endereco" name="endereco" placeholder="Rua, número, bairro — cidade/UF">
+          </div>
+          <div class="form-field form-field--full">
+            <label for="f-observacoes">Observações</label>
+            <textarea id="f-observacoes" name="observacoes" rows="3"
+              placeholder="Alergias, preferências, restrições…"></textarea>
           </div>
         </div>
-      </div>
 
-      <!-- Filtros rápidos + resumo -->
-      <div class="section-toolbar">
-        <div>
-          <h2 class="section-toolbar__title">Lista de pacientes</h2>
-          <p class="section-toolbar__subtitle"><span id="contador-resultados">0</span> pacientes encontrados</p>
+        <div class="modal-card__footer">
+          <button type="button" class="btn btn--ghost" id="btn-cancelar-modal">Cancelar</button>
+          <button type="submit" class="btn btn--primary">Salvar paciente</button>
         </div>
-        <div class="section-toolbar__actions">
-          <div class="pill-group" id="quick-filter-pills">
-            <button class="pill is-active" data-filter="todos">Todos</button>
-            <button class="pill" data-filter="ativos">Ativos</button>
-            <button class="pill" data-filter="novos">Novos</button>
-            <button class="pill" data-filter="agendamentos">Com agendamentos recentes</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tabela de pacientes -->
-      <div class="table-card">
-        <div class="table-card__scroll">
-          <table class="data-table" id="tabela-pacientes">
-            <thead>
-              <tr>
-                <th>Paciente</th>
-                <th>CPF</th>
-                <th>Telefone</th>
-                <th>Último exame</th>
-                <th class="data-table__num">Total de exames</th>
-                <th>Radiologia mais frequentada</th>
-                <th class="data-table__action">Ações</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-pacientes-body">
-              <!-- Linhas geradas via JS -->
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Estado vazio (exibido via JS quando não há resultados) -->
-        <div class="empty-state" id="empty-state" hidden>
-          <div class="empty-state__icon">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          </div>
-          <p class="empty-state__title">Nenhum paciente encontrado</p>
-          <p class="empty-state__hint">Tente ajustar os termos da busca ou os filtros aplicados.</p>
-        </div>
-
-        <div class="table-card__footer" id="tabela-footer">
-          <span class="table-card__hint">Mostrando <strong id="paginacao-exibindo">0</strong> de <strong id="paginacao-total">0</strong> pacientes</span>
-          <div class="pagination" id="paginacao">
-            <!-- Paginação gerada via JS -->
-          </div>
-        </div>
-      </div>
-
+      </form>
     </div>
-
-    <!-- ======================================================
-         VIEW: PERFIL DO PACIENTE (2 Colunas: Info à esquerda, Histórico à direita)
-    ======================================================= -->
-    <div id="view-perfil" class="view" hidden>
-
-      <!-- Breadcrumb / voltar -->
-      <button class="btn--back" id="btn-voltar-lista">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Voltar para Pacientes
-      </button>
-
-      <!-- Header do perfil -->
-      <div class="profile-header">
-        <div class="profile-header__identity">
-          <div class="profile-avatar" id="perfil-avatar">JS</div>
-          <div class="profile-header__info">
-            <div class="profile-header__name-row">
-              <h1 class="profile-header__name" id="perfil-nome">—</h1>
-              <span class="status-tag status-tag--active" id="perfil-status">Ativo</span>
-            </div>
-            <div class="profile-header__meta" id="perfil-meta">
-              <!-- JS: CPF · Idade · Código interno -->
-            </div>
-          </div>
-        </div>
-        <div class="profile-header__actions">
-          <button class="btn btn--ghost" id="btn-exportar-pdf">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 2V8H20" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-            Exportar perfil em PDF
-          </button>
-          <button class="btn btn--primary" id="btn-editar-paciente">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 4H6C4.9 4 4 4.9 4 6V18C4 19.1 4.9 20 6 20H18C19.1 20 20 19.1 20 18V13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M18.5 2.5C19.33 1.67 20.67 1.67 21.5 2.5C22.33 3.33 22.33 4.67 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
-            Editar paciente
-          </button>
-        </div>
-      </div>
-
-      <!-- Resumo (KPIs do paciente) -->
-      <div class="kpi-grid kpi-grid--profile">
-        <div class="kpi-card">
-          <div class="kpi-card__header">
-            <span class="kpi-card__label">Total de visitas</span>
-            <div class="kpi-card__icon kpi-card__icon--primary">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="4.5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M3 9.5H21" stroke="currentColor" stroke-width="1.8"/></svg>
-            </div>
-          </div>
-          <span class="kpi-card__value" id="kpi-visitas">0</span>
-          <div class="kpi-card__footer"><span class="kpi-card__context">exames realizados</span></div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-card__header">
-            <span class="kpi-card__label">Total gasto</span>
-            <div class="kpi-card__icon">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2V22" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M17 5.5H9.5C8.12 5.5 7 6.62 7 8C7 9.38 8.12 10.5 9.5 10.5H14.5C15.88 10.5 17 11.62 17 13C17 14.38 15.88 15.5 14.5 15.5H6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            </div>
-          </div>
-          <span class="kpi-card__value" id="kpi-total-gasto">R$ 0</span>
-          <div class="kpi-card__footer"><span class="kpi-card__context">desde o cadastro</span></div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-card__header">
-            <span class="kpi-card__label">Paciente desde</span>
-            <div class="kpi-card__icon">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="4.5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 2.5V6.5M16 2.5V6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            </div>
-          </div>
-          <span class="kpi-card__value kpi-card__value--sm" id="kpi-paciente-desde">—</span>
-          <div class="kpi-card__footer"><span class="kpi-card__context" id="kpi-tempo-relativo">—</span></div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-card__header">
-            <span class="kpi-card__label">Radiologia mais frequentada</span>
-            <div class="kpi-card__icon">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 21H21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M5 21V7L12 3L19 7V21" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
-            </div>
-          </div>
-          <span class="kpi-card__value kpi-card__value--sm" id="kpi-radiologia-frequente">—</span>
-          <div class="kpi-card__footer"><span class="kpi-card__context" id="kpi-radiologia-visitas">—</span></div>
-        </div>
-      </div>
-
-      <!-- Grid principal: 2 Colunas (Esquerda: Dados / Direita: Histórico) -->
-      <div class="profile-grid">
-
-        <!-- COLUNA ESQUERDA: Dados, Ações e Contato -->
-        <div class="profile-col profile-col--side">
-          
-          <!-- Dados Pessoais -->
-          <div class="info-card">
-            <div class="info-card__header">
-              <h3 class="info-card__title">Dados pessoais</h3>
-            </div>
-            <dl class="info-list" id="perfil-info-basica">
-              <!-- Gerado via JS -->
-            </dl>
-          </div>
-
-          <!-- Card de Próximos Passos -->
-          
-          <!-- Card de Contato Rápido -->
-          <div class="info-card">
-            <div class="info-card__header">
-              <h3 class="info-card__title">Contato rápido</h3>
-            </div>
-            <div class="contact-quick-list" id="perfil-contato-rapido">
-              <!-- Preenchido via JS -->
-            </div>
-          </div>
-
-          <!-- Observações / Notas -->
-          <div class="info-card">
-            <div class="info-card__header">
-              <h3 class="info-card__title">Observações clínicas</h3>
-              <button class="btn btn--text btn--sm" id="btn-add-nota">+ Adicionar nota</button>
-            </div>
-            <ul class="notes-list" id="perfil-notas">
-              <!-- Gerado via JS -->
-            </ul>
-          </div>
-
-        </div>
-
-        <!-- COLUNA DIREITA: Ocupada 100% pelo Histórico -->
-        <div class="profile-col profile-col--main">
-
-          <!-- Toggle Exames / Agendamentos -->
-          <div class="charts-section__toolbar">
-            <h2 class="charts-section__title">Histórico</h2>
-            <div class="view-toggle" id="historico-toggle">
-              <button class="view-toggle__btn is-active" data-historico="exames">Exames</button>
-              <button class="view-toggle__btn" data-historico="agendamentos">Agendamentos</button>
-            </div>
-          </div>
-
-          <!-- Histórico de exames (timeline) -->
-          <div class="table-card" id="painel-exames">
-            <ul class="timeline" id="timeline-exames">
-              <!-- Gerado via JS -->
-            </ul>
-          </div>
-
-          <!-- Histórico de agendamentos -->
-          <div class="table-card" id="painel-agendamentos" hidden>
-            <div class="table-card__scroll">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Data</th>
-                    <th>Horário</th>
-                    <th>Unidade</th>
-                    <th>Tipo de exame</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody id="tabela-agendamentos-body">
-                  <!-- Gerado via JS -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-    </div>
-
-  </main>
-</div>
-
-<!-- =============================================================
-     MODAL: NOVO / EDITAR PACIENTE
-============================================================= -->
-<div class="modal-overlay" id="modal-paciente" hidden>
-  <div class="modal-card modal-card--lg">
-    <div class="modal-card__header">
-      <h3 class="modal-card__title" id="modal-titulo">Novo Paciente</h3>
-      <button class="btn--icon-only btn--ghost" id="btn-fechar-modal" aria-label="Fechar">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-    </div>
-
-    <form class="modal-card__body" id="form-paciente">
-      <div class="form-grid">
-        <div class="form-field form-field--full">
-          <label for="f-nome">Nome completo</label>
-          <input type="text" id="f-nome" name="nome" placeholder="Ex.: Juliana Sales de Andrade" required>
-        </div>
-        <div class="form-field">
-          <label for="f-cpf">CPF</label>
-          <input type="text" id="f-cpf" name="cpf" placeholder="000.000.000-00" required>
-        </div>
-        <div class="form-field">
-          <label for="f-telefone">Telefone / WhatsApp</label>
-          <input type="text" id="f-telefone" name="telefone" placeholder="(00) 00000-0000" required>
-        </div>
-        <div class="form-field">
-          <label for="f-nascimento">Data de nascimento</label>
-          <input type="date" id="f-nascimento" name="nascimento">
-        </div>
-        <div class="form-field">
-          <label for="f-email">E-mail</label>
-          <input type="email" id="f-email" name="email" placeholder="paciente@email.com">
-        </div>
-        <div class="form-field form-field--full">
-          <label for="f-endereco">Endereço</label>
-          <input type="text" id="f-endereco" name="endereco" placeholder="Rua, número, bairro — cidade/UF">
-        </div>
-        <div class="form-field form-field--full">
-          <label for="f-observacoes">Observações</label>
-          <textarea id="f-observacoes" name="observacoes" rows="3" placeholder="Alergias, preferências, restrições…"></textarea>
-        </div>
-      </div>
-
-      <div class="modal-card__footer">
-        <button type="button" class="btn btn--ghost" id="btn-cancelar-modal">Cancelar</button>
-        <button type="submit" class="btn btn--primary">Salvar paciente</button>
-      </div>
-    </form>
   </div>
-</div>
 
-<!-- =============================================================
+  <!-- =============================================================
      TOAST DE FEEDBACK
 ============================================================= -->
-<div class="toast" id="toast" hidden>
-  <span class="toast__icon">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 13L9 17L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  </span>
-  <span class="toast__text" id="toast-text">Paciente salvo com sucesso</span>
-</div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="js/api.js"></script>
-<script src="js/pacientes.js"></script>
-<script src="js/profile-dropdown.js"></script>
+  <div class="toast" id="toast" hidden>
+    <span class="toast__icon">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M5 13L9 17L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+          stroke-linejoin="round" />
+      </svg>
+    </span>
+    <span class="toast__text" id="toast-text">Paciente salvo com sucesso</span>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="js/login.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/pacientes.js"></script>
+  <script src="js/profile-dropdown.js"></script>
+  <script>
+    try { window.IORDAuth.requireLogin() } catch (e) {}
+  </script>
 </body>
+
 </html>

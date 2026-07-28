@@ -110,7 +110,7 @@ const DataStore = (() => {
   async function loadAgendamentos(state) {
     const { start, end } = DateUtils.getPeriodRange(state);
     const res = await Api.getAgendamentos({
-      radiologiaId: state.radiologiaSelecionada,
+      radiologiaId: IORDPermissions.getRadiologiaFiltro(state.radiologiaSelecionada),
       dataInicio: AppCache.toISODate(start),
       dataFim: AppCache.toISODate(end),
     });
@@ -2227,6 +2227,205 @@ function showToast(message, type = 'success') {
 
 
 /* =================================================================
+   PATIENT AUTOCOMPLETE — busca inteligente de pacientes
+   Responsabilidade única: campo #newPaciente → dropdown → preenchimento.
+   Não conhece o modal; comunica via preenchimento direto de campos.
+================================================================= */
+const PatientAutocomplete = (() => {
+  let inputEl, dropdownEl, tagEl;
+  let debounceTimer = null;
+  let selectedPatientId = null;  // null = nenhum selecionado (modo "novo paciente")
+  let currentFocusIdx = -1;
+  const DEBOUNCE_MS = 300;
+  const MIN_CHARS   = 2;
+
+  /* ------------------------------------------------------------------
+     Preenche todos os campos do formulário com os dados do paciente
+     selecionado e sinaliza visualmente que é um cadastro existente.
+  ------------------------------------------------------------------ */
+  function fillFromPatient(p) {
+    selectedPatientId = p.id;
+    document.getElementById('newPacienteId').value = p.id;
+    document.getElementById('newPaciente').value   = p.nome || '';
+
+    // Campos pessoais — preenche apenas se tiver valor
+    if (p.cpf)        document.getElementById('newCpf').value = p.cpf;
+    if (p.telefone)   document.getElementById('newTelefone').value = p.telefone;
+    if (p.nascimento) {
+      // Converte AAAA-MM-DD → DD/MM/AAAA
+      const partes = p.nascimento.split('-');
+      if (partes.length === 3) {
+        document.getElementById('newNascimento').value = `${partes[2]}/${partes[1]}/${partes[0]}`;
+      }
+    }
+
+    // Mostra tag "paciente existente" no label
+    if (tagEl) tagEl.hidden = false;
+
+    closeDropdown();
+  }
+
+  /* ------------------------------------------------------------------
+     Limpa a seleção de paciente existente (modo "novo paciente").
+     Chamado sempre que o usuário edita o campo após ter selecionado.
+  ------------------------------------------------------------------ */
+  function clearSelection() {
+    selectedPatientId = null;
+    document.getElementById('newPacienteId').value = '';
+    if (tagEl) tagEl.hidden = true;
+  }
+
+  /* ------------------------------------------------------------------
+     Renderiza os itens no dropdown.
+  ------------------------------------------------------------------ */
+  function renderDropdown(pacientes) {
+    if (!dropdownEl) return;
+    dropdownEl.innerHTML = '';
+    currentFocusIdx = -1;
+
+    if (!pacientes.length) {
+      dropdownEl.innerHTML = `<div class="autocomplete-empty">Nenhum paciente encontrado — os dados serão usados para criar um novo cadastro.</div>`;
+      dropdownEl.hidden = false;
+      return;
+    }
+
+    pacientes.forEach((p, idx) => {
+      const item = document.createElement('div');
+      item.className = 'autocomplete-item';
+      item.setAttribute('role', 'option');
+      item.setAttribute('aria-selected', 'false');
+      item.dataset.idx = idx;
+      item.innerHTML = `
+        <div class="autocomplete-item__name">${escapeHtml(p.nome)}</div>
+        <div class="autocomplete-item__meta">CPF: ${p.cpf || '—'}&nbsp;&nbsp;|&nbsp;&nbsp;Tel: ${p.telefone || '—'}</div>
+      `;
+      item.addEventListener('mousedown', (e) => {
+        e.preventDefault(); // evita perda de foco no input
+        fillFromPatient(p);
+      });
+      dropdownEl.appendChild(item);
+    });
+
+    dropdownEl.hidden = false;
+  }
+
+  function showLoading() {
+    if (!dropdownEl) return;
+    dropdownEl.innerHTML = `<div class="autocomplete-loading"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="animation:spin 1s linear infinite"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" stroke-dasharray="28 56" stroke-linecap="round"/></svg> Buscando...</div>`;
+    dropdownEl.hidden = false;
+  }
+
+  function closeDropdown() {
+    if (dropdownEl) dropdownEl.hidden = true;
+    currentFocusIdx = -1;
+  }
+
+  function escapeHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  /* ------------------------------------------------------------------
+     Navega pelo dropdown via teclado (↑↓ + Enter + Escape).
+  ------------------------------------------------------------------ */
+  function handleKeydown(e) {
+    if (dropdownEl.hidden) return;
+    const items = dropdownEl.querySelectorAll('.autocomplete-item');
+    if (!items.length) {
+      if (e.key === 'Escape') closeDropdown();
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      currentFocusIdx = Math.min(currentFocusIdx + 1, items.length - 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      currentFocusIdx = Math.max(currentFocusIdx - 1, 0);
+    } else if (e.key === 'Enter' && currentFocusIdx >= 0) {
+      e.preventDefault();
+      items[currentFocusIdx].dispatchEvent(new MouseEvent('mousedown'));
+      return;
+    } else if (e.key === 'Escape') {
+      closeDropdown();
+      return;
+    } else {
+      return;
+    }
+
+    items.forEach((item, i) => item.classList.toggle('is-focused', i === currentFocusIdx));
+  }
+
+  /* ------------------------------------------------------------------
+     Dispara a busca com debounce.
+  ------------------------------------------------------------------ */
+  async function onInput() {
+    const val = inputEl.value.trim();
+
+    // Se o usuário editou o campo após seleção, descarta o vínculo
+    clearSelection();
+
+    if (val.length < MIN_CHARS) {
+      closeDropdown();
+      return;
+    }
+
+    clearTimeout(debounceTimer);
+    showLoading();
+
+    debounceTimer = setTimeout(async () => {
+      try {
+        const resultados = await Api.searchPacientes(val);
+        renderDropdown(resultados);
+      } catch (err) {
+        console.error('[PatientAutocomplete] Erro na busca:', err);
+        closeDropdown();
+      }
+    }, DEBOUNCE_MS);
+  }
+
+  /* ------------------------------------------------------------------
+     API pública
+  ------------------------------------------------------------------ */
+  /** Retorna o patient_id selecionado (null se novo paciente). */
+  function getSelectedId() { return selectedPatientId; }
+
+  /** Limpa tudo — chamado pelo resetForm do modal. */
+  function reset() {
+    clearTimeout(debounceTimer);
+    selectedPatientId = null;
+    currentFocusIdx   = -1;
+    if (tagEl) tagEl.hidden = true;
+    closeDropdown();
+  }
+
+  function init() {
+    inputEl    = document.getElementById('newPaciente');
+    dropdownEl = document.getElementById('pacienteAutocompleteDropdown');
+    tagEl      = document.getElementById('newPacienteTag');
+
+    if (!inputEl || !dropdownEl) return;
+
+    inputEl.addEventListener('input',   onInput);
+    inputEl.addEventListener('keydown', handleKeydown);
+    inputEl.addEventListener('blur',    () => setTimeout(closeDropdown, 150));
+    inputEl.addEventListener('focus',   () => {
+      if (inputEl.value.trim().length >= MIN_CHARS && !selectedPatientId) {
+        onInput();
+      }
+    });
+
+    // Fecha ao clicar fora
+    document.addEventListener('click', (e) => {
+      if (!inputEl.contains(e.target) && !dropdownEl.contains(e.target)) {
+        closeDropdown();
+      }
+    });
+  }
+
+  return { init, reset, getSelectedId, fillFromPatient };
+})();
+
+/* =================================================================
    NEW APPOINTMENT MODAL — v2 (fluxo em cascata)
 ================================================================= */
 const NewAppointmentModal = (() => {
@@ -2513,6 +2712,7 @@ const NewAppointmentModal = (() => {
 
     document.getElementById('newPaciente').value = '';
     document.getElementById('newPacienteId').value = '';
+    PatientAutocomplete.reset();  // limpa seleção e dropdown
     document.getElementById('newCpf').value = '';
     document.getElementById('newTelefone').value = '';
     document.getElementById('newNascimento').value = '';
@@ -2547,6 +2747,11 @@ const NewAppointmentModal = (() => {
     // 1. Campos simples — sem dependência de cascata
     document.getElementById('newPaciente').value = ag.paciente || '';
     document.getElementById('newPacienteId').value = ag.pacienteId || '';
+    // Sinaliza que é paciente existente (já tem id)
+    if (ag.pacienteId) {
+      const tagEl = document.getElementById('newPacienteTag');
+      if (tagEl) tagEl.hidden = false;
+    }
     document.getElementById('newCpf').value = ag.pacienteCpf || '';
     document.getElementById('newTelefone').value = ag.pacienteTelefone || '';
     document.getElementById('newNascimento').value = ag.pacienteNascimento
@@ -2869,6 +3074,7 @@ const NewAppointmentModal = (() => {
     closeBtn = document.getElementById('newModalCloseBtn');
     cancelBtn = document.getElementById('newModalCancelBtn');
     saveBtn = document.getElementById('newModalSaveBtn');
+    PatientAutocomplete.init();  // inicializa o autocomplete de paciente
     bindEvents();
   }
 
@@ -3165,6 +3371,10 @@ let DURACAO_POR_EXAME = {};
    15. INIT — bootstrap assíncrono (sem cache)
 ================================================================= */
 document.addEventListener('DOMContentLoaded', async () => {
+
+  // Proteção de rota + restrições visuais por nível de acesso
+  try { window.IORDAuth.requireLogin(); } catch (e) {}
+  IORDPermissions.applyUI();
 
   const loadingEl = document.getElementById('pageLoadingOverlay');
   if (loadingEl) loadingEl.hidden = false;
