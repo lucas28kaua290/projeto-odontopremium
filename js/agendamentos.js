@@ -2249,8 +2249,10 @@ const PatientAutocomplete = (() => {
     document.getElementById('newPaciente').value   = p.nome || '';
 
     // Campos pessoais — preenche apenas se tiver valor
-    if (p.cpf)        document.getElementById('newCpf').value = p.cpf;
-    if (p.telefone)   document.getElementById('newTelefone').value = p.telefone;
+    if (p.cpf)      document.getElementById('newCpf').value = p.cpf;
+    if (p.telefone) document.getElementById('newTelefone').value = p.telefone;
+    if (p.email)    document.getElementById('newEmail').value = p.email;
+    if (p.endereco) document.getElementById('newEndereco').value = p.endereco;
     if (p.nascimento) {
       // Converte AAAA-MM-DD → DD/MM/AAAA
       const partes = p.nascimento.split('-');
@@ -2716,6 +2718,8 @@ const NewAppointmentModal = (() => {
     document.getElementById('newCpf').value = '';
     document.getElementById('newTelefone').value = '';
     document.getElementById('newNascimento').value = '';
+    document.getElementById('newEmail').value = '';
+    document.getElementById('newEndereco').value = '';
     document.getElementById('newRadiologia').value = '';
     document.getElementById('newTipoExame').value = '';
     document.getElementById('newDate').value = today;
@@ -2754,8 +2758,10 @@ const NewAppointmentModal = (() => {
     }
     document.getElementById('newCpf').value = ag.pacienteCpf || '';
     document.getElementById('newTelefone').value = ag.pacienteTelefone || '';
+    document.getElementById('newEmail').value = ag.pacienteEmail || '';
+    document.getElementById('newEndereco').value = ag.pacienteEndereco || '';
     document.getElementById('newNascimento').value = ag.pacienteNascimento
-      ? ag.pacienteNascimento.split('-').reverse().join('/')   // converte AAAA-MM-DD → DD/MM/AAAA
+      ? ag.pacienteNascimento.split('-').reverse().join('/')
       : '';
     document.getElementById('newDate').value = ag.data || '';
     document.getElementById('newStatus').value = ag.status || 'agendado';
@@ -2858,6 +2864,8 @@ const NewAppointmentModal = (() => {
       paciente: document.getElementById('newPaciente').value.trim(),  // nome só pra exibição
       pacienteCpf: document.getElementById('newCpf').value.trim(),
       pacienteTelefone: document.getElementById('newTelefone').value.trim(),
+      pacienteEmail: document.getElementById('newEmail').value.trim() || null,
+      pacienteEndereco: document.getElementById('newEndereco').value.trim() || null,
       pacienteNascimento: (() => {
         const v = document.getElementById('newNascimento').value.trim();
         if (!v || v.length < 10) return null;
@@ -2898,10 +2906,9 @@ const NewAppointmentModal = (() => {
         // Tenta encontrar por CPF para evitar duplicata
         if (cpf) {
           const busca = await Api.getPacientes({ busca: cpf, porPagina: 1 });
-          console.log('[DEBUG] busca paciente raw:', JSON.stringify(busca));  // ← adiciona
           const lista = Array.isArray(busca?.data) ? busca.data : (Array.isArray(busca) ? busca : []);
-          console.log('[DEBUG] lista:', JSON.stringify(lista));  // ← adiciona
           const encontrado = lista[0] ?? null;
+          
           if (encontrado?.id) {
             pacienteId = encontrado.id;
           }
@@ -2910,8 +2917,9 @@ const NewAppointmentModal = (() => {
         // Não encontrou — cria novo
         if (!pacienteId) {
           try {
-            const payload = { nome, cpf, telefone, nascimento };
-            console.log('[DEBUG] postPaciente payload:', JSON.stringify(payload));  // ← adiciona
+            const email    = document.getElementById('newEmail').value.trim() || null;
+            const endereco = document.getElementById('newEndereco').value.trim() || null;
+            const payload  = { nome, cpf, telefone, nascimento, email, endereco };
             const novoPaciente = await Api.postPaciente(payload);
             pacienteId = novoPaciente?.data?.id ?? novoPaciente?.id;
           } catch (errPaciente) {
@@ -2935,10 +2943,12 @@ const NewAppointmentModal = (() => {
         // Atualiza dados pessoais na tabela pacientes
         if (appt.pacienteId) {
           await Api.updatePaciente(appt.pacienteId, {
-            nome: appt.paciente,
-            cpf: appt.pacienteCpf,
-            telefone: appt.pacienteTelefone,
+            nome:       appt.paciente,
+            cpf:        appt.pacienteCpf,
+            telefone:   appt.pacienteTelefone,
             nascimento: appt.pacienteNascimento,
+            email:      appt.pacienteEmail,
+            endereco:   appt.pacienteEndereco,
           });
         }
         // Atualiza dados do agendamento

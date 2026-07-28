@@ -1462,7 +1462,7 @@ def buscar_pacientes_autocomplete():
     like = f"%{busca}%"
     rows = query(
         "SELECT id, nome, cpf, telefone, email, "
-        "       DATE_FORMAT(nascimento, '%%Y-%%m-%%d') AS nascimento, "
+        "       DATE_FORMAT(nascimento, '%Y-%m-%d') AS nascimento, "
         "       endereco "
         "FROM pacientes "
         "WHERE status = 'ativo' "
