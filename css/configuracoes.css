@@ -205,9 +205,6 @@
     box-shadow: 0 2px 8px -2px rgba(1, 128, 147, 0.45);
 }
 
-.cfg-block__icon--wa {
-    background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
-}
 
 .cfg-block__title {
     font-size: var(--fs-base);
@@ -561,10 +558,7 @@
     color: var(--color-primary-dark);
 }
 
-.cfg-toggle-item__icon--whatsapp {
-    background: #E8F9EF;
-    color: #128C7E;
-}
+
 
 .cfg-toggle-item__label {
     display: block;
@@ -888,18 +882,7 @@
     gap: var(--space-2);
 }
 
-/* Badge de variáveis (WhatsApp) */
-.cfg-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: 5px 10px;
-    border-radius: var(--radius-sm);
-    font-size: var(--fs-xs);
-    font-weight: var(--fw-medium);
-    font-family: var(--font-mono);
-    white-space: nowrap;
-}
+
 
 .cfg-badge--hint {
     background: var(--color-surface-muted);
@@ -1610,89 +1593,40 @@
 
 
 /* =============================================================
-   14. PARÂMETROS — MENSAGENS WHATSAPP
+   14. PARÂMETROS — BLOCO EM DESENVOLVIMENTO (WIP)
 ============================================================= */
-.wa-messages-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
+.cfg-block--wip {
+    position: relative;
+    overflow: hidden;
 }
 
-.wa-message-item {
+.cfg-block--wip .cfg-block__body,
+.cfg-block--wip .cfg-block__header {
+    filter: blur(4px);
+    pointer-events: none;
+    user-select: none;
+}
+
+.cfg-block__wip-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
     display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-    padding: var(--space-5);
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.cfg-block__wip-label {
+    padding: 8px 20px;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-    box-shadow: var(--shadow-sm);
-}
-
-.wa-message-item:focus-within {
-    border-color: var(--color-primary-light);
-    box-shadow: 0 0 0 3px rgba(1, 128, 147, 0.08), var(--shadow-sm);
-}
-
-.wa-message-item__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-3);
-}
-
-.wa-message-item__event {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
+    border-radius: var(--radius-md);
     font-size: var(--fs-sm);
     font-weight: var(--fw-semibold);
-    color: var(--color-text);
-}
-
-.wa-message-item__event-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #25D366;
-    flex-shrink: 0;
-}
-
-.wa-message-item__active {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    font-size: var(--fs-xs);
     color: var(--color-text-subtle);
-}
-
-.wa-message-item__textarea {
-    width: 100%;
-    padding: var(--space-3) var(--space-4);
-    border: 1px solid var(--color-border-strong);
-    border-radius: var(--radius-sm);
-    font-size: var(--fs-sm);
-    font-family: var(--font-base);
-    color: var(--color-text);
-    background: var(--color-surface);
-    resize: vertical;
-    min-height: 80px;
-    line-height: 1.55;
-    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-.wa-message-item__textarea:focus {
-    outline: none;
-    border-color: var(--color-primary-light);
-    box-shadow: var(--shadow-focus);
-}
-
-.wa-message-item__char-count {
-    align-self: flex-end;
-    font-size: var(--fs-xs);
-    color: var(--color-text-subtle);
-    font-family: var(--font-mono);
+    box-shadow: var(--shadow-md);
+    letter-spacing: 0.02em;
 }
 
 

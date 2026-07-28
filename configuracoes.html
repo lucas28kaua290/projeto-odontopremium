@@ -741,47 +741,12 @@
                     </div>
                 </div>
 
-                <!-- Bloco: WhatsApp Business -->
-                <div class="cfg-block">
-                    <div class="cfg-block__header">
-                        <div class="cfg-block__title-group">
-                            <span class="cfg-block__icon cfg-block__icon--wa">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                    <path
-                                        d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"
-                                        stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-                                        stroke-linejoin="round" />
-                                </svg>
-                            </span>
-                            <div>
-                                <h2 class="cfg-block__title">Mensagens Padrão do WhatsApp</h2>
-                                <span class="cfg-block__subtitle">Textos enviados automaticamente em cada evento. Use
-                                    {variáveis} para personalizar.</span>
-                            </div>
-                        </div>
-                        <span class="cfg-badge cfg-badge--hint">
-                            Variáveis: {nome}, {data}, {hora}, {exame}, {radiologia}, {link}
-                        </span>
-                    </div>
-
-                    <div class="cfg-block__body">
-                        <div class="modal-info-box modal-info-box--hint" style="margin-bottom:var(--space-4);">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8" />
-                                <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                            </svg>
-                            A variável <strong>{link}</strong> é substituída automaticamente pelo link de
-                            confirmação do agendamento. Quando o paciente clica nele, o status muda de
-                            "Agendado" para "Confirmado" no sistema — sem precisar de login.
-                        </div>
-                        <div class="wa-messages-list" id="waMessagesList">
-                            <!-- Gerado pelo JS -->
-                        </div>
-                    </div>
-                </div>
-
+                
                 <!-- Bloco: Agendamento -->
-                <div class="cfg-block">
+                <div class="cfg-block cfg-block--wip">
+                    <div class="cfg-block__wip-overlay">
+                        <span class="cfg-block__wip-label">Em desenvolvimento</span>
+                    </div>
                     <div class="cfg-block__header">
                         <div class="cfg-block__title-group">
                             <span class="cfg-block__icon">
