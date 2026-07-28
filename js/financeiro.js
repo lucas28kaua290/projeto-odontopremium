@@ -1311,14 +1311,21 @@
       const ctx = document.getElementById('byRadiologyChart');
       if (!ctx) return;
 
+      // Não-admin: só a própria radiologia no gráfico
+      const dados = IORDPermissions.isAdmin()
+        ? porRadiologia
+        : porRadiologia.filter(r => r.id === IORDPermissions.getRadiologiaId());
+
       const isAll = State.radiologia === 'all';
       const isQtd = State.viewMode === 'quantidade';
       let labels, values, colors;
 
       if (isAll) {
-        labels = porRadiologia.map(r => r.label);
-        values = isQtd ? porRadiologia.map(r => r.exames) : porRadiologia.map(r => r.faturamento);
-        colors = porRadiologia.map((_, i) => H.seriesColor(i, 0.85));
+        labels = dados.map(r => r.label);              // ← let, não const: agora vaza corretamente
+        values = isQtd
+          ? dados.map(r => r.exames)                   // ← respeita viewMode
+          : dados.map(r => r.faturamento);
+        colors = dados.map((_, i) => H.seriesColor(i, 0.85)); // ← era porRadiologia, agora dados
       } else {
         labels = topClinicas.map(c => c.nome);
         values = isQtd
@@ -1490,18 +1497,23 @@
 
     /* ----- Tabela: Resumo por Radiologia ----- */
     function renderResumoTable(porRadiologia) {
+
+      const dados = IORDPermissions.isAdmin()
+        ? porRadiologia
+        : porRadiologia.filter(r => r.id === IORDPermissions.getRadiologiaId());
+
       const tbody = document.getElementById('resumoRadiologiaBody');
       if (!tbody) return;
-
       const isQtd = State.viewMode === 'quantidade';
       const data = State.radiologia === 'all'
-        ? porRadiologia
-        : porRadiologia.filter(r => r.id === State.radiologia);
+        ? dados
+        : dados.filter(r => r.id === State.radiologia);
 
       if (!data.length) {
         tbody.innerHTML = `<tr><td colspan="4" class="empty-state">Nenhum dado para o filtro selecionado.</td></tr>`;
         return;
       }
+
 
       tbody.innerHTML = data.map(r => `
     <tr>
@@ -1669,8 +1681,12 @@
       const body = document.getElementById('hierTableBody');
       if (!body) return;
 
-      const totalFaturamento = hierarquia.reduce((s, r) => s + r.faturamento, 0);
-      body.innerHTML = buildHierRows(hierarquia, totalFaturamento);
+      const hierFiltrada = IORDPermissions.isAdmin()
+        ? hierarquia
+        : hierarquia.filter(r => r.id === IORDPermissions.getRadiologiaId());
+
+      const totalFaturamento = hierFiltrada.reduce((s, r) => s + r.faturamento, 0);
+      body.innerHTML = buildHierRows(hierFiltrada, totalFaturamento);
       bindHierEvents();
     }
 
@@ -2754,6 +2770,14 @@
   async function init() {
     try { window.IORDAuth.requireLogin(); } catch (e) { }
     IORDPermissions.applyUI();
+
+    // Oculta aba Metas para usuários não-admin
+    if (!IORDPermissions.isAdmin()) {
+      const tabMetas = document.querySelector('.fin-tab[data-tab="metas"]');
+      if (tabMetas) tabMetas.style.display = 'none';
+      const panelMetas = document.getElementById('tab-metas');
+      if (panelMetas) panelMetas.style.display = 'none';
+    }
 
     ChartFactory.defaults();
     try {

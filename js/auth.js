@@ -117,20 +117,34 @@ const IORDPermissions = (() => {
      * Chame no início do init() de cada tela, depois de requireLogin().
      */
     function applyUI() {
-        if (isAdmin()) return; // admin vê tudo, nada a esconder
+        if (isAdmin()) return;
 
-        // Oculta o filtro global de radiologias
+        // Oculta o container de pills de radiologia
         const filterBar = document.getElementById('radiologyFilters');
+        if (filterBar) filterBar.style.display = 'none';
+
+        // Oculta wrapper pai e qualquer label "Radiologias" acima das pills
+        const filterWrapper = document.querySelector('.radiology-filter-bar, .filter-pills-wrapper');
+        if (filterWrapper) filterWrapper.style.display = 'none';
+
+        // Oculta labels estáticos tipo <label>, <span> ou <h*> imediatamente
+        // antes do container de filtros (padrão comum: label + pills no mesmo bloco)
         if (filterBar) {
-            filterBar.style.display = 'none';
+            const sibling = filterBar.previousElementSibling;
+            if (sibling && /^(label|span|h[1-6]|p)$/i.test(sibling.tagName)) {
+                sibling.style.display = 'none';
+            }
+            // Oculta também o pai se ficar vazio/sem conteúdo visível
+            const parent = filterBar.parentElement;
+            if (parent && parent.id !== 'radiologyFilters') {
+                parent.style.display = 'none';
+            }
         }
 
-        // Oculta o wrapper do filtro caso exista um pai com classe específica
-        // (ajuste o seletor se o seu HTML tiver um wrapper diferente)
-        const filterWrapper = document.querySelector('.radiology-filter-bar, .filter-pills-wrapper');
-        if (filterWrapper) {
-            filterWrapper.style.display = 'none';
-        }
+        // Oculta qualquer elemento com classe contendo "filter-label" ou "pills-label"
+        document.querySelectorAll('.filter-label, .pills-label, .radiology-label').forEach(el => {
+            el.style.display = 'none';
+        });
     }
 
     /**

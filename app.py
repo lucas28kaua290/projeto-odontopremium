@@ -682,16 +682,31 @@ def clinicas_por_radiologia(radiologia_id):
 @app.route("/v1/clinicas", methods=["GET"])
 @require_auth
 def listar_clinicas():
-    busca  = request.args.get("busca", "")
-    status = request.args.get("status", "")
+    busca       = request.args.get("busca", "")
+    status      = request.args.get("status", "")
+    rad_param   = request.args.get("radiologiaId", "")
 
-    sql    = "SELECT c.id, c.nome AS name, c.cidade AS city, c.estado AS state, " \
-             "       c.telefone AS phone, c.email, c.endereco AS address, c.status, " \
-             "       cr.radiologia_id AS radiologyId " \
-             "FROM clinicas c " \
-             "LEFT JOIN clinica_radiologia cr ON cr.clinica_id = c.id " \
-             "WHERE 1=1"
+    nivel       = g.user.get("nivel", "")
+    rad_usuario = g.user.get("radiologia", "todas")
+
+    # Não-admin: força radiologia do token
+    if nivel != "admin":
+        rad_filtro = rad_usuario
+    else:
+        rad_filtro = rad_param
+
+    sql    = ("SELECT c.id, c.nome AS name, c.cidade AS city, c.estado AS state, "
+              "       c.telefone AS phone, c.email, c.endereco AS address, c.status, "
+              "       cr.radiologia_id AS radiologyId "
+              "FROM clinicas c "
+              "INNER JOIN clinica_radiologia cr ON cr.clinica_id = c.id "
+              "WHERE 1=1")
     params = []
+
+    # Escopo por radiologia: aplica sempre que não for 'all'/'todas'
+    if rad_filtro and rad_filtro not in ("all", "todas", ""):
+        sql += " AND cr.radiologia_id = %s"
+        params.append(rad_filtro)
 
     if busca:
         sql += " AND (c.nome LIKE %s OR c.cidade LIKE %s)"
@@ -858,6 +873,16 @@ def listar_medicos():
     """
     params = [di, df, di, df, di, df, di, df]
 
+    # Escopo por radiologia: não-admin só vê médicos da própria unidade
+    rad_param   = request.args.get("radiologiaId", "")
+    nivel       = g.user.get("nivel", "")
+    rad_usuario = g.user.get("radiologia", "todas")
+    rad_filtro  = rad_usuario if nivel != "admin" else rad_param
+
+    if rad_filtro and rad_filtro not in ("all", "todas", ""):
+        sql += " AND cr.radiologia_id = %s"
+        params.append(rad_filtro)
+        
     if radiologia_id and radiologia_id != "all":
         sql += " AND mr.radiologia_id = %s"
         params.append(radiologia_id)
@@ -1376,23 +1401,50 @@ def confirmar_agendamento_via_link():
 @app.route("/v1/pacientes", methods=["GET"])
 @require_auth
 def listar_pacientes():
-    busca  = request.args.get("busca", "")
-    status = request.args.get("status", "")
-    limite = int(request.args.get("limite", 50))
-    offset = int(request.args.get("offset", 0))
+    busca        = request.args.get("busca", "")
+    status       = request.args.get("status", "")
+    limite       = int(request.args.get("limite", 50))
+    offset       = int(request.args.get("offset", 0))
+    rad_param    = request.args.get("radiologiaId", "")
 
-    sql    = "SELECT id, nome, cpf, telefone, email, nascimento, status, criado_em AS cadastro FROM pacientes WHERE 1=1"
-    params = []
+    # Escopo por radiologia: não-admin só vê pacientes da própria unidade
+    nivel        = g.user.get("nivel", "")
+    rad_usuario  = g.user.get("radiologia", "todas")
+
+    if nivel != "admin":
+        # Força a radiologia do token — ignora parâmetro da query
+        rad_filtro = rad_usuario
+    else:
+        rad_filtro = rad_param  # admin pode receber 'all' ou id específico
+
+    # Subconsulta: paciente tem pelo menos 1 agendamento nessa radiologia
+    if rad_filtro and rad_filtro not in ("all", "todas", ""):
+        sql = (
+            "SELECT DISTINCT p.id, p.nome, p.cpf, p.telefone, p.email, "
+            "  p.nascimento, p.status, p.criado_em AS cadastro "
+            "FROM pacientes p "
+            "WHERE EXISTS ("
+            "  SELECT 1 FROM agendamentos a "
+            "  WHERE a.paciente_id = p.id AND a.radiologia_id = %s"
+            ") AND 1=1"
+        )
+        params = [rad_filtro]
+    else:
+        sql    = "SELECT id, nome, cpf, telefone, email, nascimento, status, criado_em AS cadastro FROM pacientes WHERE 1=1"
+        params = []
 
     if busca:
-        sql += " AND (nome LIKE %s OR cpf LIKE %s OR telefone LIKE %s)"
+        sql += " AND (p.nome LIKE %s OR p.cpf LIKE %s OR p.telefone LIKE %s)" if "FROM pacientes p" in sql else \
+               " AND (nome LIKE %s OR cpf LIKE %s OR telefone LIKE %s)"
         like = f"%{busca}%"
         params += [like, like, like]
     if status:
-        sql += " AND status = %s"
+        col = "p.status" if "FROM pacientes p" in sql else "status"
+        sql += f" AND {col} = %s"
         params.append(status)
 
-    sql += f" ORDER BY nome LIMIT {limite} OFFSET {offset}"
+    order_col = "p.nome" if "FROM pacientes p" in sql else "nome"
+    sql += f" ORDER BY {order_col} LIMIT {limite} OFFSET {offset}"
     pacientes = query(sql, params)
 
     # Enriquece cada paciente com resumo de agendamentos (último exame, total, radiologia frequente)

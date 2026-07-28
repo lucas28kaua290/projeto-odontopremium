@@ -574,7 +574,7 @@
             this.bindNewButtons()
 
             try {
-                const radFiltro = IORDPermissions.getRadiologiaFiltro(null)
+                const radFiltro = IORDPermissions.getRadiologiaFiltro(null);
                 const [resClinicas, resMedicos] = await Promise.all([
                     Api.getClinicas({ radiologiaId: radFiltro }),
                     Api.getMedicos({ radiologiaId: radFiltro, semPeriodo: true }),

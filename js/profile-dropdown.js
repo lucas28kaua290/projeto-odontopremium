@@ -15,32 +15,39 @@
         // Se os elementos não existirem na página, sai silenciosamente
         if (!userInfo || !userAvatar || !headerUser) return;
 
+        // --- Dados do usuário vindos da sessão (não do DOM estático) ---
+        const sessionUser = (window.IORDPermissions && IORDPermissions.getUser)
+            ? IORDPermissions.getUser()
+            : {};
+
+        // Nível → label legível
+        const levelLabels = {
+            admin: 'Administrador Geral',
+            recepcao: 'Recepcionista',
+            viewer: 'Visualizador',
+        };
+
+        const userName = sessionUser.name || userInfo.querySelector('.user-info__name')?.textContent || 'Usuário';
+        const userRole = sessionUser.role || levelLabels[sessionUser.level] || userInfo.querySelector('.user-info__role')?.textContent || '';
+        const userInitials = userName.replace(/^(Dr\.|Dra\.)\s*/i, '').trim().split(' ')
+            .filter(Boolean)
+            .reduce((acc, p, i, arr) => i === 0 || i === arr.length - 1 ? acc + p[0] : acc, '')
+            .toUpperCase().slice(0, 2) || 'U';
+
+        // Atualiza também o DOM do header para consistência visual
+        const headerNameEl = userInfo.querySelector('.user-info__name');
+        const headerRoleEl = userInfo.querySelector('.user-info__role');
+        if (headerNameEl && sessionUser.name) headerNameEl.textContent = sessionUser.name;
+        if (headerRoleEl) {
+            // role (cargo) tem prioridade; se vazio, usa o nível traduzido
+            headerRoleEl.textContent = sessionUser.role || levelLabels[sessionUser.level] || '';
+        }
+        const avatarEl = document.querySelector('.user-avatar');
+        if (avatarEl && userInitials) avatarEl.textContent = userInitials;
+
         // 1. Cria a estrutura do Dropdown
         const dropdown = document.createElement('div');
         dropdown.id = 'profile-dropdown-menu';
-        
-        // Estilos inline baseados nos design tokens do styles.css
-        dropdown.style.cssText = `
-            position: absolute;
-            top: calc(100% + 12px);
-            right: 0;
-            width: 240px;
-            background-color: var(--color-surface);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-lg);
-            padding: var(--space-4);
-            z-index: 200;
-            opacity: 0;
-            transform: translateY(-10px);
-            pointer-events: none;
-            transition: opacity var(--transition-fast), transform var(--transition-fast);
-        `;
-
-        // Pega dados do usuário diretamente do header atual
-        const userName = userInfo.querySelector('.user-info__name')?.textContent || 'Usuário';
-        const userRole = userInfo.querySelector('.user-info__role')?.textContent || '';
-        const userInitials = userAvatar.textContent || 'U';
 
         dropdown.innerHTML = `
             <div style="display: flex; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border); margin-bottom: 8px;">
@@ -94,7 +101,7 @@
         // Abre ao clicar no nome ou avatar
         userInfo.addEventListener('click', handleTriggerClick);
         userAvatar.addEventListener('click', handleTriggerClick);
-        
+
         // Torna o nome e avatar "clicáveis" visualmente
         userInfo.style.cursor = 'pointer';
         userAvatar.style.cursor = 'pointer';

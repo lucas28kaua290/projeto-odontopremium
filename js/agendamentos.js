@@ -138,7 +138,7 @@ const DataStore = (() => {
 ================================================================= */
 const AppState = (() => {
   let state = {
-    radiologiaSelecionada: 'all',
+    radiologiaSelecionada: IORDPermissions.isAdmin() ? 'all' : IORDPermissions.getRadiologiaId(),
     periodo: 'todos',
     customDateStart: null,
     customDateEnd: null,
@@ -652,10 +652,15 @@ const OccupancyChart = (() => {
   }
 
   function renderAllRadiologies(state) {
+    // Dupla proteção: não-admin não deve chegar aqui, mas se chegar, redireciona
+    if (!IORDPermissions.isAdmin()) {
+        renderInternalOccupancy(state);
+        return;
+    }
     const ctx = document.getElementById('occupancyChart');
     const data = getOcupacaoGeral(state);
     document.getElementById('occupancyChartTitle').textContent = 'Ocupação das Radiologias';
-    document.getElementById('occupancyChartSubtitle').textContent = 'Comparativo entre as 4 unidades · últimos 7 dias de tendência';
+    document.getElementById('occupancyChartSubtitle').textContent = 'Comparativo entre unidades · últimos 7 dias de tendência';
 
     renderLegend(data);
     renderCards(data);
@@ -810,6 +815,11 @@ const OccupancyChart = (() => {
   }
 
   function render(state) {
+    // Não-admin: nunca mostra comparativo de todas — vai direto para a visão interna
+    if (!IORDPermissions.isAdmin()) {
+      renderInternalOccupancy(state);
+      return;
+    }
     if (state.radiologiaSelecionada === 'all') renderAllRadiologies(state);
     else renderInternalOccupancy(state);
   }
@@ -2237,7 +2247,7 @@ const PatientAutocomplete = (() => {
   let selectedPatientId = null;  // null = nenhum selecionado (modo "novo paciente")
   let currentFocusIdx = -1;
   const DEBOUNCE_MS = 300;
-  const MIN_CHARS   = 2;
+  const MIN_CHARS = 2;
 
   /* ------------------------------------------------------------------
      Preenche todos os campos do formulário com os dados do paciente
@@ -2246,12 +2256,12 @@ const PatientAutocomplete = (() => {
   function fillFromPatient(p) {
     selectedPatientId = p.id;
     document.getElementById('newPacienteId').value = p.id;
-    document.getElementById('newPaciente').value   = p.nome || '';
+    document.getElementById('newPaciente').value = p.nome || '';
 
     // Campos pessoais — preenche apenas se tiver valor
-    if (p.cpf)      document.getElementById('newCpf').value = p.cpf;
+    if (p.cpf) document.getElementById('newCpf').value = p.cpf;
     if (p.telefone) document.getElementById('newTelefone').value = p.telefone;
-    if (p.email)    document.getElementById('newEmail').value = p.email;
+    if (p.email) document.getElementById('newEmail').value = p.email;
     if (p.endereco) document.getElementById('newEndereco').value = p.endereco;
     if (p.nascimento) {
       // Converte AAAA-MM-DD → DD/MM/AAAA
@@ -2323,7 +2333,7 @@ const PatientAutocomplete = (() => {
   }
 
   function escapeHtml(str) {
-    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
   /* ------------------------------------------------------------------
@@ -2395,22 +2405,22 @@ const PatientAutocomplete = (() => {
   function reset() {
     clearTimeout(debounceTimer);
     selectedPatientId = null;
-    currentFocusIdx   = -1;
+    currentFocusIdx = -1;
     if (tagEl) tagEl.hidden = true;
     closeDropdown();
   }
 
   function init() {
-    inputEl    = document.getElementById('newPaciente');
+    inputEl = document.getElementById('newPaciente');
     dropdownEl = document.getElementById('pacienteAutocompleteDropdown');
-    tagEl      = document.getElementById('newPacienteTag');
+    tagEl = document.getElementById('newPacienteTag');
 
     if (!inputEl || !dropdownEl) return;
 
-    inputEl.addEventListener('input',   onInput);
+    inputEl.addEventListener('input', onInput);
     inputEl.addEventListener('keydown', handleKeydown);
-    inputEl.addEventListener('blur',    () => setTimeout(closeDropdown, 150));
-    inputEl.addEventListener('focus',   () => {
+    inputEl.addEventListener('blur', () => setTimeout(closeDropdown, 150));
+    inputEl.addEventListener('focus', () => {
       if (inputEl.value.trim().length >= MIN_CHARS && !selectedPatientId) {
         onInput();
       }
@@ -2908,7 +2918,7 @@ const NewAppointmentModal = (() => {
           const busca = await Api.getPacientes({ busca: cpf, porPagina: 1 });
           const lista = Array.isArray(busca?.data) ? busca.data : (Array.isArray(busca) ? busca : []);
           const encontrado = lista[0] ?? null;
-          
+
           if (encontrado?.id) {
             pacienteId = encontrado.id;
           }
@@ -2917,9 +2927,9 @@ const NewAppointmentModal = (() => {
         // Não encontrou — cria novo
         if (!pacienteId) {
           try {
-            const email    = document.getElementById('newEmail').value.trim() || null;
+            const email = document.getElementById('newEmail').value.trim() || null;
             const endereco = document.getElementById('newEndereco').value.trim() || null;
-            const payload  = { nome, cpf, telefone, nascimento, email, endereco };
+            const payload = { nome, cpf, telefone, nascimento, email, endereco };
             const novoPaciente = await Api.postPaciente(payload);
             pacienteId = novoPaciente?.data?.id ?? novoPaciente?.id;
           } catch (errPaciente) {
@@ -2943,12 +2953,12 @@ const NewAppointmentModal = (() => {
         // Atualiza dados pessoais na tabela pacientes
         if (appt.pacienteId) {
           await Api.updatePaciente(appt.pacienteId, {
-            nome:       appt.paciente,
-            cpf:        appt.pacienteCpf,
-            telefone:   appt.pacienteTelefone,
+            nome: appt.paciente,
+            cpf: appt.pacienteCpf,
+            telefone: appt.pacienteTelefone,
             nascimento: appt.pacienteNascimento,
-            email:      appt.pacienteEmail,
-            endereco:   appt.pacienteEndereco,
+            email: appt.pacienteEmail,
+            endereco: appt.pacienteEndereco,
           });
         }
         // Atualiza dados do agendamento
@@ -3383,7 +3393,7 @@ let DURACAO_POR_EXAME = {};
 document.addEventListener('DOMContentLoaded', async () => {
 
   // Proteção de rota + restrições visuais por nível de acesso
-  try { window.IORDAuth.requireLogin(); } catch (e) {}
+  try { window.IORDAuth.requireLogin(); } catch (e) { }
   IORDPermissions.applyUI();
 
   const loadingEl = document.getElementById('pageLoadingOverlay');

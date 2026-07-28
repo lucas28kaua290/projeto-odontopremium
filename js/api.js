@@ -847,6 +847,8 @@ const Api = (() => {
             filtroRapido: filtros.filtroRapido || 'todos',
             pagina: filtros.pagina || 1,
             porPagina: filtros.porPagina || 8,
+            // Backend usa este campo para escopo; não-admin terá o valor sobrescrito pelo token
+            radiologiaId: filtros.radiologiaId || 'all',
         });
         const data = await request(`/pacientes${qs}`);
         return { data };
@@ -1795,10 +1797,12 @@ const Api = (() => {
      * ]
      */
     async function getClinicas(filtros = {}) {
-        const qs = buildQuery({
-            busca: filtros.busca,
-            status: filtros.status,
-        });
+    const qs = buildQuery({
+        busca: filtros.busca,
+        status: filtros.status,
+        // Backend filtra por radiologia; não-admin terá o valor imposto pelo token
+        radiologiaId: filtros.radiologiaId || 'all',
+    });
         const data = await request(`/clinicas${qs}`);
         return { data };
     }

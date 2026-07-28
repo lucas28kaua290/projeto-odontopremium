@@ -817,8 +817,10 @@ const ExamAnalysis = (() => {
     if (!data) return;
 
     const labelPer = { mes_atual: 'mês atual', ultimos_30: 'últimos 30 dias', trimestre: 'trimestre', semestre: 'semestre', ano: 'ano', custom: 'período personalizado' }[state.periodo] || 'período selecionado';
-    const nomeRad = state.radiologiaSelecionada === 'all' ? 'Todas as Radiologias' : state.radiologiaSelecionada;
-
+    const pillAtivaExam = document.querySelector('#radiologyFilters .pill.is-active');
+    const nomeRad = state.radiologiaSelecionada === 'all'
+      ? 'Todas as Radiologias'
+      : (pillAtivaExam ? pillAtivaExam.textContent.trim() : state.radiologiaSelecionada);
     const subtitleEl = document.getElementById('examsSectionSubtitle');
     if (subtitleEl) subtitleEl.textContent = `${nomeRad} — ${labelPer}`;
 
@@ -920,9 +922,11 @@ const ExamAnalysis = (() => {
     const doctors = res.data;
 
     if (subtitle) {
+      const pillAtivaSpot = document.querySelector('#radiologyFilters .pill.is-active');
+      const nomeRadSpot = pillAtivaSpot ? pillAtivaSpot.textContent.trim() : radId;
       subtitle.textContent = isAll
         ? 'Exames solicitados por médicos de todas as radiologias'
-        : `Exames solicitados por médicos • ${radId}`;
+        : `Exames solicitados por médicos · ${nomeRadSpot}`;
     }
 
     grid.innerHTML = '';
@@ -1097,7 +1101,14 @@ const ExamAnalysis = (() => {
     const totalMedicos = doctors.reduce((s, d) => s + d.totalExames, 0);
 
     const subEl = document.getElementById('examsListsSubtitle');
-    if (subEl) subEl.textContent = isAll ? 'Top clínicas e médicos — todas as radiologias' : `Top clínicas e médicos — ${radId}`;
+    // Pega nome legível da pill ativa em vez de usar o ID cru
+    const pillAtiva = document.querySelector('#radiologyFilters .pill.is-active');
+    const nomeRadSubtitle = pillAtiva
+      ? pillAtiva.textContent.trim()
+      : (isAll ? 'Todas as Radiologias' : radId);
+    if (subEl) subEl.textContent = isAll
+      ? 'Top clínicas e médicos — todas as radiologias'
+      : `Top clínicas e médicos — ${nomeRadSubtitle}`;
 
     const clinicsColTitle = document.querySelector('#examsClinicsCol .exams-rank-col__title');
     if (clinicsColTitle) {
