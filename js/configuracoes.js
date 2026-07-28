@@ -1749,28 +1749,53 @@
         },
 
         /** Cria (ou edita) um card de exame na lista local. Persiste de fato ao clicar em "Salvar Parâmetros". */
-        save() {
+        /** Persiste o tipo de exame imediatamente no banco via POST /tipos-exame. */
+        async save() {
             const label = document.getElementById('examLabel')?.value?.trim()
             if (!label) { Toast.show('Informe o nome do exame.', 'error'); return }
 
             const duration = parseInt(document.getElementById('examDuration')?.value, 10) || 30
-            const value = parseFloat(document.getElementById('examValue')?.value) || 0
+            const value    = parseFloat(document.getElementById('examValue')?.value) || 0
+            const isCreate = State.modal.mode === 'create'
+            const localId  = isCreate ? '' : (document.getElementById('modalExamId')?.value || '')
 
-            if (State.modal.mode === 'create') {
-                const id = 'exam-' + Date.now()
-                ParametrosModule.data.examDurations.push({ id, label, duration, value })
-                Toast.show('Exame adicionado. Clique em "Salvar Parâmetros" para confirmar.')
-            } else {
-                const id = document.getElementById('modalExamId')?.value
-                const idx = ParametrosModule.data.examDurations.findIndex(e => e.id === id)
-                if (idx !== -1) ParametrosModule.data.examDurations[idx] = { id, label, duration, value }
-                Toast.show('Exame atualizado. Clique em "Salvar Parâmetros" para confirmar.')
+            const confirmBtn = document.getElementById('modalExamConfirm')
+            if (confirmBtn) confirmBtn.disabled = true
+
+            try {
+                const { data: saved } = await Api.postTipoExame({ id: localId, label, duration, value })
+
+                if (isCreate) {
+                    // Substitui o id temporário local pelo id real vindo do banco
+                    ParametrosModule.data.examDurations.push({
+                        id:       saved.id,
+                        label:    saved.label,
+                        duration: saved.duration,
+                        value:    saved.value,
+                    })
+                    Toast.show('Exame criado com sucesso.')
+                } else {
+                    const idx = ParametrosModule.data.examDurations.findIndex(e => e.id === saved.id)
+                    if (idx !== -1) {
+                        ParametrosModule.data.examDurations[idx] = {
+                            id:       saved.id,
+                            label:    saved.label,
+                            duration: saved.duration,
+                            value:    saved.value,
+                        }
+                    }
+                    Toast.show('Exame atualizado com sucesso.')
+                }
+
+                ParametrosModule.renderExamDurations()
+                closeModal('modalExamBackdrop')
+            } catch (err) {
+                console.error(err)
+                const msg = err?.body?.message || 'Erro ao salvar exame.'
+                Toast.show(msg, 'error')
+            } finally {
+                if (confirmBtn) confirmBtn.disabled = false
             }
-
-            ParametrosModule.renderExamDurations()
-            closeModal('modalExamBackdrop')
-            // Alteração pendente -> mostra a barra sticky de salvar
-            document.getElementById('tab-parametros')?.dispatchEvent(new Event('input', { bubbles: true }))
         },
     }
 

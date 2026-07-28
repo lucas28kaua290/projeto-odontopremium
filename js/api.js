@@ -2022,6 +2022,26 @@ const Api = (() => {
             body: JSON.stringify(dados),
         });
     }
+
+    /**
+     * Cria ou atualiza um único tipo de exame diretamente no banco.
+     *
+     * [API] POST /tipos-exame
+     *
+     * @param {{ id?: string, label: string, duration: number, value: number }} dados
+     *   - id ausente/vazio ou iniciando com 'exam-' → INSERT
+     *   - id existente no banco → UPDATE (label + duracao_min + valor_base)
+     *
+     * Resposta esperada: { id, label, duration, value }
+     */
+    async function postTipoExame(dados) {
+        const { data } = await request('/tipos-exame', {
+            method: 'POST',
+            body: JSON.stringify(dados),
+        });
+        return { data };
+    }
+
     /* ===========================================================================
        10. PERÍODO / FILTROS — Utilitários
        =========================================================================== */
@@ -2179,6 +2199,7 @@ const Api = (() => {
         // 15. Configurações — Parâmetros
         getParametros,
         postParametros,
+        postTipoExame,
 
         // 16. Outros
         deleteAgendamento,

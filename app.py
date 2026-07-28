@@ -3116,6 +3116,49 @@ def parametros_post():
     return ok({"sucesso": True}, "Parâmetros salvos com sucesso.")
 
 
+@app.route("/v1/tipos-exame", methods=["POST"])
+@require_admin
+def tipos_exame_post():
+    """Cria ou atualiza um único tipo de exame imediatamente no banco."""
+    data = request.get_json(silent=True) or {}
+
+    label    = (data.get("label") or "").strip()
+    duration = int(data.get("duration") or 30)
+    value    = float(data.get("value") or 0)
+    exam_id  = (data.get("id") or "").strip()   # vazio = criar novo
+
+    if not label:
+        return jsonify({"sucesso": False, "message": "Nome do exame é obrigatório."}), 400
+
+    if not exam_id or exam_id.startswith("exam-"):
+        # CRIAR novo registro
+        novo_id = slugify(label)
+        sufixo = 1
+        base_id = novo_id
+        while query("SELECT id FROM tipos_exame WHERE id = %s", (novo_id,), fetch="one"):
+            sufixo += 1
+            novo_id = f"{base_id}_{sufixo}"
+
+        query(
+            "INSERT INTO tipos_exame (id, label, duracao_min, valor_base) VALUES (%s, %s, %s, %s)",
+            (novo_id, label, duration, value), fetch="none"
+        )
+        return ok({"id": novo_id, "label": label, "duration": duration, "value": value},
+                  "Tipo de exame criado com sucesso.")
+    else:
+        # ATUALIZAR registro existente
+        row = query("SELECT id FROM tipos_exame WHERE id = %s", (exam_id,), fetch="one")
+        if not row:
+            return jsonify({"sucesso": False, "message": "Tipo de exame não encontrado."}), 404
+
+        query(
+            "UPDATE tipos_exame SET label = %s, duracao_min = %s, valor_base = %s WHERE id = %s",
+            (label, duration, value, exam_id), fetch="none"
+        )
+        return ok({"id": exam_id, "label": label, "duration": duration, "value": value},
+                  "Tipo de exame atualizado com sucesso.")
+
+
 # -----------------------------------------------------------------------------
 # 18. PERÍODOS / UTILITÁRIOS
 # -----------------------------------------------------------------------------
