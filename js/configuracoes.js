@@ -1274,14 +1274,7 @@
         /** Botão "+ Novo Exame" */
         bindNewExamButton() {
             document.getElementById('btnNewExamType')?.addEventListener('click', () => {
-                const label = prompt('Nome do tipo de exame (ex: Tomografia):')
-                if (!label?.trim()) return
-                const id = 'exam-' + Date.now()
-                const newExam = { id, label: label.trim(), duration: 30, value: 0 }
-                this.data.examDurations.push(newExam)
-                this.renderExamDurations()
-                // Novo card conta como alteração pendente -> mostra a barra sticky de salvar
-                document.getElementById('tab-parametros')?.dispatchEvent(new Event('input', { bubbles: true }))
+                ModalExame.open('create')
             })
         },
 
@@ -1706,6 +1699,81 @@
         },
     }
 
+    /* ---- MODAL: TIPO DE EXAME ---- */
+    const ModalExame = {
+        init() {
+            bindModalClose('modalExamBackdrop', 'modalExamClose', 'modalExamCancel')
+            document.getElementById('modalExamConfirm')?.addEventListener('click', () => this.save())
+        },
+
+        open(mode, examId = null) {
+            const titleEl = document.getElementById('modalExamTitle')
+            const subtitleEl = document.getElementById('modalExamSubtitle')
+            const confirmBtn = document.getElementById('modalExamConfirm')
+            State.modal = { type: 'exame', mode, editId: examId }
+
+            if (mode === 'create') {
+                titleEl.textContent = 'Novo Tipo de Exame'
+                subtitleEl.textContent = 'Defina nome, duração e valor'
+                this.clearForm()
+            } else {
+                const exam = (ParametrosModule.data?.examDurations || []).find(e => e.id === examId)
+                if (!exam) return
+                titleEl.textContent = `Editar — ${exam.label}`
+                subtitleEl.textContent = 'Atualize os dados do exame'
+                this.fillForm(exam)
+            }
+
+            if (confirmBtn) {
+                const textNode = Array.from(confirmBtn.childNodes).find(n => n.nodeType === Node.TEXT_NODE)
+                const label = mode === 'create' ? ' Adicionar Exame' : ' Salvar Alterações'
+                if (textNode) textNode.textContent = label
+                else confirmBtn.appendChild(document.createTextNode(label))
+            }
+
+            openModal('modalExamBackdrop')
+        },
+
+        clearForm() {
+            const idEl = document.getElementById('modalExamId'); if (idEl) idEl.value = ''
+            const labelEl = document.getElementById('examLabel'); if (labelEl) labelEl.value = ''
+            const durEl = document.getElementById('examDuration'); if (durEl) durEl.value = '30'
+            const valEl = document.getElementById('examValue'); if (valEl) valEl.value = '0'
+        },
+
+        fillForm(exam) {
+            document.getElementById('modalExamId').value = exam.id
+            document.getElementById('examLabel').value = exam.label || ''
+            document.getElementById('examDuration').value = exam.duration ?? 30
+            document.getElementById('examValue').value = exam.value ?? 0
+        },
+
+        /** Cria (ou edita) um card de exame na lista local. Persiste de fato ao clicar em "Salvar Parâmetros". */
+        save() {
+            const label = document.getElementById('examLabel')?.value?.trim()
+            if (!label) { Toast.show('Informe o nome do exame.', 'error'); return }
+
+            const duration = parseInt(document.getElementById('examDuration')?.value, 10) || 30
+            const value = parseFloat(document.getElementById('examValue')?.value) || 0
+
+            if (State.modal.mode === 'create') {
+                const id = 'exam-' + Date.now()
+                ParametrosModule.data.examDurations.push({ id, label, duration, value })
+                Toast.show('Exame adicionado. Clique em "Salvar Parâmetros" para confirmar.')
+            } else {
+                const id = document.getElementById('modalExamId')?.value
+                const idx = ParametrosModule.data.examDurations.findIndex(e => e.id === id)
+                if (idx !== -1) ParametrosModule.data.examDurations[idx] = { id, label, duration, value }
+                Toast.show('Exame atualizado. Clique em "Salvar Parâmetros" para confirmar.')
+            }
+
+            ParametrosModule.renderExamDurations()
+            closeModal('modalExamBackdrop')
+            // Alteração pendente -> mostra a barra sticky de salvar
+            document.getElementById('tab-parametros')?.dispatchEvent(new Event('input', { bubbles: true }))
+        },
+    }
+
     /* ---- MODAL: USUÁRIO ---- */
     const ModalUsuario = {
         init() {
@@ -1854,6 +1922,7 @@
         ModalRadiologia.init()
         ModalClinica.init()
         ModalMedico.init()
+        ModalExame.init()
         ModalUsuario.init()
 
         // Scroll suave ao entrar na aba
