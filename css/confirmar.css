@@ -51,27 +51,60 @@ body {
     min-height: 100dvh;
 }
 
-/* --- Cabeçalho --- */
-.cfm-header {
-    display: flex;
-    align-items: center;
-    padding: 18px 24px;
-    background: var(--cfm-surface);
-    border-bottom: 1px solid var(--cfm-border);
+/* =============================================================
+   HEADER
+============================================================= */
+
+.cfm-header{
+    height:68px;
+    background:var(--cfm-primary);
+    display:flex;
+    align-items:center;
+    padding:0 24px;
+    box-shadow:0 4px 20px -4px rgba(4,40,48,.35);
 }
 
-.cfm-header__logo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    text-decoration: none;
+.cfm-header__logo{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    text-decoration:none;
 }
 
-.cfm-header__brand {
-    font-size: 17px;
-    font-weight: 700;
-    letter-spacing: -.4px;
-    color: var(--cfm-primary);
+.cfm-header__icon{
+    width:42px;
+    height:42px;
+    border-radius:10px;
+    background:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+}
+
+.cfm-header__icon img{
+    width:34px;
+    height:34px;
+    object-fit:contain;
+}
+
+.cfm-header__text{
+    display:flex;
+    flex-direction:column;
+    line-height:1.2;
+}
+
+.cfm-header__brand{
+    font-size:17px;
+    font-weight:600;
+    color:#fff;
+    letter-spacing:-.02em;
+}
+
+.cfm-header__subtitle{
+    font-size:12px;
+    color:rgba(255,255,255,.72);
+    margin-top:2px;
 }
 
 /* --- Main --- */
