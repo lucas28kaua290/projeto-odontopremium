@@ -85,7 +85,7 @@
      3. STATE (estado global)
   =========================================================== */
   const State = {
-    radiologia: 'all',
+    radiologia: IORDPermissions.isAdmin() ? 'all' : IORDPermissions.getRadiologiaId(),
     periodo: 'mes_atual',
     activeTab: 'visao-geral',
     customStart: null,
@@ -99,8 +99,8 @@
     _metasData: null,   // populado em Metas.render()
     _cache: {
       porRadiologia: [],    // [{ id, label, faturamento, exames, variacao, participacao }]
-      topClinicas:   [],    // [{ nome, faturamento, participacao }]
-      tiposExame:    [],    // [{ tipo, quantidade, participacao }]
+      topClinicas: [],    // [{ nome, faturamento, participacao }]
+      tiposExame: [],    // [{ tipo, quantidade, participacao }]
     },
   };
 
@@ -192,7 +192,7 @@
     /** Retorna os filtros ativos do State no formato esperado pela Api */
     filtrosAtivos() {
       return {
-        radiologiaId: State.radiologia,
+        radiologiaId: IORDPermissions.getRadiologiaFiltro(State.radiologia),
         periodo: State.periodo,
         dataInicio: State.customStart || undefined,
         dataFim: State.customEnd || undefined,
@@ -286,7 +286,7 @@
       if (canvasId === 'evolutionChart') {
         const fatPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Faturamento');
         const antPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Mesmo período ano anterior');
-        const exPoint  = tooltip.dataPoints.find(p => p.dataset.label === 'Exames');
+        const exPoint = tooltip.dataPoints.find(p => p.dataset.label === 'Exames');
 
         if (fatPoint) {
           const fatVal = fatPoint.raw;
@@ -308,8 +308,8 @@
           const barPct = hasCmp && antVal > 0 ? Math.min((fatVal / antVal) * 100, 200) : null;
           const barColor = barPct === null ? CFG.colors.primary
             : barPct >= 100 ? CFG.colors.positive
-            : barPct >= 75  ? CFG.colors.primary
-            : CFG.colors.warning;
+              : barPct >= 75 ? CFG.colors.primary
+                : CFG.colors.warning;
 
           const progressHtml = barPct !== null ? `
               <div class="cjs-tooltip__divider"></div>
@@ -597,7 +597,7 @@
         }
       }
 
-      
+
       // ------------------------------------------------------------------
       // GRÁFICO: Meta vs Realizado — tooltip individual por barra
       // ------------------------------------------------------------------
@@ -1868,40 +1868,40 @@
         ]);
 
         // Desembrulha .data (padrão único da API)
-        const snapshot      = snapshotRes.data;
-        const evolucao      = evolucaoRes.data;
+        const snapshot = snapshotRes.data;
+        const evolucao = evolucaoRes.data;
         const porRadiologiaRaw = porRadiologiaRes.data || [];
-        const tiposExame    = tiposExameRes.data || [];
-        const ticketMedio   = ticketMedioRes.data;
+        const tiposExame = tiposExameRes.data || [];
+        const ticketMedio = ticketMedioRes.data;
         const hierarquiaRaw = hierarquiaRes.data || [];
 
         // Normaliza porRadiologia: backend retorna { radiologiaId, radiologiaNome, faturamentoAtual, examesAtual, variacao }
         // Frontend espera: { id, label, faturamento, exames, variacao, participacao }
         const totalFat = porRadiologiaRaw.reduce((s, r) => s + Number(r.faturamentoAtual || 0), 0);
         const porRadiologia = porRadiologiaRaw.map(r => ({
-          id:           r.radiologiaId,
-          label:        r.radiologiaNome,
-          faturamento:  Number(r.faturamentoAtual || 0),
-          exames:       Number(r.examesAtual || 0),
-          variacao:     Number(r.variacao || 0),
+          id: r.radiologiaId,
+          label: r.radiologiaNome,
+          faturamento: Number(r.faturamentoAtual || 0),
+          exames: Number(r.examesAtual || 0),
+          variacao: Number(r.variacao || 0),
           participacao: totalFat > 0 ? Math.round(Number(r.faturamentoAtual || 0) / totalFat * 1000) / 10 : 0,
         }));
 
         // Salva no cache para uso pelos tooltips
         State._cache.porRadiologia = porRadiologia;
-        State._cache.topClinicas   = snapshot.topClinicas || [];
-        State._cache.tiposExame    = tiposExame || [];
-        State._ticketMedio         = snapshot.kpis?.ticketMedio?.value;
+        State._cache.topClinicas = snapshot.topClinicas || [];
+        State._cache.tiposExame = tiposExame || [];
+        State._ticketMedio = snapshot.kpis?.ticketMedio?.value;
 
         // Normaliza hierarquia: backend retorna flat [{ radiologiaId, radiologiaNome, faturamento, exames, variacao }]
         // Frontend espera tree: [{ id, nome, faturamento, exames, variacao, clinicas:[] }]
         const hierarquia = (hierarquiaRaw || []).map(r => ({
-          id:        r.radiologiaId,
-          nome:      r.radiologiaNome,
+          id: r.radiologiaId,
+          nome: r.radiologiaNome,
           faturamento: Number(r.faturamento || 0),
-          exames:    Number(r.exames || 0),
-          variacao:  Number(r.variacao || 0),
-          clinicas:  [],  // backend não retorna clínicas aninhadas neste endpoint
+          exames: Number(r.exames || 0),
+          variacao: Number(r.variacao || 0),
+          clinicas: [],  // backend não retorna clínicas aninhadas neste endpoint
         }));
 
         renderKPIs(snapshot.kpis);
@@ -2351,7 +2351,7 @@
             // Converte mapa de edições no array que o backend espera
             const payload = Object.entries(State.goalEdits).flatMap(([radioId, vals]) => {
               const items = [];
-              if (vals.meta  !== undefined) items.push({ radiologiaId: radioId, ano, mes,  valorMeta: vals.meta });
+              if (vals.meta !== undefined) items.push({ radiologiaId: radioId, ano, mes, valorMeta: vals.meta });
               if (vals.anual !== undefined) items.push({ radiologiaId: radioId, ano, mes: null, valorMeta: vals.anual });
               return items;
             });
@@ -2385,9 +2385,9 @@
         ]);
 
         // Desembrulha .data (padrão único da API)
-        const metasRaw   = metasRes.data || [];
-        const historico  = historicoRes.data || [];
-        const evolucao   = evolucaoRes2.data;
+        const metasRaw = metasRes.data || [];
+        const historico = historicoRes.data || [];
+        const evolucao = evolucaoRes2.data;
         const realizadoRaw = realizadoRes.data || [];
 
         // ------------------------------------------------------------------
@@ -2400,8 +2400,8 @@
           if (!metaMap[rId]) metaMap[rId] = { mensal: 0, anual: 0 };
           // row.mes pode vir como inteiro (MySQL) ou null — coerção explícita
           const rowMes = row.mes == null ? null : Number(row.mes);
-          if (rowMes === mesAtual)  metaMap[rId].mensal = Number(row.valor_meta || 0);
-          if (rowMes === null)      metaMap[rId].anual  = Number(row.valor_meta || 0);
+          if (rowMes === mesAtual) metaMap[rId].mensal = Number(row.valor_meta || 0);
+          if (rowMes === null) metaMap[rId].anual = Number(row.valor_meta || 0);
         }
 
         // Monta mapa de realizados por radiologia (do endpoint por-radiologia)
@@ -2409,7 +2409,7 @@
         for (const r of (realizadoRaw || [])) {
           realizadoMap[r.radiologiaId] = {
             mensal: Number(r.faturamentoAtual || 0),
-            anual:  Number(r.faturamentoAtual || 0), // simplificado — ajuste se houver endpoint de anual
+            anual: Number(r.faturamentoAtual || 0), // simplificado — ajuste se houver endpoint de anual
           };
         }
 
@@ -2419,25 +2419,25 @@
           const m = metaMap[radio.id] || { mensal: 0, anual: 0 };
           const rz = realizadoMap[radio.id] || { mensal: 0, anual: 0 };
           return {
-            id:           radio.id,
-            nome:         radio.nome,
-            meta:         m.mensal,
-            anual:        m.anual,
-            realizado:    rz.mensal,
+            id: radio.id,
+            nome: radio.nome,
+            meta: m.mensal,
+            anual: m.anual,
+            realizado: rz.mensal,
             anoRealizado: rz.anual,
           };
         });
 
         // Totais consolidados (soma de todas as radiologias)
-        const totalMetaMensal    = porRadiologia.reduce((s, r) => s + r.meta, 0);
-        const totalRealizadoMes  = porRadiologia.reduce((s, r) => s + r.realizado, 0);
-        const totalMetaAnual     = porRadiologia.reduce((s, r) => s + r.anual, 0);
-        const totalRealizadoAno  = porRadiologia.reduce((s, r) => s + r.anoRealizado, 0);
+        const totalMetaMensal = porRadiologia.reduce((s, r) => s + r.meta, 0);
+        const totalRealizadoMes = porRadiologia.reduce((s, r) => s + r.realizado, 0);
+        const totalMetaAnual = porRadiologia.reduce((s, r) => s + r.anual, 0);
+        const totalRealizadoAno = porRadiologia.reduce((s, r) => s + r.anoRealizado, 0);
 
         // Shape final esperado pelas funções de render
         const metas = {
-          mensal:        { meta: totalMetaMensal,  realizado: totalRealizadoMes },
-          anual:         { meta: totalMetaAnual,   realizado: totalRealizadoAno },
+          mensal: { meta: totalMetaMensal, realizado: totalRealizadoMes },
+          anual: { meta: totalMetaAnual, realizado: totalRealizadoAno },
           porRadiologia,
         };
 
@@ -2752,6 +2752,9 @@
      13. BOOTSTRAP
   =========================================================== */
   async function init() {
+    try { window.IORDAuth.requireLogin(); } catch (e) { }
+    IORDPermissions.applyUI();
+
     ChartFactory.defaults();
     try {
       await Filtros.init();

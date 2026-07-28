@@ -21,12 +21,12 @@
 ================================================================= */
 const AppState = (() => {
   let state = {
-    radiologiaSelecionada: 'all',
+    radiologiaSelecionada: IORDPermissions.isAdmin() ? 'all' : IORDPermissions.getRadiologiaId(),
     clinicaSelecionada: 'all',
     periodo: 'mes_atual',
     customDateStart: null,
     customDateEnd: null,
-    visualizacao: 'faturamento', // 'faturamento' | 'quantidade'
+    visualizacao: 'faturamento',
   };
 
   const listeners = [];
@@ -1287,6 +1287,9 @@ const MobileNav = (() => {
    9. INIT (bootstrap da aplicação)
 ================================================================= */
 document.addEventListener('DOMContentLoaded', () => {
+  try { window.IORDAuth.requireLogin(); } catch (e) { }
+  IORDPermissions.applyUI();
+
   Filters.init();
   Kpis.init();
   Charts.init();

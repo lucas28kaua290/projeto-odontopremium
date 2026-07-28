@@ -220,10 +220,10 @@
     =========================================================== */
     const GeralModule = {
         async init() {
-    this.bindSave()
-    this.bindDiscard()
-    this.bindChangesDetection()
-    this.bindToggleSubs()
+            this.bindSave()
+            this.bindDiscard()
+            this.bindChangesDetection()
+            this.bindToggleSubs()
 
             // Carrega dados reais da aba Geral
             try {
@@ -574,9 +574,10 @@
             this.bindNewButtons()
 
             try {
+                const radFiltro = IORDPermissions.getRadiologiaFiltro(null)
                 const [resClinicas, resMedicos] = await Promise.all([
-                    Api.getClinicas(),
-                    Api.getMedicos(),
+                    Api.getClinicas({ radiologiaId: radFiltro }),
+                    Api.getMedicos({ radiologiaId: radFiltro, semPeriodo: true }),
                 ])
                 State.clinicas = resClinicas.data || []
                 // getMedicos sem filtro de clínica retorna com faturamento por período;
@@ -867,6 +868,76 @@
         },
     }
 
+    async function _injetarDadosRadiologiaNoGeral(radId) {
+        let rad = {}
+        try {
+            const res = await Api.getRadiologia(radId)
+            rad = res.data || {}
+        } catch (e) {
+            console.error('[NaoAdmin] Erro ao carregar radiologia:', e)
+        }
+
+        const painel = document.getElementById('tab-geral')
+        if (!painel) return
+
+        const iniciais = (rad.nome || 'R').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()
+        const cor = rad.cor || '#018093'
+
+        const bloco = document.createElement('div')
+        bloco.className = 'cfg-block'
+        bloco.id = 'blocoPerfilRadiologia'
+        bloco.innerHTML = `
+        <div class="cfg-block__header">
+            <div class="cfg-block__title-group">
+                <span class="cfg-block__icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/>
+                        <path d="M9 9h6M9 12h6M9 15h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <div>
+                    <h2 class="cfg-block__title">Minha Unidade</h2>
+                    <span class="cfg-block__subtitle">Dados da radiologia vinculada ao seu usuário</span>
+                </div>
+            </div>
+        </div>
+        <div class="cfg-block__body">
+            <div style="display:flex;align-items:center;gap:var(--space-5);padding-bottom:var(--space-5);border-bottom:1px solid var(--color-border);margin-bottom:var(--space-5);">
+                <div style="width:64px;height:64px;border-radius:var(--radius-lg);background:${cor};display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:var(--fw-bold);color:#fff;flex-shrink:0;box-shadow:0 4px 14px -3px rgba(0,0,0,0.25);">
+                    ${iniciais}
+                </div>
+                <div>
+                    <div style="font-size:1.15rem;font-weight:var(--fw-bold);color:var(--color-text);line-height:1.2;">${rad.nome || '—'}</div>
+                    <div style="font-size:var(--fs-sm);color:var(--color-text-subtle);margin-top:4px;">${rad.endereco || '—'}</div>
+                </div>
+            </div>
+            <div class="cfg-form-grid cfg-form-grid--2" style="pointer-events:none;opacity:0.8;">
+                <div class="cfg-field">
+                    <label class="cfg-field__label">Telefone</label>
+                    <input type="text" class="cfg-field__input" value="${rad.telefone || '—'}" readonly>
+                </div>
+                <div class="cfg-field">
+                    <label class="cfg-field__label">E-mail da Unidade</label>
+                    <input type="text" class="cfg-field__input" value="${rad.email || '—'}" readonly>
+                </div>
+                <div class="cfg-field">
+                    <label class="cfg-field__label">Horário de Funcionamento</label>
+                    <input type="text" class="cfg-field__input" value="${(rad.horario_abertura || '').substring(0, 5) || '—'} — ${(rad.horario_fechamento || '').substring(0, 5) || '—'}" readonly>
+                </div>
+                <div class="cfg-field">
+                    <label class="cfg-field__label">Técnico Responsável</label>
+                    <input type="text" class="cfg-field__input" value="${rad.tecnico || '—'}" readonly>
+                </div>
+                <div class="cfg-field">
+                    <label class="cfg-field__label">CRO / Registro</label>
+                    <input type="text" class="cfg-field__input" value="${rad.cro || '—'}" readonly>
+                </div>
+            </div>
+        </div>
+    `
+        // Insere como primeiro bloco da aba Geral
+        painel.insertBefore(bloco, painel.firstElementChild)
+    }
     /* ===========================================================
        8. MÓDULO: ABA USUÁRIOS E PERMISSÕES
     =========================================================== */
@@ -1215,9 +1286,9 @@
             // Para exames novos (ainda não existentes no banco, id começa com 'exam-'),
             // envia também o rótulo para o backend poder criar o registro
             const examLabels = {}
-            ;(this.data.examDurations || []).forEach(e => {
-                if (String(e.id).startsWith('exam-')) examLabels[e.id] = e.label
-            })
+                ; (this.data.examDurations || []).forEach(e => {
+                    if (String(e.id).startsWith('exam-')) examLabels[e.id] = e.label
+                })
 
             const messages = []
             document.querySelectorAll('.wa-message-item[data-msg-id]').forEach(item => {
@@ -1506,6 +1577,15 @@
             const state = document.getElementById('clinicState'); if (state) state.value = 'RN'
             const status = document.getElementById('clinicStatus'); if (status) status.value = 'ativo'
             this.populateRadiologySelect()
+
+            // Não-admin: fixa e desabilita o select de radiologia na criação
+            if (!IORDPermissions.isAdmin()) {
+                const sel = document.getElementById('clinicRadiology')
+                if (sel) {
+                    sel.value = IORDPermissions.getRadiologiaId()
+                    sel.disabled = true
+                }
+            }
         },
 
         fillForm(c) {
@@ -1756,9 +1836,9 @@
             if (!label) { Toast.show('Informe o nome do exame.', 'error'); return }
 
             const duration = parseInt(document.getElementById('examDuration')?.value, 10) || 30
-            const value    = parseFloat(document.getElementById('examValue')?.value) || 0
+            const value = parseFloat(document.getElementById('examValue')?.value) || 0
             const isCreate = State.modal.mode === 'create'
-            const localId  = isCreate ? '' : (document.getElementById('modalExamId')?.value || '')
+            const localId = isCreate ? '' : (document.getElementById('modalExamId')?.value || '')
 
             const confirmBtn = document.getElementById('modalExamConfirm')
             if (confirmBtn) confirmBtn.disabled = true
@@ -1771,20 +1851,20 @@
 
                 if (isCreate) {
                     ParametrosModule.data.examDurations.push({
-                        id:       saved.id,
-                        label:    saved.label,
+                        id: saved.id,
+                        label: saved.label,
                         duration: saved.duration,
-                        value:    saved.value,
+                        value: saved.value,
                     })
                     Toast.show('Exame criado com sucesso.')
                 } else {
                     const idx = ParametrosModule.data.examDurations.findIndex(e => e.id === saved.id)
                     if (idx !== -1) {
                         ParametrosModule.data.examDurations[idx] = {
-                            id:       saved.id,
-                            label:    saved.label,
+                            id: saved.id,
+                            label: saved.label,
                             duration: saved.duration,
-                            value:    saved.value,
+                            value: saved.value,
                         }
                     }
                     Toast.show('Exame atualizado com sucesso.')
@@ -1933,28 +2013,229 @@
     }
 
     /* ===========================================================
-       11. INICIALIZAÇÃO
-    =========================================================== */
-    function init() {
-        // Navegação por pills
+   MODO NÃO-ADMIN — inicialização restrita
+=========================================================== */
+    async function _initNaoAdmin() {
+        const user = IORDPermissions.getUser()
+        const radId = IORDPermissions.getRadiologiaId()
+
+        // 1. Remove a aba "Radiologias" da nav (não-admin não vê)
+        document.querySelector('.fin-tab[data-tab="radiologias"]')?.remove()
+
+        // 2. Atualiza subtítulo da página
+        const sub = document.querySelector('.page-header__subtitle')
+        if (sub) sub.textContent = 'Gerencie sua unidade, clínicas, médicos e parâmetros'
+
+        // 3. Inicia nav + abas permitidas
         TabNav.init()
-
-        // Módulos de cada aba
         GeralModule.init()
-        RadiologiasModule.init()
         ClinicasMedicosModule.init()
-        UsuariosModule.init()
         ParametrosModule.init()
-
-        // Modais
-        ModalRadiologia.init()
         ModalClinica.init()
         ModalMedico.init()
         ModalExame.init()
-        ModalUsuario.init()
 
-        // Scroll suave ao entrar na aba
+        // 4. Injeta bloco "Minha Unidade" no topo da aba Geral
+        await _injetarBlocoUnidade(radId)
+
+        // 5. Substitui aba Usuários por perfil + permissões
+        _renderPerfilUsuario(user)
+
         TabNav.switchTo('geral')
+    }
+
+    async function _injetarBlocoUnidade(radId) {
+        let rad = {}
+        try {
+            const res = await Api.getRadiologia(radId)
+            rad = res.data || {}
+        } catch (e) {
+            console.error('[NaoAdmin] Erro ao carregar radiologia:', e)
+        }
+
+        const painel = document.getElementById('tab-geral')
+        if (!painel) return
+
+        const cor = rad.cor || rad.color || '#018093'
+        const iniciais = (rad.nome || rad.name || 'R').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()
+        const abertura = (rad.horario_abertura || rad.openTime || '').substring(0, 5) || '—'
+        const fechamento = (rad.horario_fechamento || rad.closeTime || '').substring(0, 5) || '—'
+
+        const bloco = document.createElement('div')
+        bloco.className = 'cfg-block'
+        bloco.innerHTML = `
+        <div class="cfg-block__header">
+            <div class="cfg-block__title-group">
+                <span class="cfg-block__icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/>
+                        <path d="M9 9h6M9 12h6M9 15h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <div>
+                    <h2 class="cfg-block__title">Minha Unidade</h2>
+                    <span class="cfg-block__subtitle">Dados da radiologia vinculada ao seu usuário</span>
+                </div>
+            </div>
+        </div>
+        <div class="cfg-block__body">
+            <div style="display:flex;align-items:center;gap:var(--space-5);padding-bottom:var(--space-5);border-bottom:1px solid var(--color-border);margin-bottom:var(--space-5);">
+                <div style="width:64px;height:64px;border-radius:var(--radius-lg);background:${cor};display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:var(--fw-bold);color:#fff;flex-shrink:0;box-shadow:0 4px 14px -3px rgba(0,0,0,0.25);">
+                    ${iniciais}
+                </div>
+                <div>
+                    <div style="font-size:1.15rem;font-weight:var(--fw-bold);color:var(--color-text);line-height:1.2;">${Utils.escapeHtml(rad.nome || rad.name || '—')}</div>
+                    <div style="font-size:var(--fs-sm);color:var(--color-text-subtle);margin-top:4px;">${Utils.escapeHtml(rad.endereco || rad.address || '—')}</div>
+                </div>
+            </div>
+            <div class="cfg-form-grid cfg-form-grid--2">
+                <div class="cfg-field">
+                    <label class="cfg-field__label">Telefone</label>
+                    <input type="text" class="cfg-field__input" value="${Utils.escapeHtml(rad.telefone || rad.phone || '—')}" readonly>
+                </div>
+                <div class="cfg-field">
+                    <label class="cfg-field__label">E-mail da Unidade</label>
+                    <input type="text" class="cfg-field__input" value="${Utils.escapeHtml(rad.email || '—')}" readonly>
+                </div>
+                <div class="cfg-field">
+                    <label class="cfg-field__label">Horário de Funcionamento</label>
+                    <input type="text" class="cfg-field__input" value="${abertura} — ${fechamento}" readonly>
+                </div>
+                <div class="cfg-field">
+                    <label class="cfg-field__label">Técnico Responsável</label>
+                    <input type="text" class="cfg-field__input" value="${Utils.escapeHtml(rad.tecnico || rad.technician || '—')}" readonly>
+                </div>
+                <div class="cfg-field">
+                    <label class="cfg-field__label">CRO / Registro</label>
+                    <input type="text" class="cfg-field__input" value="${Utils.escapeHtml(rad.cro || '—')}" readonly>
+                </div>
+            </div>
+        </div>
+    `
+        // Insere como primeiro bloco da aba Geral
+        painel.insertBefore(bloco, painel.firstElementChild)
+    }
+
+    function _renderPerfilUsuario(user) {
+        const painel = document.getElementById('tab-usuarios')
+        if (!painel) return
+
+        const iniciais = (user.name || 'U').split(' ').filter(Boolean).map(p => p[0]).slice(0, 2).join('').toUpperCase()
+        const levelMap = { admin: 'Administrador', recepcao: 'Recepcionista', viewer: 'Visualizador' }
+        const levelLabel = levelMap[user.level] || user.level || '—'
+        const levelKey = user.level || 'recepcao'
+
+        painel.innerHTML = `
+        <div class="cfg-block">
+            <div class="cfg-block__header">
+                <div class="cfg-block__title-group">
+                    <span class="cfg-block__icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/>
+                            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <h2 class="cfg-block__title">Meu Perfil</h2>
+                        <span class="cfg-block__subtitle">Suas informações de acesso ao sistema</span>
+                    </div>
+                </div>
+            </div>
+            <div class="cfg-block__body">
+                <div style="display:flex;align-items:center;gap:var(--space-5);padding-bottom:var(--space-5);border-bottom:1px solid var(--color-border);margin-bottom:var(--space-5);">
+                    <div style="width:72px;height:72px;border-radius:50%;background:var(--gradient-brand);display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:var(--fw-bold);color:#fff;flex-shrink:0;box-shadow:0 4px 16px -4px rgba(1,128,147,0.4);">
+                        ${iniciais}
+                    </div>
+                    <div>
+                        <div style="font-size:1.2rem;font-weight:var(--fw-bold);color:var(--color-text);line-height:1.2;">${Utils.escapeHtml(user.name || '—')}</div>
+                        <div style="font-size:var(--fs-sm);color:var(--color-text-subtle);margin-top:4px;">${Utils.escapeHtml(user.email || '—')}</div>
+                        <div style="margin-top:8px;">${Utils.levelBadge(user.level)}</div>
+                    </div>
+                </div>
+                <div class="cfg-form-grid cfg-form-grid--2">
+                    <div class="cfg-field">
+                        <label class="cfg-field__label">Nome</label>
+                        <input type="text" class="cfg-field__input" value="${Utils.escapeHtml(user.name || '—')}" readonly>
+                    </div>
+                    <div class="cfg-field">
+                        <label class="cfg-field__label">E-mail</label>
+                        <input type="text" class="cfg-field__input" value="${Utils.escapeHtml(user.email || '—')}" readonly>
+                    </div>
+                    <div class="cfg-field">
+                        <label class="cfg-field__label">Cargo</label>
+                        <input type="text" class="cfg-field__input" value="${Utils.escapeHtml(user.role || '—')}" readonly>
+                    </div>
+                    <div class="cfg-field">
+                        <label class="cfg-field__label">Nível de Acesso</label>
+                        <input type="text" class="cfg-field__input" value="${Utils.escapeHtml(levelLabel)}" readonly>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="cfg-block">
+            <div class="cfg-block__header">
+                <div class="cfg-block__title-group">
+                    <span class="cfg-block__icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                            <path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <h2 class="cfg-block__title">Minhas Permissões</h2>
+                        <span class="cfg-block__subtitle">O que você pode fazer no sistema</span>
+                    </div>
+                </div>
+            </div>
+            <div class="cfg-block__body">
+                <div class="permission-matrix">
+                    <div class="permission-matrix__head">
+                        <span class="permission-matrix__col-label">Funcionalidade</span>
+                        <span class="permission-matrix__role">${Utils.escapeHtml(levelLabel)}</span>
+                    </div>
+                    <div class="permission-matrix__body">
+                        ${PERMISSION_MATRIX.map(row => {
+            const val = row[levelKey] || 'no'
+            const icon = val === 'yes'
+                ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="var(--color-positive,#0E8F63)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+                : val === 'partial'
+                    ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="var(--color-warning,#B27A0E)" stroke-width="2.2" stroke-linecap="round"/></svg>`
+                    : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="var(--color-negative,#C23B32)" stroke-width="2" stroke-linecap="round"/></svg>`
+            return `
+                                <div class="permission-matrix__row">
+                                    <span class="permission-matrix__feature">${Utils.escapeHtml(row.feature)}</span>
+                                    <span class="permission-matrix__cell">${icon}</span>
+                                </div>`
+        }).join('')}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `
+    }
+    /* ===========================================================
+       11. INICIALIZAÇÃO
+    =========================================================== */
+    function init() {
+        try { window.IORDAuth.requireLogin(); } catch (e) { }
+
+        if (IORDPermissions.isAdmin()) {
+            TabNav.init()
+            GeralModule.init()
+            RadiologiasModule.init()
+            ClinicasMedicosModule.init()
+            UsuariosModule.init()
+            ParametrosModule.init()
+            ModalRadiologia.init()
+            ModalClinica.init()
+            ModalMedico.init()
+            ModalExame.init()
+            ModalUsuario.init()
+            TabNav.switchTo('geral')
+        } else {
+            _initNaoAdmin()
+        }
 
         console.log('[IORD] configuracoes.js inicializado')
     }

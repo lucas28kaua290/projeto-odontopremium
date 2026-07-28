@@ -1152,6 +1152,9 @@ async function exportarPerfilPDF(p) {
    INICIALIZAÇÃO
 ============================================================= */
 async function init() {
+  try { window.IORDAuth.requireLogin(); } catch (e) {}
+  IORDPermissions.applyUIPacientes();
+
   modalPaciente.style.display = 'none';
   modalPaciente.hidden = true;
   toast.style.display = 'none';
@@ -1169,7 +1172,10 @@ async function init() {
     </tr>`;
 
   try {
-    const res = await Api.getPacientes({ limite: 500 });
+    const res = await Api.getPacientes({
+      limite: 500,
+      radiologiaId: IORDPermissions.getRadiologiaFiltro(null),
+    });
     state.pacientes = res.data || [];
     state.pacientes = state.pacientes.map(p => ({
       ...p,
