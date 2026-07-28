@@ -1081,6 +1081,7 @@
         async init() {
             this.bindSave()
             this.bindDiscard()
+            this.bindNewExamButton()
 
             try {
                 const res = await Api.getParametros()
@@ -1089,7 +1090,6 @@
                 if (!this.data.examDurations) this.data.examDurations = []
                 if (!this.data.whatsappMessages) this.data.whatsappMessages = []
                 if (!this.data.scheduling) this.data.scheduling = {}
-                if (!this.data.financial) this.data.financial = {}
                 this.renderExamDurations()
                 this.renderWAMessages()
                 this.fillSchedulingForm()
@@ -1211,6 +1211,13 @@
                 examValues[inp.dataset.examId] = parseFloat(inp.value) || 0
             })
 
+            // Para exames novos (ainda não existentes no banco, id começa com 'exam-'),
+            // envia também o rótulo para o backend poder criar o registro
+            const examLabels = {}
+            ;(this.data.examDurations || []).forEach(e => {
+                if (String(e.id).startsWith('exam-')) examLabels[e.id] = e.label
+            })
+
             const messages = []
             document.querySelectorAll('.wa-message-item[data-msg-id]').forEach(item => {
                 messages.push({
@@ -1231,7 +1238,7 @@
                 bloquearAutomatico: document.getElementById('toggleAutoBlock')?.checked,
             }
 
-            return { durations, examValues, messages, scheduling }
+            return { durations, examValues, examLabels, messages, scheduling }
         },
 
         /** Barra sticky de salvar para a aba Parâmetros */
@@ -1273,6 +1280,8 @@
                 const newExam = { id, label: label.trim(), duration: 30, value: 0 }
                 this.data.examDurations.push(newExam)
                 this.renderExamDurations()
+                // Novo card conta como alteração pendente -> mostra a barra sticky de salvar
+                document.getElementById('tab-parametros')?.dispatchEvent(new Event('input', { bubbles: true }))
             })
         },
 

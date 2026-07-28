@@ -765,6 +765,15 @@
                     </div>
 
                     <div class="cfg-block__body">
+                        <div class="modal-info-box modal-info-box--hint" style="margin-bottom:var(--space-4);">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8" />
+                                <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                            </svg>
+                            A variável <strong>{link}</strong> é substituída automaticamente pelo link de
+                            confirmação do agendamento. Quando o paciente clica nele, o status muda de
+                            "Agendado" para "Confirmado" no sistema — sem precisar de login.
+                        </div>
                         <div class="wa-messages-list" id="waMessagesList">
                             <!-- Gerado pelo JS -->
                         </div>
@@ -843,30 +852,30 @@
                         <div class="cfg-toggle-list cfg-toggle-list--compact">
                             <div class="cfg-toggle-item">
                                 <div class="cfg-toggle-item__info">
-                                    <span class="cfg-toggle-item__label">Exigir confirmação do paciente (link via
+                                    <span class="cfg-toggle-item__label" id="lblConfirmLink">Exigir confirmação do paciente (link via
                                         WhatsApp)</span>
                                 </div>
-                                <label class="cfg-toggle">
+                                <label class="cfg-toggle" aria-labelledby="lblConfirmLink">
                                     <input type="checkbox" id="toggleConfirmLink" checked>
                                     <span class="cfg-toggle__track"></span>
                                 </label>
                             </div>
                             <div class="cfg-toggle-item">
                                 <div class="cfg-toggle-item__info">
-                                    <span class="cfg-toggle-item__label">Permitir reagendamento pelo próprio
+                                    <span class="cfg-toggle-item__label" id="lblSelfReschedule">Permitir reagendamento pelo próprio
                                         paciente</span>
                                 </div>
-                                <label class="cfg-toggle">
+                                <label class="cfg-toggle" aria-labelledby="lblSelfReschedule">
                                     <input type="checkbox" id="toggleSelfReschedule">
                                     <span class="cfg-toggle__track"></span>
                                 </label>
                             </div>
                             <div class="cfg-toggle-item">
                                 <div class="cfg-toggle-item__info">
-                                    <span class="cfg-toggle-item__label">Bloquear horário automaticamente ao
+                                    <span class="cfg-toggle-item__label" id="lblAutoBlock">Bloquear horário automaticamente ao
                                         confirmar</span>
                                 </div>
-                                <label class="cfg-toggle">
+                                <label class="cfg-toggle" aria-labelledby="lblAutoBlock">
                                     <input type="checkbox" id="toggleAutoBlock" checked>
                                     <span class="cfg-toggle__track"></span>
                                 </label>

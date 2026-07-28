@@ -986,6 +986,22 @@ const Api = (() => {
             method: 'DELETE',
         });
     }
+
+    /**
+     * Gera o link de confirmação de agendamento (enviado por WhatsApp ao paciente).
+     * Ao clicar, o paciente confirma e o status muda de 'agendado' para 'confirmado'
+     * automaticamente — sem precisar estar logado no sistema.
+     *
+     * [API] GET /agendamentos/:agendamentoId/link-confirmacao
+     *
+     * @param {string} agendamentoId
+     *
+     * Resposta esperada: { link: string }
+     */
+    async function getLinkConfirmacaoAgendamento(agendamentoId) {
+        const data = await request(`/agendamentos/${agendamentoId}/link-confirmacao`);
+        return { data };
+    }
     /**
      * Retorna as notas/observações de um paciente ordenadas por data desc.
      * Alimenta a lista #perfil-notas.
@@ -2166,6 +2182,7 @@ const Api = (() => {
 
         // 16. Outros
         deleteAgendamento,
+        getLinkConfirmacaoAgendamento,
     };
 
 })();

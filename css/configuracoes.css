@@ -628,6 +628,11 @@
     transform: translateX(18px);
 }
 
+/* Acessibilidade: indicador de foco visível ao navegar via teclado (Tab) */
+.cfg-toggle input[type="checkbox"]:focus-visible+.cfg-toggle__track {
+    box-shadow: 0 0 0 3px var(--color-primary-100), 0 0 0 1px var(--color-primary);
+}
+
 /* Sub-configuração visível quando toggle está ON */
 .cfg-toggle-sub {
     display: flex;

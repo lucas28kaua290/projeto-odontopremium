@@ -51,6 +51,11 @@ import datetime
 from functools import wraps
 from decimal import Decimal, ROUND_HALF_UP
 
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+import unicodedata
 import bcrypt
 import jwt
 import mysql.connector
@@ -76,6 +81,15 @@ JWT_SECRET  = os.getenv("JWT_SECRET",  "TROQUE-ESTA-CHAVE-EM-PRODUCAO")
 JWT_ALGO    = "HS256"
 JWT_EXP_H   = int(os.getenv("JWT_EXP_HOURS", "8"))
 UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", "uploads")
+
+# --- SMTP (envio de e-mails transacionais: senha de novo usuário, notificações) ---
+SMTP_HOST      = os.getenv("SMTP_HOST", "")
+SMTP_PORT      = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER      = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD  = os.getenv("SMTP_PASSWORD", "")
+SMTP_FROM      = os.getenv("SMTP_FROM", "noreply@iord.com.br")
+SMTP_USE_TLS   = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
+APP_BASE_URL   = os.getenv("APP_BASE_URL", "http://localhost:5000")
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -135,6 +149,59 @@ def validate_email(email: str) -> bool:
     return bool(re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", email.strip()))
 
 
+def enviar_email(destinatario: str, assunto: str, corpo_html: str) -> bool:
+    """
+    Envia um e-mail via SMTP usando as credenciais configuradas em .env
+    (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM).
+
+    Se SMTP_HOST não estiver configurado, apenas loga o envio (modo dev/local)
+    e retorna False, sem quebrar o fluxo que chamou esta função (ex: criação
+    de usuário não deve falhar só porque o e-mail não pôde ser enviado).
+    """
+    if not SMTP_HOST:
+        log.warning("SMTP não configurado — e-mail para %s NÃO enviado. Assunto: %s", destinatario, assunto)
+        return False
+
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = assunto
+        msg["From"] = SMTP_FROM
+        msg["To"] = destinatario
+        msg.attach(MIMEText(corpo_html, "html", "utf-8"))
+
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+            if SMTP_USE_TLS:
+                server.starttls()
+            if SMTP_USER:
+                server.login(SMTP_USER, SMTP_PASSWORD)
+            server.sendmail(SMTP_FROM, [destinatario], msg.as_string())
+
+        log.info("E-mail enviado para %s | Assunto: %s", destinatario, assunto)
+        return True
+    except Exception as exc:
+        log.exception("Falha ao enviar e-mail para %s: %s", destinatario, exc)
+        return False
+
+
+def gerar_token_confirmacao(agendamento_id: int, exp_hours: int = 72) -> str:
+    """
+    Gera um token JWT de uso único para o link de confirmação de agendamento
+    enviado por WhatsApp/e-mail. O paciente clica no link, o token é validado
+    e o status do agendamento passa de 'agendado' para 'confirmado'.
+    """
+    payload = {
+        "agendamentoId": agendamento_id,
+        "purpose": "confirmar_agendamento",
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=exp_hours),
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGO)
+
+
+def gerar_link_confirmacao(agendamento_id: int) -> str:
+    token = gerar_token_confirmacao(agendamento_id)
+    return f"{APP_BASE_URL}/v1/agendamentos/confirmar/{token}"
+
+
 def validate_cpf(cpf: str) -> bool:
     cpf = re.sub(r"\D", "", cpf)
     if len(cpf) != 11 or cpf == cpf[0] * 11:
@@ -145,6 +212,15 @@ def validate_cpf(cpf: str) -> bool:
             return False
     return True
 
+
+def slugify(texto: str) -> str:
+    """
+    Converte um texto livre em um slug ASCII minúsculo com underscores,
+    no mesmo padrão dos ids já usados em tipos_exame (ex: 'Raio-X' -> 'raio_x').
+    """
+    texto = unicodedata.normalize("NFKD", texto).encode("ascii", "ignore").decode("ascii")
+    texto = re.sub(r"[^a-zA-Z0-9]+", "_", texto).strip("_").lower()
+    return texto or "exame"
 
 def validate_cnpj(cnpj: str) -> bool:
     cnpj = re.sub(r"\D", "", cnpj)
@@ -1163,6 +1239,51 @@ def deletar_agendamento(agendamento_id):
         return not_found("Agendamento não encontrado.")
     query("DELETE FROM agendamentos WHERE id = %s", (agendamento_id,), fetch="none")
     return ok({"sucesso": True}, "Agendamento excluído com sucesso.")
+
+
+@app.route("/v1/agendamentos/<int:agendamento_id>/link-confirmacao", methods=["GET"])
+@require_auth
+def gerar_link_confirmacao_agendamento(agendamento_id):
+    """
+    Gera o link curto de confirmação para ser enviado ao paciente por WhatsApp.
+    Ex: usado num botão "Copiar link de confirmação" na tela de Agendamentos.
+    """
+    exists = query("SELECT id FROM agendamentos WHERE id = %s", (agendamento_id,), fetch="one")
+    if not exists:
+        return not_found("Agendamento não encontrado.")
+    return ok({"link": gerar_link_confirmacao(agendamento_id)})
+
+
+@app.route("/v1/agendamentos/confirmar/<token>", methods=["GET"])
+def confirmar_agendamento_via_link(token):
+    """
+    Rota PÚBLICA (sem autenticação) acessada pelo paciente ao clicar no link
+    de confirmação enviado por WhatsApp. Valida o token, e se o agendamento
+    ainda estiver com status 'agendado', atualiza para 'confirmado'.
+    """
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGO])
+    except jwt.ExpiredSignatureError:
+        return err("Este link de confirmação expirou. Entre em contato com a clínica.", 400)
+    except jwt.InvalidTokenError:
+        return err("Link de confirmação inválido.", 400)
+
+    if payload.get("purpose") != "confirmar_agendamento":
+        return err("Link de confirmação inválido.", 400)
+
+    agendamento_id = payload.get("agendamentoId")
+    ag = query("SELECT id, status FROM agendamentos WHERE id = %s", (agendamento_id,), fetch="one")
+    if not ag:
+        return not_found("Agendamento não encontrado.")
+
+    if ag["status"] == "confirmado":
+        return ok({"status": "confirmado"}, "Este agendamento já estava confirmado.")
+
+    if ag["status"] != "agendado":
+        return err(f"Não é possível confirmar um agendamento com status '{ag['status']}'.", 409)
+
+    query("UPDATE agendamentos SET status = %s WHERE id = %s", ("confirmado", agendamento_id), fetch="none")
+    return ok({"status": "confirmado"}, "Agendamento confirmado com sucesso! Te esperamos no dia marcado.")
 
 
 @app.route("/v1/pacientes", methods=["GET"])
@@ -2843,13 +2964,32 @@ def criar_usuario():
 
     log.info("Usuário criado: %s | Senha temporária: %s", data["email"], senha_temp)
 
+    email_enviado = enviar_email(
+        data["email"],
+        "Bem-vindo(a) ao IORD — seus dados de acesso",
+        f"""
+        <div style="font-family:Arial,sans-serif;font-size:14px;color:#1a1a1a;">
+            <p>Olá, <strong>{data['name']}</strong>!</p>
+            <p>Sua conta no sistema <strong>IORD</strong> foi criada. Use os dados abaixo para o primeiro acesso:</p>
+            <p>
+                <strong>E-mail:</strong> {data['email'].lower()}<br>
+                <strong>Senha temporária:</strong> {senha_temp}
+            </p>
+            <p>Recomendamos alterar a senha assim que fizer login.</p>
+            <p style="margin-top:24px;color:#666;font-size:12px;">Este é um e-mail automático, não é necessário respondê-lo.</p>
+        </div>
+        """
+    )
+
     usuario = query(
         "SELECT u.id, u.nome AS name, u.email, u.telefone AS phone, u.cargo AS role, "
         "       u.nivel AS level, COALESCE(r.nome,'Todas') AS radiologia, u.status "
         "FROM usuarios u LEFT JOIN radiologias r ON r.id = u.radiologia_id WHERE u.id = %s",
         (new_id,), fetch="one"
     )
-    return created(usuario, "Usuário criado com sucesso.")
+    usuario["emailEnviado"] = email_enviado
+    msg = "Usuário criado com sucesso." if email_enviado else "Usuário criado com sucesso. (E-mail de boas-vindas não pôde ser enviado — verifique a configuração de SMTP.)"
+    return created(usuario, msg)
 
 
 @app.route("/v1/usuarios/<int:usuario_id>", methods=["PUT"])
@@ -2935,22 +3075,34 @@ def parametros_get():
 def parametros_post():
     data = request.get_json(silent=True) or {}
 
-    durations   = data.get("durations", {})
-    exam_values = data.get("examValues", {})
-    messages    = data.get("messages", [])
-    scheduling  = data.get("scheduling", {})
+    durations    = data.get("durations", {})
+    exam_values  = data.get("examValues", {})
+    exam_labels  = data.get("examLabels", {})   # { [examId]: label } — enviado só para exames novos
+    messages     = data.get("messages", [])
+    scheduling   = data.get("scheduling", {})
 
     for exam_id, duracao in durations.items():
-        query(
-            "UPDATE tipos_exame SET duracao_min = %s WHERE id = %s",
-            (int(duracao), exam_id), fetch="none"
-        )
+        valor = exam_values.get(exam_id, 0)
+        is_novo = isinstance(exam_id, str) and exam_id.startswith("exam-")
 
-    for exam_id, valor in exam_values.items():
-        query(
-            "UPDATE tipos_exame SET valor_base = %s WHERE id = %s",
-            (float(valor), exam_id), fetch="none"
-        )
+        if is_novo:
+            label = exam_labels.get(exam_id, "Novo Exame")
+            novo_id = slugify(label)
+            sufixo = 1
+            base_id = novo_id
+            while query("SELECT id FROM tipos_exame WHERE id = %s", (novo_id,), fetch="one"):
+                sufixo += 1
+                novo_id = f"{base_id}_{sufixo}"
+
+            query(
+                "INSERT INTO tipos_exame (id, label, duracao_min, valor_base) VALUES (%s, %s, %s, %s)",
+                (novo_id, label, int(duracao), float(valor)), fetch="none"
+            )
+        else:
+            query(
+                "UPDATE tipos_exame SET duracao_min = %s, valor_base = %s WHERE id = %s",
+                (int(duracao), float(valor), exam_id), fetch="none"
+            )
 
     def _salvar_param(chave, valor):
         v = json.dumps(valor, ensure_ascii=False)
