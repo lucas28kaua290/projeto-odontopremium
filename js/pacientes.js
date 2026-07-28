@@ -131,7 +131,6 @@ const quickFilterPills = $('quick-filter-pills');
 const modalPaciente = $('modal-paciente');
 const formPaciente = $('form-paciente');
 const modalTitulo = $('modal-titulo');
-const btnNovoPaciente = $('btn-novo-paciente');
 const btnFecharModal = $('btn-fechar-modal');
 const btnCancelarModal = $('btn-cancelar-modal');
 const toast = $('toast');
@@ -156,18 +155,24 @@ function aplicarFiltros() {
       if (!temRecente) return false;
     }
 
-    // Busca por texto
+    // Busca por texto — guards contra campos nulos vindos da API
     if (!texto) return true;
+    const nome     = (p.nome     || '').toLowerCase();
+    const cpf      = (p.cpf      || '').replace(/\D/g, '');
+    const telefone = (p.telefone || '').replace(/\D/g, '');
+    const codigo   = (p.id       || '').toLowerCase();
+    const textoDig = texto.replace(/\D/g, '');
+
     if (scope === 'todos') {
-      return p.nome.toLowerCase().includes(texto)
-        || p.cpf.includes(texto)
-        || p.telefone.replace(/\D/g, '').includes(texto.replace(/\D/g, ''))
-        || p.id.toLowerCase().includes(texto);
+      return nome.includes(texto)
+        || cpf.includes(textoDig)
+        || telefone.includes(textoDig)
+        || codigo.includes(texto);
     }
-    if (scope === 'nome') return p.nome.toLowerCase().includes(texto);
-    if (scope === 'cpf') return p.cpf.replace(/\D/g, '').includes(texto.replace(/\D/g, ''));
-    if (scope === 'telefone') return p.telefone.replace(/\D/g, '').includes(texto.replace(/\D/g, ''));
-    if (scope === 'codigo') return p.id.toLowerCase().includes(texto);
+    if (scope === 'nome')     return nome.includes(texto);
+    if (scope === 'cpf')      return cpf.includes(textoDig);
+    if (scope === 'telefone') return telefone.includes(textoDig);
+    if (scope === 'codigo')   return codigo.includes(texto);
     return true;
   });
 
@@ -696,8 +701,7 @@ tabelaBody.addEventListener('click', e => {
   if (action === 'editar') abrirModal(id);
 });
 
-// Novo paciente
-btnNovoPaciente.addEventListener('click', () => abrirModal());
+
 
 // Fechar modal
 btnFecharModal.addEventListener('click', fecharModal);
