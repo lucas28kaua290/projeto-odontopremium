@@ -2949,33 +2949,29 @@ def criar_usuario():
     if dup:
         return err("Já existe um usuário com este e-mail.", 409)
 
-    senha_temp = uuid.uuid4().hex[:10]
-    senha_hash = bcrypt.hashpw(senha_temp.encode(), bcrypt.gensalt()).decode()
-
+    senha_acesso = uuid.uuid4().hex[:10]
+    senha_hash = bcrypt.hashpw(senha_acesso.encode(), bcrypt.gensalt()).decode()
     rad_id = data.get("radiologia") if data.get("radiologia") not in (None, "todas", "all") else None
-
     new_id = insert(
         "INSERT INTO usuarios (nome, email, senha_hash, telefone, cargo, nivel, radiologia_id, status) "
         "VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
         (data["name"], data["email"].lower(), senha_hash,
-         data.get("phone"), data.get("role"), data["level"],
-         rad_id, data.get("status", "ativo"))
+        data.get("phone"), data.get("role"), data["level"],
+        rad_id, data.get("status", "ativo"))
     )
-
-    log.info("Usuário criado: %s | Senha temporária: %s", data["email"], senha_temp)
-
+    log.info("Usuário criado: %s | Senha: %s", data["email"], senha_acesso)
     email_enviado = enviar_email(
         data["email"],
         "Bem-vindo(a) ao IORD — seus dados de acesso",
         f"""
         <div style="font-family:Arial,sans-serif;font-size:14px;color:#1a1a1a;">
             <p>Olá, <strong>{data['name']}</strong>!</p>
-            <p>Sua conta no sistema <strong>IORD</strong> foi criada. Use os dados abaixo para o primeiro acesso:</p>
+            <p>Sua conta no sistema <strong>IORD</strong> foi criada. Use os dados abaixo para acessar:</p>
             <p>
                 <strong>E-mail:</strong> {data['email'].lower()}<br>
-                <strong>Senha temporária:</strong> {senha_temp}
+                <strong>Senha de acesso:</strong> {senha_acesso}
             </p>
-            <p>Recomendamos alterar a senha assim que fizer login.</p>
+            <p>Guarde esta senha com segurança. Você já pode entrar no sistema com ela.</p>
             <p style="margin-top:24px;color:#666;font-size:12px;">Este é um e-mail automático, não é necessário respondê-lo.</p>
         </div>
         """
