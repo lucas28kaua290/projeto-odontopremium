@@ -157,5 +157,42 @@ const IORDPermissions = (() => {
         applyUI,
         applyUIPacientes,
     };
+})();
 
+/* Auth guard global — usado pelas páginas protegidas via IORDAuth.requireLogin() */
+window.IORDAuth = (() => {
+    const STORAGE_KEY = 'iord_auth';
+
+    function getSession() {
+        const storages = [localStorage, sessionStorage];
+        for (const storage of storages) {
+            try {
+                const raw = storage.getItem(STORAGE_KEY);
+                if (!raw) continue;
+                const session = JSON.parse(raw);
+                if (!session?.token || !session?.expiresAt) continue;
+                if (Date.now() > session.expiresAt) { storage.removeItem(STORAGE_KEY); continue; }
+                return session;
+            } catch { /* JSON inválido */ }
+        }
+        return null;
+    }
+
+    function requireLogin() {
+        const session = getSession();
+        if (!session) {
+            const current = encodeURIComponent(window.location.pathname + window.location.search);
+            window.location.replace(`login.html?redirect=${current}`);
+            throw new Error('IORD: redirecionando para login.');
+        }
+        return session;
+    }
+
+    function logout() {
+        localStorage.removeItem(STORAGE_KEY);
+        sessionStorage.removeItem(STORAGE_KEY);
+        window.location.replace('login.html');
+    }
+
+    return { getSession, requireLogin, logout };
 })();
