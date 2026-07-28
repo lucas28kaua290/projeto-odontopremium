@@ -1201,7 +1201,8 @@
 
         collectData() {
             const durations = {}
-            document.querySelectorAll('.exam-duration-item__input[data-exam-id]').forEach(inp => {
+            // Exclui os inputs de valor (.exam-duration-item__value) da coleta de duração
+            document.querySelectorAll('.exam-duration-item__input[data-exam-id]:not(.exam-duration-item__value)').forEach(inp => {
                 durations[inp.dataset.examId] = parseInt(inp.value, 10) || 0
             })
 
