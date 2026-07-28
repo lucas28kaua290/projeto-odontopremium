@@ -1610,6 +1610,14 @@ const KanbanHoverCard = (() => {
 
     buildContent(appt);
 
+    // Resolve o link WhatsApp async após renderizar o card
+    if (appt.status === 'agendado') {
+      buildWhatsAppLink(appt).then(link => {
+        const anchor = card.querySelector(`[data-wa-pending="${appt.id}"]`);
+        if (anchor) anchor.href = link;
+      });
+    }
+
     /* Posiciona antes de tornar visível para evitar flash */
     card.style.opacity = '0';
     card.classList.add('is-visible');
@@ -3030,9 +3038,9 @@ const PendingList = (() => {
           </svg>
           Ver
         </button>
-        <a href="${waLink}" target="_blank" rel="noopener noreferrer"
+        <a href="${waLinkSync}" target="_blank" rel="noopener noreferrer"
            class="pending-btn-whatsapp ${isConfirmado ? 'pending-btn-whatsapp--lembrete' : ''}"
-           title="${waTitle}">
+           title="${waTitle}" ${!isConfirmado ? 'data-wa-id' : ''}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
             <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"
                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -3097,13 +3105,16 @@ const PendingList = (() => {
     }
 
     const frag = document.createDocumentFragment();
-    pendentes.forEach(appt => frag.appendChild(buildItem(appt)));
-    if (!isConfirmado) {
-      buildWhatsAppLinkConfirmacao(appt).then(link => {
-        const anchor = frag.querySelector(`[data-wa-id="${appt.id}"]`);
-        if (anchor) anchor.href = link;
-      });
-    }
+    pendentes.forEach(appt => {
+      const item = buildItem(appt);
+      frag.appendChild(item);
+      if (appt.status !== 'confirmado') {
+        buildWhatsAppLinkConfirmacao(appt).then(link => {
+          const anchor = item.querySelector('[data-wa-id]');
+          if (anchor) anchor.href = link;
+        });
+      }
+    });
     listEl.appendChild(frag);
   }
 
