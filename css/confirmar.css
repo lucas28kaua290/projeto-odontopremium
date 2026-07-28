@@ -83,8 +83,10 @@ body {
 }
 
 .cfm-header__icon img{
-    width:34px;
-    height:34px;
+    width: 140px;
+    height: 90px;
+    margin-top:7px;
+    margin-left: 2px;
     object-fit:contain;
 }
 
