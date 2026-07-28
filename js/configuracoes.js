@@ -691,7 +691,7 @@
 
         /** [API] DELETE /clinicas/:id */
         async confirmDeleteClinic(id) {
-            const c = State.clinicas.find(c => c.id === id)
+            const c = State.clinicas.find(c => String(c.id) === String(id))
             if (!c) return
 
             const confirmed = await new Promise(resolve => {
@@ -1082,7 +1082,7 @@
 
         /** [API] DELETE /usuarios/:id */
         async confirmDeleteUser(id) {
-            const u = State.usuarios.find(u => u.id === id)
+            const u = State.usuarios.find(u => String(u.id) === String(id))
             if (!u) return
 
             if (u.level === 'admin' && State.usuarios.filter(u => u.level === 'admin').length === 1) {
@@ -1550,7 +1550,7 @@
                 subtitleEl.textContent = 'Preencha os dados da clínica referenciadora'
                 this.clearForm()
             } else {
-                const c = State.clinicas.find(c => c.id === id)
+                const c = State.clinicas.find(c => String(c.id) === String(id))
                 if (!c) return
                 titleEl.textContent = `Editar — ${c.name}`
                 subtitleEl.textContent = 'Atualize os dados da clínica'
@@ -1696,7 +1696,7 @@
                 this.clearForm()
                 this.populateClinicSelect()
             } else {
-                const m = State.medicos.find(m => m.id === id)
+                const m = State.medicos.find(m => String(m.id) === String(id))
                 if (!m) return
                 titleEl.textContent = `Editar — ${m.name}`
                 subtitleEl.textContent = 'Atualize os dados do médico'
@@ -1929,7 +1929,7 @@
                     else confirmBtn.appendChild(document.createTextNode(' Criar Usuário'))
                 }
             } else {
-                const u = State.usuarios.find(u => u.id === id)
+                const u = State.usuarios.find(u => String(u.id) === String(id))
                 if (!u) return
                 titleEl.textContent = `Editar — ${u.name}`
                 subtitleEl.textContent = 'Atualize os dados de acesso do usuário'
