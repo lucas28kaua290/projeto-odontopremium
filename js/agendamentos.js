@@ -100,7 +100,7 @@ const DataStore = (() => {
     VALOR_POR_EXAME = {};
     DURACAO_POR_EXAME = {};
     list.forEach(e => {
-      VALOR_POR_EXAME[e.id] = e.valor_base || 0;
+      VALOR_POR_EXAME[e.id] = e.value || 0;
       DURACAO_POR_EXAME[e.id] = e.duration || 30;
       VALOR_POR_EXAME[e.label] = e.valor_base || 0;
       DURACAO_POR_EXAME[e.label] = e.duration || 30;
