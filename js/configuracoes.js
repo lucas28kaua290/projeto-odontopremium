@@ -220,11 +220,10 @@
     =========================================================== */
     const GeralModule = {
         async init() {
-            this.bindSave()
-            this.bindDiscard()
-            this.bindNewExamButton()
-            this.bindChangesDetection()
-            this.bindToggleSubs()
+    this.bindSave()
+    this.bindDiscard()
+    this.bindChangesDetection()
+    this.bindToggleSubs()
 
             // Carrega dados reais da aba Geral
             try {

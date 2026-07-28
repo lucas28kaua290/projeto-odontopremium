@@ -609,21 +609,23 @@ def listar_clinicas():
     busca  = request.args.get("busca", "")
     status = request.args.get("status", "")
 
-    sql    = "SELECT id, nome AS name, cidade AS city, estado AS state, " \
-             "       telefone AS phone, email, endereco AS address, status, " \
-             "       radiologia_id AS radiologyId " \
-             "FROM clinicas WHERE 1=1"
+    sql    = "SELECT c.id, c.nome AS name, c.cidade AS city, c.estado AS state, " \
+             "       c.telefone AS phone, c.email, c.endereco AS address, c.status, " \
+             "       cr.radiologia_id AS radiologyId " \
+             "FROM clinicas c " \
+             "LEFT JOIN clinica_radiologia cr ON cr.clinica_id = c.id " \
+             "WHERE 1=1"
     params = []
 
     if busca:
-        sql += " AND (nome LIKE %s OR cidade LIKE %s)"
+        sql += " AND (c.nome LIKE %s OR c.cidade LIKE %s)"
         like = f"%{busca}%"
         params += [like, like]
     if status:
-        sql += " AND status = %s"
+        sql += " AND c.status = %s"
         params.append(status)
 
-    sql += " ORDER BY nome"
+    sql += " ORDER BY c.nome"
     rows = query(sql, params)
     return ok(rows)
 
@@ -640,16 +642,23 @@ def criar_clinica():
         return err("E-mail inválido.", 400)
 
     new_id = insert(
-        "INSERT INTO clinicas (nome, cidade, estado, telefone, email, endereco, status, radiologia_id) "
-        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
+        "INSERT INTO clinicas (nome, cidade, estado, telefone, email, endereco, status) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s)",
         (data["name"], data.get("city"), data.get("state"),
          data.get("phone"), data.get("email"), data.get("address"),
-         data.get("status", "ativo"), data.get("radiologyId"))
+         data.get("status", "ativo"))
     )
+    if data.get("radiologyId"):
+        insert(
+            "INSERT INTO clinica_radiologia (clinica_id, radiologia_id) VALUES (%s, %s)",
+            (new_id, data["radiologyId"])
+        )
     nova = query(
-        "SELECT id, nome AS name, cidade AS city, estado AS state, "
-        "telefone AS phone, email, endereco AS address, status, "
-        "radiologia_id AS radiologyId FROM clinicas WHERE id = %s",
+        "SELECT c.id, c.nome AS name, c.cidade AS city, c.estado AS state, "
+        "c.telefone AS phone, c.email, c.endereco AS address, c.status, "
+        "cr.radiologia_id AS radiologyId "
+        "FROM clinicas c LEFT JOIN clinica_radiologia cr ON cr.clinica_id = c.id "
+        "WHERE c.id = %s",
         (new_id,), fetch="one"
     )
     return created(nova, "Clínica criada com sucesso.")
@@ -668,16 +677,27 @@ def atualizar_clinica(clinica_id):
 
     query(
         "UPDATE clinicas SET nome=%s, cidade=%s, estado=%s, telefone=%s, "
-        "email=%s, endereco=%s, status=%s, radiologia_id=%s WHERE id = %s",
+        "email=%s, endereco=%s, status=%s WHERE id = %s",
         (data.get("name"), data.get("city"), data.get("state"),
          data.get("phone"), data.get("email"), data.get("address"),
-         data.get("status", "ativo"), data.get("radiologyId"), clinica_id),
+         data.get("status", "ativo"), clinica_id),
         fetch="none"
     )
+
+    if "radiologyId" in data:
+        query("DELETE FROM clinica_radiologia WHERE clinica_id = %s", (clinica_id,), fetch="none")
+        if data.get("radiologyId"):
+            query(
+                "INSERT INTO clinica_radiologia (clinica_id, radiologia_id) VALUES (%s, %s)",
+                (clinica_id, data["radiologyId"]), fetch="none"
+            )
+
     updated = query(
-        "SELECT id, nome AS name, cidade AS city, estado AS state, "
-        "telefone AS phone, email, endereco AS address, status, "
-        "radiologia_id AS radiologyId FROM clinicas WHERE id = %s",
+        "SELECT c.id, c.nome AS name, c.cidade AS city, c.estado AS state, "
+        "c.telefone AS phone, c.email, c.endereco AS address, c.status, "
+        "cr.radiologia_id AS radiologyId "
+        "FROM clinicas c LEFT JOIN clinica_radiologia cr ON cr.clinica_id = c.id "
+        "WHERE c.id = %s",
         (clinica_id,), fetch="one"
     )
     return ok(updated, "Clínica atualizada com sucesso.")
