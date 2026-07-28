@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmar Agendamento — IORD</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="shortcut icon" href="favicon-iord.png" type="image/x-icon">
+    <link rel="stylesheet" href="css/confirmar.css">
+</head>
+<body>
+
+    <div class="cfm-root">
+
+        <!-- Cabeçalho mínimo -->
+        <header class="cfm-header">
+            <div class="cfm-header__logo">
+                <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                    <rect width="32" height="32" rx="8" fill="#018093"/>
+                    <path d="M8 16C8 11.582 11.582 8 16 8s8 3.582 8 8-3.582 8-8 8-8-3.582-8-8z" fill="none" stroke="#fff" stroke-width="2"/>
+                    <circle cx="16" cy="16" r="3.5" fill="#fff"/>
+                </svg>
+                <span class="cfm-header__brand">IORD</span>
+            </div>
+        </header>
+
+        <main class="cfm-main">
+
+            <!-- ETAPA 1: Validação de CPF -->
+            <section class="cfm-card" id="stepCpf" aria-labelledby="stepCpfTitle">
+                <div class="cfm-card__icon cfm-card__icon--lock">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                        <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/>
+                        <path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <h1 class="cfm-card__title" id="stepCpfTitle">Confirmar agendamento</h1>
+                <p class="cfm-card__desc">
+                    Para sua segurança, informe seu CPF para visualizar os dados do agendamento.
+                </p>
+
+                <div class="cfm-field">
+                    <label class="cfm-field__label" for="inputCpf">CPF do paciente</label>
+                    <input
+                        type="text"
+                        id="inputCpf"
+                        class="cfm-field__input"
+                        placeholder="000.000.000-00"
+                        maxlength="14"
+                        inputmode="numeric"
+                        autocomplete="off"
+                    >
+                    <span class="cfm-field__error" id="errorCpf" aria-live="polite"></span>
+                </div>
+
+                <button class="cfm-btn cfm-btn--primary" id="btnValidarCpf">
+                    <span class="cfm-btn__text">Continuar</span>
+                    <span class="cfm-btn__spinner" aria-hidden="true"></span>
+                </button>
+            </section>
+
+            <!-- ETAPA 2: Dados do agendamento -->
+            <section class="cfm-card cfm-card--hidden" id="stepDados" aria-labelledby="stepDadosTitle">
+                <div class="cfm-card__icon cfm-card__icon--calendar">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                        <path d="M8 2v3M16 2v3M3 9h18M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z"
+                            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <h2 class="cfm-card__title" id="stepDadosTitle">Seu agendamento</h2>
+                <p class="cfm-card__desc">Confira os dados abaixo e confirme sua presença.</p>
+
+                <dl class="cfm-info-list" id="infoList">
+                    <!-- preenchido pelo JS -->
+                </dl>
+
+                <button class="cfm-btn cfm-btn--primary" id="btnConfirmar">
+                    <span class="cfm-btn__text">Confirmar presença</span>
+                    <span class="cfm-btn__spinner" aria-hidden="true"></span>
+                </button>
+                <button class="cfm-btn cfm-btn--ghost" id="btnVoltarCpf">Corrigir CPF</button>
+            </section>
+
+            <!-- ETAPA 3: Sucesso -->
+            <section class="cfm-card cfm-card--hidden" id="stepSucesso" aria-labelledby="stepSucessoTitle">
+                <div class="cfm-card__icon cfm-card__icon--success">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                        <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <h2 class="cfm-card__title" id="stepSucessoTitle">Presença confirmada!</h2>
+                <p class="cfm-card__desc" id="msgSucesso">
+                    Seu agendamento foi confirmado com sucesso. Te esperamos no dia marcado!
+                </p>
+                <div class="cfm-success-pill" id="successPill">
+                    <!-- data/hora preenchida pelo JS -->
+                </div>
+            </section>
+
+            <!-- ETAPA: Erro terminal (token inválido/expirado/já confirmado) -->
+            <section class="cfm-card cfm-card--hidden" id="stepErro" aria-labelledby="stepErroTitle">
+                <div class="cfm-card__icon cfm-card__icon--error">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
+                        <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <h2 class="cfm-card__title" id="stepErroTitle">Não foi possível confirmar</h2>
+                <p class="cfm-card__desc" id="msgErro">Este link é inválido ou já expirou.</p>
+            </section>
+
+        </main>
+
+        <footer class="cfm-footer">
+            <span>© IORD Radiologia &nbsp;·&nbsp; Todos os direitos reservados</span>
+        </footer>
+
+    </div>
+
+    <script src="js/confirmar.js"></script>
+</body>
+</html>

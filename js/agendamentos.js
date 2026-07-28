@@ -831,7 +831,7 @@ const AppointmentModal = (() => {
   let currentAppointment = null;
 
   /* Gera link WhatsApp baseado no status */
-  function buildWhatsAppLink(agendamento) {
+  async function buildWhatsAppLink(agendamento) {
     const phone = (agendamento.pacienteTelefone || '').replace(/\D/g, '').replace(/^0/, '');
     const num = phone.startsWith('55') ? phone : `55${phone}`;
     const dataLabel = new Date(`${agendamento.data}T00:00:00`).toLocaleDateString('pt-BR', {
@@ -848,12 +848,21 @@ const AppointmentModal = (() => {
         `🩺 *Exame:* ${agendamento.tipoExame}\n\n` +
         `Por favor, chegue com 10 minutos de antecedência. Em caso de imprevisto, entre em contato para reagendarmos. Até lá! 😊`;
     } else {
+      let linkConfirmacao = '';
+      try {
+        const res = await Api.getLinkConfirmacaoAgendamento(agendamento.id);
+        linkConfirmacao = res?.data?.link || res?.link || '';
+      } catch (_) { /* segue sem link se a API falhar */ }
+
       msg =
         `Olá, ${agendamento.paciente.split(' ')[0]}! 😊 Passando para confirmar seu agendamento na *${agendamento.radiologiaNome}*.\n\n` +
         `📅 *Data:* ${dataLabel}\n` +
         `⏰ *Horário:* ${agendamento.horarioInicio}\n` +
         `🩺 *Exame:* ${agendamento.tipoExame}\n\n` +
-        `Por favor, confirme sua presença respondendo esta mensagem. Qualquer dúvida, estamos à disposição! 🙏`;
+        (linkConfirmacao
+          ? `Para confirmar sua presença, acesse o link abaixo:\n${linkConfirmacao}\n\n`
+          : '') +
+        `Qualquer dúvida, estamos à disposição! 🙏`;
     }
 
     return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
@@ -899,14 +908,15 @@ const AppointmentModal = (() => {
     const waBtn = document.getElementById('modalBtnWhatsapp');
     const waLabel = document.getElementById('modalBtnWhatsappLabel');
     if (waBtn && waLabel) {
-      waBtn.href = buildWhatsAppLink(agendamento);
-      if (agendamento.status === 'confirmado') {
-        waLabel.textContent = 'Enviar Lembrete via WhatsApp';
-      } else if (agendamento.status === 'cancelado' || agendamento.status === 'realizado') {
+      if (agendamento.status === 'cancelado' || agendamento.status === 'realizado') {
         waBtn.style.display = 'none';
       } else {
         waBtn.style.display = '';
-        waLabel.textContent = 'Confirmar via WhatsApp';
+        waLabel.textContent = agendamento.status === 'confirmado'
+          ? 'Enviar Lembrete via WhatsApp'
+          : 'Confirmar via WhatsApp';
+        // resolve o link async e aplica quando pronto
+        buildWhatsAppLink(agendamento).then(link => { waBtn.href = link; });
       }
     }
   }
@@ -1448,16 +1458,34 @@ const KanbanHoverCard = (() => {
     currentCardEl = null;
   }
 
-  function buildWhatsAppLink(appt) {
+  async function buildWhatsAppLink(appt) {
     const phone = (appt.pacienteTelefone || '').replace(/\D/g, '').replace(/^0/, '');
     const num = phone.startsWith('55') ? phone : `55${phone}`;
     const dataLabel = new Date(`${appt.data}T00:00:00`).toLocaleDateString('pt-BR', {
       weekday: 'long', day: 'numeric', month: 'long',
     });
     const isConfirmado = appt.status === 'confirmado';
-    const msg = isConfirmado
-      ? `Olá, ${appt.paciente.split(' ')[0]}! 👋 Lembrando do seu exame:\n\n📍 *Local:* ${appt.radiologiaNome}\n📅 *Data:* ${dataLabel}\n⏰ *Horário:* ${appt.horarioInicio}\n🩺 *Exame:* ${appt.tipoExame}\n\nPor favor, chegue 10 minutos antes. Até lá! 😊`
-      : `Olá, ${appt.paciente.split(' ')[0]}! 😊 Confirmando seu agendamento na *${appt.radiologiaNome}*.\n\n📅 *Data:* ${dataLabel}\n⏰ *Horário:* ${appt.horarioInicio}\n🩺 *Exame:* ${appt.tipoExame}\n\nPor favor, confirme sua presença. Qualquer dúvida, é só chamar! 🙏`;
+
+    let msg;
+    if (isConfirmado) {
+      msg = `Olá, ${appt.paciente.split(' ')[0]}! 👋 Lembrando do seu exame:\n\n📍 *Local:* ${appt.radiologiaNome}\n📅 *Data:* ${dataLabel}\n⏰ *Horário:* ${appt.horarioInicio}\n🩺 *Exame:* ${appt.tipoExame}\n\nPor favor, chegue 10 minutos antes. Até lá! 😊`;
+    } else {
+      let linkConfirmacao = '';
+      try {
+        const res = await Api.getLinkConfirmacaoAgendamento(appt.id);
+        linkConfirmacao = res?.data?.link || res?.link || '';
+      } catch (_) { /* segue sem link se a API falhar */ }
+
+      msg =
+        `Olá, ${appt.paciente.split(' ')[0]}! 😊 Confirmando seu agendamento na *${appt.radiologiaNome}*.\n\n` +
+        `📅 *Data:* ${dataLabel}\n` +
+        `⏰ *Horário:* ${appt.horarioInicio}\n` +
+        `🩺 *Exame:* ${appt.tipoExame}\n\n` +
+        (linkConfirmacao
+          ? `Para confirmar sua presença, acesse o link abaixo:\n${linkConfirmacao}\n\n`
+          : '') +
+        `Qualquer dúvida, é só chamar! 🙏`;
+    }
     return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
   }
 
@@ -1470,11 +1498,11 @@ const KanbanHoverCard = (() => {
 
     const showWa = appt.status === 'agendado' || appt.status === 'confirmado';
     const waLabel = appt.status === 'confirmado' ? 'Enviar Lembrete via WhatsApp' : 'Confirmar via WhatsApp';
-    const waLink = buildWhatsAppLink(appt);
 
+    // Renderiza o card com href vazio; resolve o link async depois
     const waHTML = showWa ? `
-      <a href="${waLink}" target="_blank" rel="noopener noreferrer"
-         class="kanban-hover-card__whatsapp">
+      <a href="#" target="_blank" rel="noopener noreferrer"
+         class="kanban-hover-card__whatsapp" data-wa-pending="${appt.id}">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
           <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -2877,18 +2905,28 @@ const PendingList = (() => {
   /* ------------------------------------------------------------------
      Mensagem de confirmação (status === 'agendado')
   ------------------------------------------------------------------ */
-  function buildWhatsAppLinkConfirmacao(appt) {
+  async function buildWhatsAppLinkConfirmacao(appt) {
     const phone = (appt.pacienteTelefone || '').replace(/\D/g, '').replace(/^0/, '');
     const num = phone.startsWith('55') ? phone : `55${phone}`;
     const dataLabel = new Date(`${appt.data}T00:00:00`).toLocaleDateString('pt-BR', {
       weekday: 'long', day: 'numeric', month: 'long',
     });
+
+    let linkConfirmacao = '';
+    try {
+      const res = await Api.getLinkConfirmacaoAgendamento(appt.id);
+      linkConfirmacao = res?.data?.link || res?.link || '';
+    } catch (_) { /* segue sem link se a API falhar */ }
+
     const msg = encodeURIComponent(
       `Olá, ${appt.paciente.split(' ')[0]}! 😊 Passando para confirmar seu agendamento na *${appt.radiologiaNome}*.\n\n` +
       `📅 *Data:* ${dataLabel}\n` +
       `⏰ *Horário:* ${appt.horarioInicio}\n` +
       `🩺 *Exame:* ${appt.tipoExame}\n\n` +
-      `Por favor, confirme sua presença respondendo esta mensagem. Qualquer dúvida, estamos à disposição! 🙏`
+      (linkConfirmacao
+        ? `Para confirmar sua presença, acesse o link abaixo:\n${linkConfirmacao}\n\n`
+        : '') +
+      `Qualquer dúvida, estamos à disposição! 🙏`
     );
     return `https://wa.me/${num}?text=${msg}`;
   }
@@ -2965,10 +3003,11 @@ const PendingList = (() => {
     item.className = 'pending-item';
 
     const isConfirmado = appt.status === 'confirmado';
-    const waLink = isConfirmado
-      ? buildWhatsAppLinkLembrete(appt)
-      : buildWhatsAppLinkConfirmacao(appt);
+    // Link resolvido de forma assíncrona após o item ser inserido no DOM
     const waLabel = isConfirmado ? 'Lembrete' : 'WhatsApp';
+    const waLinkSync = isConfirmado
+      ? buildWhatsAppLinkLembrete(appt)   // lembrete não é async, mantém síncrono
+      : '#';                              // confirmação será resolvida abaixo
     const waTitle = isConfirmado
       ? 'Enviar lembrete pelo WhatsApp'
       : 'Enviar confirmação pelo WhatsApp';
@@ -3059,6 +3098,12 @@ const PendingList = (() => {
 
     const frag = document.createDocumentFragment();
     pendentes.forEach(appt => frag.appendChild(buildItem(appt)));
+    if (!isConfirmado) {
+      buildWhatsAppLinkConfirmacao(appt).then(link => {
+        const anchor = frag.querySelector(`[data-wa-id="${appt.id}"]`);
+        if (anchor) anchor.href = link;
+      });
+    }
     listEl.appendChild(frag);
   }
 

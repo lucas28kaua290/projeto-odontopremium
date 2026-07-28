@@ -199,7 +199,7 @@ def gerar_token_confirmacao(agendamento_id: int, exp_hours: int = 72) -> str:
 
 def gerar_link_confirmacao(agendamento_id: int) -> str:
     token = gerar_token_confirmacao(agendamento_id)
-    return f"{APP_BASE_URL}/v1/agendamentos/confirmar/{token}"
+    return f"{APP_BASE_URL}/confirmar.html?t={token}"
 
 
 def validate_cpf(cpf: str) -> bool:
@@ -1254,21 +1254,108 @@ def gerar_link_confirmacao_agendamento(agendamento_id):
     return ok({"link": gerar_link_confirmacao(agendamento_id)})
 
 
-@app.route("/v1/agendamentos/confirmar/<token>", methods=["GET"])
-def confirmar_agendamento_via_link(token):
+def _decode_token_confirmacao(token: str):
+    """Helper: decodifica e valida token de confirmação. Lança exceções do jwt."""
+    payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGO])
+    if payload.get("purpose") != "confirmar_agendamento":
+        raise jwt.InvalidTokenError("purpose inválido")
+    return payload
+
+
+@app.route("/v1/agendamentos/confirmar/validar-cpf", methods=["POST"])
+def confirmar_validar_cpf():
     """
-    Rota PÚBLICA (sem autenticação) acessada pelo paciente ao clicar no link
-    de confirmação enviado por WhatsApp. Valida o token, e se o agendamento
-    ainda estiver com status 'agendado', atualiza para 'confirmado'.
+    Rota PÚBLICA — Etapa 1 do fluxo de confirmação pelo paciente.
+    Valida o token JWT e confere se o CPF informado corresponde ao paciente
+    do agendamento. Retorna os dados do agendamento (sem dados sensíveis extras)
+    para exibição na página de confirmação.
     """
+    data  = request.get_json(silent=True) or {}
+    token = (data.get("token") or "").strip()
+    cpf   = re.sub(r"\D", "", data.get("cpf") or "")
+
+    if not token or not cpf:
+        return err("Token e CPF são obrigatórios.", 400)
+
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGO])
+        payload = _decode_token_confirmacao(token)
     except jwt.ExpiredSignatureError:
-        return err("Este link de confirmação expirou. Entre em contato com a clínica.", 400)
+        return err("Este link de confirmação expirou. Solicite um novo à clínica.", 410)
     except jwt.InvalidTokenError:
         return err("Link de confirmação inválido.", 400)
 
-    if payload.get("purpose") != "confirmar_agendamento":
+    agendamento_id = payload.get("agendamentoId")
+    ag = query(
+        """
+        SELECT
+            a.id, a.status,
+            p.nome              AS paciente,
+            p.cpf               AS pacienteCpf,
+            DATE_FORMAT(p.nascimento, '%Y-%m-%d') AS pacienteNascimento,
+            r.nome              AS radiologiaNome,
+            c.nome              AS clinica,
+            te.label            AS tipoExame,
+            DATE_FORMAT(a.data_agendamento, '%Y-%m-%d')  AS data,
+            TIME_FORMAT(a.hora_agendamento, '%H:%i')     AS horarioInicio,
+            TIME_FORMAT(
+                ADDTIME(a.hora_agendamento, SEC_TO_TIME(te.duracao_min * 60)),
+                '%H:%i'
+            )                                             AS horarioFim,
+            te.duracao_min      AS duracaoMin
+        FROM agendamentos a
+        JOIN pacientes   p  ON p.id  = a.paciente_id
+        JOIN radiologias r  ON r.id  = a.radiologia_id
+        LEFT JOIN clinicas  c  ON c.id  = a.clinica_id
+        JOIN tipos_exame te  ON te.id = a.tipo_exame_id
+        WHERE a.id = %s
+        """,
+        (agendamento_id,), fetch="one"
+    )
+
+    if not ag:
+        return not_found("Agendamento não encontrado.")
+
+    # Verifica CPF (compara apenas dígitos)
+    cpf_cadastrado = re.sub(r"\D", "", ag["pacienteCpf"] or "")
+    if cpf != cpf_cadastrado:
+        return err("CPF não confere com o agendamento.", 400)
+
+    if ag["status"] == "confirmado":
+        return err("Este agendamento já foi confirmado anteriormente.", 410)
+
+    if ag["status"] != "agendado":
+        return err(f"Este agendamento está com status '{ag['status']}' e não pode ser confirmado.", 410)
+
+    return ok({
+        "paciente":          ag["paciente"],
+        "pacienteNascimento": ag["pacienteNascimento"],
+        "radiologiaNome":    ag["radiologiaNome"],
+        "clinica":           ag["clinica"],
+        "tipoExame":         ag["tipoExame"],
+        "data":              ag["data"],
+        "horarioInicio":     ag["horarioInicio"],
+        "horarioFim":        ag["horarioFim"],
+        "duracaoMin":        ag["duracaoMin"],
+    })
+
+
+@app.route("/v1/agendamentos/confirmar", methods=["POST"])
+def confirmar_agendamento_via_link():
+    """
+    Rota PÚBLICA — Etapa 2 do fluxo de confirmação pelo paciente.
+    Recebe o token e atualiza o status do agendamento para 'confirmado'.
+    """
+    data  = request.get_json(silent=True) or {}
+    token = (data.get("token") or "").strip()
+
+    if not token:
+        return err("Token é obrigatório.", 400)
+
+    try:
+        payload = _decode_token_confirmacao(token)
+    except jwt.ExpiredSignatureError:
+        return err("Este link de confirmação expirou. Solicite um novo à clínica.", 410)
+    except jwt.InvalidTokenError:
         return err("Link de confirmação inválido.", 400)
 
     agendamento_id = payload.get("agendamentoId")

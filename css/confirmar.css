@@ -1,0 +1,375 @@
+/* =============================================================
+   confirmar.css — Página de Confirmação de Agendamento IORD
+   Arquivo vai em: css/confirmar.css
+============================================================= */
+
+/* --- Tokens próprios da página (sem depender de styles.css) --- */
+:root {
+    --cfm-primary:        #018093;
+    --cfm-primary-dark:   #016b7a;
+    --cfm-primary-light:  #33a8b8;
+    --cfm-primary-50:     #e6f5f7;
+    --cfm-success:        #16a34a;
+    --cfm-success-bg:     #dcfce7;
+    --cfm-error:          #dc2626;
+    --cfm-error-bg:       #fee2e2;
+    --cfm-text:           #111827;
+    --cfm-text-subtle:    #6b7280;
+    --cfm-text-muted:     #9ca3af;
+    --cfm-bg:             #f0f4f5;
+    --cfm-surface:        #ffffff;
+    --cfm-border:         #e5e7eb;
+    --cfm-border-strong:  #d1d5db;
+    --cfm-radius-sm:      6px;
+    --cfm-radius-md:      10px;
+    --cfm-radius-lg:      16px;
+    --cfm-radius-xl:      22px;
+    --cfm-shadow-sm:      0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+    --cfm-shadow-md:      0 4px 16px rgba(1,128,147,.10), 0 1px 4px rgba(0,0,0,.06);
+    --cfm-shadow-focus:   0 0 0 3px rgba(1,128,147,.20);
+    --cfm-font:           'Inter', system-ui, sans-serif;
+    --cfm-transition:     180ms ease;
+}
+
+/* --- Reset mínimo --- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+    font-family: var(--cfm-font);
+    background: var(--cfm-bg);
+    color: var(--cfm-text);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* --- Layout raiz --- */
+.cfm-root {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+}
+
+/* --- Cabeçalho --- */
+.cfm-header {
+    display: flex;
+    align-items: center;
+    padding: 18px 24px;
+    background: var(--cfm-surface);
+    border-bottom: 1px solid var(--cfm-border);
+}
+
+.cfm-header__logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+}
+
+.cfm-header__brand {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -.4px;
+    color: var(--cfm-primary);
+}
+
+/* --- Main --- */
+.cfm-main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 16px;
+}
+
+/* --- Card central --- */
+.cfm-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--cfm-surface);
+    border: 1px solid var(--cfm-border);
+    border-radius: var(--cfm-radius-xl);
+    box-shadow: var(--cfm-shadow-md);
+    padding: 36px 32px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0;
+    animation: cfmFadeIn 260ms ease both;
+}
+
+.cfm-card--hidden {
+    display: none !important;
+}
+
+@keyframes cfmFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Ícone do card --- */
+.cfm-card__icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-shrink: 0;
+}
+
+.cfm-card__icon--lock {
+    background: var(--cfm-primary-50);
+    color: var(--cfm-primary);
+}
+
+.cfm-card__icon--calendar {
+    background: var(--cfm-primary-50);
+    color: var(--cfm-primary);
+}
+
+.cfm-card__icon--success {
+    background: var(--cfm-success-bg);
+    color: var(--cfm-success);
+}
+
+.cfm-card__icon--error {
+    background: var(--cfm-error-bg);
+    color: var(--cfm-error);
+}
+
+/* --- Textos do card --- */
+.cfm-card__title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--cfm-text);
+    letter-spacing: -.3px;
+    line-height: 1.25;
+    margin-bottom: 8px;
+}
+
+.cfm-card__desc {
+    font-size: 14px;
+    color: var(--cfm-text-subtle);
+    line-height: 1.6;
+    margin-bottom: 28px;
+}
+
+/* --- Campo CPF --- */
+.cfm-field {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.cfm-field__label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cfm-text);
+}
+
+.cfm-field__input {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--cfm-border-strong);
+    border-radius: var(--cfm-radius-md);
+    font-size: 16px;
+    font-family: var(--cfm-font);
+    color: var(--cfm-text);
+    background: #fff;
+    transition: border-color var(--cfm-transition), box-shadow var(--cfm-transition);
+    outline: none;
+    letter-spacing: .5px;
+}
+
+.cfm-field__input:focus {
+    border-color: var(--cfm-primary);
+    box-shadow: var(--cfm-shadow-focus);
+}
+
+.cfm-field__input--error {
+    border-color: var(--cfm-error);
+}
+
+.cfm-field__input--error:focus {
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, .15);
+}
+
+.cfm-field__error {
+    font-size: 12px;
+    color: var(--cfm-error);
+    min-height: 16px;
+    font-weight: 500;
+}
+
+/* --- Botões --- */
+.cfm-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 13px 20px;
+    border-radius: var(--cfm-radius-md);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: var(--cfm-font);
+    cursor: pointer;
+    border: none;
+    transition: background var(--cfm-transition), opacity var(--cfm-transition), transform 80ms ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.cfm-btn:active { transform: scale(.985); }
+
+.cfm-btn--primary {
+    background: var(--cfm-primary);
+    color: #fff;
+    margin-bottom: 10px;
+}
+
+.cfm-btn--primary:hover:not(:disabled) {
+    background: var(--cfm-primary-dark);
+}
+
+.cfm-btn--primary:disabled {
+    opacity: .65;
+    cursor: not-allowed;
+}
+
+.cfm-btn--ghost {
+    background: transparent;
+    color: var(--cfm-text-subtle);
+    border: 1.5px solid var(--cfm-border-strong);
+}
+
+.cfm-btn--ghost:hover {
+    background: var(--cfm-bg);
+}
+
+/* Spinner inline no botão */
+.cfm-btn__spinner {
+    display: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,.35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: cfmSpin 600ms linear infinite;
+    flex-shrink: 0;
+}
+
+.cfm-btn--loading .cfm-btn__text { opacity: 0; }
+.cfm-btn--loading .cfm-btn__spinner { display: block; }
+
+@keyframes cfmSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* --- Lista de informações do agendamento --- */
+.cfm-info-list {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid var(--cfm-border);
+    border-radius: var(--cfm-radius-lg);
+    overflow: hidden;
+    margin-bottom: 24px;
+    text-align: left;
+}
+
+.cfm-info-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--cfm-border);
+}
+
+.cfm-info-row:last-child {
+    border-bottom: none;
+}
+
+.cfm-info-row__icon {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--cfm-radius-sm);
+    background: var(--cfm-primary-50);
+    color: var(--cfm-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.cfm-info-row__body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.cfm-info-row__label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--cfm-text-muted);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+.cfm-info-row__value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--cfm-text);
+    line-height: 1.4;
+}
+
+.cfm-info-row__sub {
+    font-size: 12px;
+    color: var(--cfm-text-subtle);
+    font-weight: 400;
+}
+
+/* --- Pill de sucesso --- */
+.cfm-success-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 18px;
+    background: var(--cfm-success-bg);
+    color: var(--cfm-success);
+    border-radius: 100px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+/* --- Rodapé --- */
+.cfm-footer {
+    padding: 18px 24px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--cfm-text-muted);
+    border-top: 1px solid var(--cfm-border);
+    background: var(--cfm-surface);
+}
+
+/* --- Responsivo --- */
+@media (max-width: 480px) {
+    .cfm-card {
+        padding: 28px 20px 24px;
+        border-radius: var(--cfm-radius-lg);
+    }
+    .cfm-main {
+        padding: 24px 12px;
+        align-items: flex-start;
+    }
+}

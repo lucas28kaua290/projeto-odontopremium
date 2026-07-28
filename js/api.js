@@ -1002,6 +1002,31 @@ const Api = (() => {
         const data = await request(`/agendamentos/${agendamentoId}/link-confirmacao`);
         return { data };
     }
+
+    /**
+     * [PÚBLICO] Etapa 1 — valida CPF e retorna dados do agendamento.
+     * POST /agendamentos/confirmar/validar-cpf
+     * @param {string} token  JWT do link de confirmação
+     * @param {string} cpf    somente dígitos
+     */
+    async function validarCpfConfirmacao(token, cpf) {
+        return request('/agendamentos/confirmar/validar-cpf', {
+            method: 'POST',
+            body: JSON.stringify({ token, cpf }),
+        });
+    }
+
+    /**
+     * [PÚBLICO] Etapa 2 — confirma o agendamento.
+     * POST /agendamentos/confirmar
+     * @param {string} token  JWT do link de confirmação
+     */
+    async function confirmarAgendamento(token) {
+        return request('/agendamentos/confirmar', {
+            method: 'POST',
+            body: JSON.stringify({ token }),
+        });
+    }
     /**
      * Retorna as notas/observações de um paciente ordenadas por data desc.
      * Alimenta a lista #perfil-notas.
@@ -2203,6 +2228,8 @@ const Api = (() => {
         // 16. Outros
         deleteAgendamento,
         getLinkConfirmacaoAgendamento,
+        validarCpfConfirmacao,
+        confirmarAgendamento,
     };
 
 })();
