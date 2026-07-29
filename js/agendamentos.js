@@ -634,44 +634,35 @@ const OccupancyChart = (() => {
       });
   }
 
-  function getOcupacaoInterna(radiologiaId, state) {
-    const dias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+  function getOcupacaoInterna(radiologiaId) {
     const SLOTS_POR_DIA = 23; // 07:00–18:00 de 30 em 30 min
-    const { start, end } = DateUtils.getPeriodRange(state || AppState.getState());
 
-    // Conta quantas vezes cada dia da semana aparece no período
-    // para normalizar agendamentos acumulados de várias semanas
-    const diasNoPeriodo = Math.max(1, Math.round((end - start) / 86400000) + 1);
-    const ocorrenciasPorDia = [0, 0, 0, 0, 0, 0, 0];
-    for (let i = 0; i < diasNoPeriodo; i++) {
-      ocorrenciasPorDia[DateUtils.addDays(start, i).getDay()]++;
-    }
+    // Sempre semana atual — ignora filtro de período global
+    const hoje = DateUtils.startOfDay(new Date());
+    const inicioSemana = DateUtils.startOfWeek(hoje); // domingo
+
+    // Seg(1) a Sex(5)
+    const diasUteis = [1, 2, 3, 4, 5].map(offset => {
+      const data = DateUtils.addDays(inicioSemana, offset);
+      return {
+        nome: ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'][offset - 1],
+        iso: AppCache.toISODate(data),
+      };
+    });
 
     const ags = DataStore.getAgendamentos({ radiologiaId })
-      .filter(a =>
-        DateUtils.isWithinRange(a.data, start, end) &&
-        a.status !== 'cancelado' &&
-        a.status !== 'faltou'
-      );
-    const porDia = [0, 0, 0, 0, 0, 0, 0];
-    ags.forEach(a => { porDia[new Date(`${a.data}T00:00:00`).getDay()]++; });
+      .filter(a => a.status !== 'cancelado' && a.status !== 'faltou');
 
-    return dias
-      .map((nome, i) => {
-        // Capacidade = slots por dia × ocorrências do dia no período
-        // Agendamentos também são a soma de todas as ocorrências → divisão correta
-        const ocorrencias = ocorrenciasPorDia[i] || 1;
-        const capacidade = ocorrencias * SLOTS_POR_DIA;
-        // Média de ocupação por ocorrência (o que o usuário espera ver no gráfico)
-        const mediaAgendamentos = porDia[i] / ocorrencias;
-        return {
-          nome,
-          ocupacao: Math.min(100, Math.round((mediaAgendamentos / SLOTS_POR_DIA) * 100)),
-          quantidade: Math.round(mediaAgendamentos), // média por dia da semana
-          slots: SLOTS_POR_DIA,                      // sempre 23 — capacidade de 1 dia
-        };
-      })
-      .filter(d => d.nome !== 'Domingo');
+    return diasUteis.map(({ nome, iso }) => {
+      const quantidade = ags.filter(a => a.data === iso).length;
+      return {
+        nome,
+        iso,
+        quantidade,
+        slots: SLOTS_POR_DIA,
+        ocupacao: Math.min(100, Math.round((quantidade / SLOTS_POR_DIA) * 100)),
+      };
+    });
   }
 
   function renderAllRadiologies(state) {
@@ -799,10 +790,10 @@ const OccupancyChart = (() => {
                   <div class="cjs-tooltip__metrics">
                     <div class="cjs-tooltip__metric">
                       <span class="cjs-tooltip__metric-label">Agendamentos</span>
-                      <span class="cjs-tooltip__metric-value">${Kpis.formatNumber(item.quantidade)}</span>
+                      <span class="cjs-tooltip__metric-value">${Kpis.formatNumber(item.quantidade)} / ${item.slots}</span>
                     </div>
                     <div class="cjs-tooltip__metric">
-                      <span class="cjs-tooltip__metric-label">Slots disponíveis</span>
+                      <span class="cjs-tooltip__metric-label">Slots livres</span>
                       <span class="cjs-tooltip__metric-value">${Math.max(0, item.slots - item.quantidade)}</span>
                     </div>
                   </div>
