@@ -868,12 +868,12 @@ const AppointmentModal = (() => {
     let msg;
     if (agendamento.status === 'confirmado') {
       msg =
-        `Olá, ${agendamento.paciente.split(' ')[0]}! 👋 Lembrando do seu exame agendado:\n\n` +
-        `📍 *Local:* ${agendamento.radiologiaNome}\n` +
-        `📅 *Data:* ${dataLabel}\n` +
-        `⏰ *Horário:* ${agendamento.horarioInicio}\n` +
-        `🩺 *Exame:* ${agendamento.tipoExame}\n\n` +
-        `Por favor, chegue com 10 minutos de antecedência. Em caso de imprevisto, entre em contato para reagendarmos. Até lá! 😊`;
+        `Olá, ${agendamento.paciente.split(' ')[0]}! Lembrando do seu exame agendado:\n\n` +
+        `*Local:* ${agendamento.radiologiaNome}\n` +
+        `*Data:* ${dataLabel}\n` +
+        `*Horário:* ${agendamento.horarioInicio}\n` +
+        `*Exame:* ${agendamento.tipoExame}\n\n` +
+        `Por favor, chegue com 10 minutos de antecedência. Em caso de imprevisto, entre em contato para reagendarmos. Até lá!`;
     } else {
       let linkConfirmacao = '';
       try {
@@ -882,14 +882,14 @@ const AppointmentModal = (() => {
       } catch (_) { /* segue sem link se a API falhar */ }
 
       msg =
-        `Olá, ${agendamento.paciente.split(' ')[0]}! 😊 Passando para confirmar seu agendamento na *${agendamento.radiologiaNome}*.\n\n` +
-        `📅 *Data:* ${dataLabel}\n` +
-        `⏰ *Horário:* ${agendamento.horarioInicio}\n` +
-        `🩺 *Exame:* ${agendamento.tipoExame}\n\n` +
+        `Olá, ${agendamento.paciente.split(' ')[0]}! Passando para confirmar seu agendamento na *${agendamento.radiologiaNome}*.\n\n` +
+        `*Data:* ${dataLabel}\n` +
+        `*Horário:* ${agendamento.horarioInicio}\n` +
+        `*Exame:* ${agendamento.tipoExame}\n\n` +
         (linkConfirmacao
           ? `Para confirmar sua presença, acesse o link abaixo:\n${linkConfirmacao}\n\n`
           : '') +
-        `Qualquer dúvida, estamos à disposição! 🙏`;
+        `Qualquer dúvida, estamos à disposição!`;
     }
 
     return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
@@ -1497,7 +1497,7 @@ const KanbanHoverCard = (() => {
 
     let msg;
     if (isConfirmado) {
-      msg = `Olá, ${appt.paciente.split(' ')[0]}! 👋 Lembrando do seu exame:\n\n📍 *Local:* ${appt.radiologiaNome}\n📅 *Data:* ${dataLabel}\n⏰ *Horário:* ${appt.horarioInicio}\n🩺 *Exame:* ${appt.tipoExame}\n\nPor favor, chegue 10 minutos antes. Até lá! 😊`;
+      msg = `Olá, ${appt.paciente.split(' ')[0]}! Lembrando do seu exame:\n\n*Local:* ${appt.radiologiaNome}\n*Data:* ${dataLabel}\n*Horário:* ${appt.horarioInicio}\n*Exame:* ${appt.tipoExame}\n\nPor favor, chegue 10 minutos antes. Ate la!`;
     } else {
       let linkConfirmacao = '';
       try {
@@ -1506,14 +1506,14 @@ const KanbanHoverCard = (() => {
       } catch (_) { /* segue sem link se a API falhar */ }
 
       msg =
-        `Olá, ${appt.paciente.split(' ')[0]}! 😊 Confirmando seu agendamento na *${appt.radiologiaNome}*.\n\n` +
-        `📅 *Data:* ${dataLabel}\n` +
-        `⏰ *Horário:* ${appt.horarioInicio}\n` +
-        `🩺 *Exame:* ${appt.tipoExame}\n\n` +
+        `Olá, ${appt.paciente.split(' ')[0]}! Confirmando seu agendamento na *${appt.radiologiaNome}*.\n\n` +
+        `*Data:* ${dataLabel}\n` +
+        `*Horário:* ${appt.horarioInicio}\n` +
+        `*Exame:* ${appt.tipoExame}\n\n` +
         (linkConfirmacao
           ? `Para confirmar sua presença, acesse o link abaixo:\n${linkConfirmacao}\n\n`
           : '') +
-        `Qualquer dúvida, é só chamar! 🙏`;
+        `Qualquer dúvida, é só chamar!`;
     }
     return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
   }
@@ -3195,14 +3195,14 @@ const PendingList = (() => {
     } catch (_) { /* segue sem link se a API falhar */ }
 
     const msg = encodeURIComponent(
-      `Olá, ${appt.paciente.split(' ')[0]}! 😊 Passando para confirmar seu agendamento na *${appt.radiologiaNome}*.\n\n` +
-      `📅 *Data:* ${dataLabel}\n` +
-      `⏰ *Horário:* ${appt.horarioInicio}\n` +
-      `🩺 *Exame:* ${appt.tipoExame}\n\n` +
+      `Olá, ${appt.paciente.split(' ')[0]}! Passando para confirmar seu agendamento na *${appt.radiologiaNome}*.\n\n` +
+      `*Data:* ${dataLabel}\n` +
+      `*Horário:* ${appt.horarioInicio}\n` +
+      `*Exame:* ${appt.tipoExame}\n\n` +
       (linkConfirmacao
         ? `Para confirmar sua presença, acesse o link abaixo:\n${linkConfirmacao}\n\n`
         : '') +
-      `Qualquer dúvida, estamos à disposição! 🙏`
+      `Qualquer dúvida, estamos à disposição!`
     );
     return `https://wa.me/${num}?text=${msg}`;
   }
@@ -3217,12 +3217,12 @@ const PendingList = (() => {
       weekday: 'long', day: 'numeric', month: 'long',
     });
     const msg = encodeURIComponent(
-      `Olá, ${appt.paciente.split(' ')[0]}! 👋 Lembrando do seu exame agendado:\n\n` +
-      `📍 *Local:* ${appt.radiologiaNome}\n` +
-      `📅 *Data:* ${dataLabel}\n` +
-      `⏰ *Horário:* ${appt.horarioInicio}\n` +
-      `🩺 *Exame:* ${appt.tipoExame}\n\n` +
-      `Por favor, chegue com 10 minutos de antecedência. Em caso de imprevisto, entre em contato para reagendarmos. Até lá! 😊`
+      `Olá, ${appt.paciente.split(' ')[0]}! Lembrando do seu exame agendado:\n\n` +
+      `*Local:* ${appt.radiologiaNome}\n` +
+      `*Data:* ${dataLabel}\n` +
+      `*Horário:* ${appt.horarioInicio}\n` +
+      `*Exame:* ${appt.tipoExame}\n\n` +
+      `Por favor, chegue com 10 minutos de antecedência. Em caso de imprevisto, entre em contato para reagendarmos. Até lá!`
     );
     return `https://wa.me/${num}?text=${msg}`;
   }
