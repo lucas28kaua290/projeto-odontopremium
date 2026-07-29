@@ -371,7 +371,7 @@ const Kpis = (() => {
     // Taxa de ocupação: agendamentos ativos / capacidade do período
     const { start: ocStart, end: ocEnd } = DateUtils.getPeriodRange(state);
     const diasNoPeriodo = Math.max(1, Math.round((ocEnd - ocStart) / 86400000) + 1);
-    const SLOTS_POR_DIA = 12;
+    const SLOTS_POR_DIA = 23;
 
     const todasRads = DataStore.getRadiologias().filter(r => r.id !== 'all');
     const radsParaOcupacao = state.radiologiaSelecionada === 'all'
@@ -636,26 +636,46 @@ const OccupancyChart = (() => {
 
   function getOcupacaoInterna(radiologiaId, state) {
     const dias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    const SLOTS_POR_DIA = 23; // 07:00–18:00 de 30 em 30 min (espelha allSlots())
     const { start, end } = DateUtils.getPeriodRange(state || AppState.getState());
+
+    // Conta quantas semanas (ocorrências de cada dia da semana) existem no período
+    // para calcular a capacidade proporcional de cada dia
+    const diasNoPeriodo = Math.max(1, Math.round((end - start) / 86400000) + 1);
+    const ocorrenciasPorDia = [0, 0, 0, 0, 0, 0, 0];
+    for (let i = 0; i < diasNoPeriodo; i++) {
+      const d = DateUtils.addDays(start, i);
+      ocorrenciasPorDia[d.getDay()]++;
+    }
+
     const ags = DataStore.getAgendamentos({ radiologiaId })
-      .filter(a => DateUtils.isWithinRange(a.data, start, end));
+      .filter(a =>
+        DateUtils.isWithinRange(a.data, start, end) &&
+        a.status !== 'cancelado' &&
+        a.status !== 'faltou'
+      );
     const porDia = [0, 0, 0, 0, 0, 0, 0];
     ags.forEach(a => { porDia[new Date(`${a.data}T00:00:00`).getDay()]++; });
-    const max = Math.max(...porDia, 1);
+
     return dias
-      .map((nome, i) => ({
-        nome,
-        ocupacao: Math.round((porDia[i] / max) * 100),
-        quantidade: porDia[i],
-      }))
+      .map((nome, i) => {
+        const ocorrencias = ocorrenciasPorDia[i] || 1;
+        const capacidade = ocorrencias * SLOTS_POR_DIA;
+        return {
+          nome,
+          ocupacao: Math.min(100, Math.round((porDia[i] / capacidade) * 100)),
+          quantidade: porDia[i],
+          slots: capacidade,
+        };
+      })
       .filter(d => d.nome !== 'Domingo');
   }
 
   function renderAllRadiologies(state) {
     // Dupla proteção: não-admin não deve chegar aqui, mas se chegar, redireciona
     if (!IORDPermissions.isAdmin()) {
-        renderInternalOccupancy(state);
-        return;
+      renderInternalOccupancy(state);
+      return;
     }
     const ctx = document.getElementById('occupancyChart');
     const data = getOcupacaoGeral(state);
@@ -780,7 +800,7 @@ const OccupancyChart = (() => {
                     </div>
                     <div class="cjs-tooltip__metric">
                       <span class="cjs-tooltip__metric-label">Slots disponíveis</span>
-                      <span class="cjs-tooltip__metric-value">${Math.max(0, 24 - item.quantidade)}</span>
+                      <span class="cjs-tooltip__metric-value">${Math.max(0, item.slots - item.quantidade)}</span>
                     </div>
                   </div>
                   <div class="cjs-tooltip__mini-bar-track">
@@ -2984,8 +3004,29 @@ const NewAppointmentModal = (() => {
   function _populateRadiologiaSelect() {
     const sel = document.getElementById('newRadiologia');
     if (!sel) return;
+
+    const isAdmin = IORDPermissions.isAdmin();
+    const radId = IORDPermissions.getRadiologiaId(); // id da radiologia do usuário
+
+    if (!isAdmin) {
+      // Não-admin: mostra só a radiologia vinculada, campo bloqueado
+      const rad = DataStore.getRadiologias().find(r => r.id === radId);
+      sel.innerHTML = '';
+      const opt = document.createElement('option');
+      opt.value = radId;
+      opt.textContent = rad ? rad.nome : radId;
+      opt.selected = true;
+      sel.appendChild(opt);
+      sel.disabled = true;
+      sel.title = 'Sua radiologia é definida pelo seu perfil de acesso';
+      return;
+    }
+
+    // Admin: comportamento original
     const radiologias = DataStore.getRadiologias().filter(r => r.id !== 'all');
     sel.innerHTML = '<option value="">Selecione a radiologia...</option>';
+    sel.disabled = false;
+    sel.title = '';
     radiologias.forEach(r => {
       const opt = document.createElement('option');
       opt.value = r.id;
@@ -3019,6 +3060,8 @@ const NewAppointmentModal = (() => {
     saveBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Salvar Agendamento`;
     overlay.hidden = false;
     document.body.style.overflow = 'hidden';
+    // Não-admin: radiologia já está pré-selecionada — dispara cascata imediatamente
+    if (!IORDPermissions.isAdmin()) onRadiologiaChange();
     document.getElementById('newPaciente').focus();
   }
 
