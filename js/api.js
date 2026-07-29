@@ -1797,12 +1797,12 @@ const Api = (() => {
      * ]
      */
     async function getClinicas(filtros = {}) {
-    const qs = buildQuery({
-        busca: filtros.busca,
-        status: filtros.status,
-        // Backend filtra por radiologia; não-admin terá o valor imposto pelo token
-        radiologiaId: filtros.radiologiaId || 'all',
-    });
+        const qs = buildQuery({
+            busca: filtros.busca,
+            status: filtros.status,
+            // Backend filtra por radiologia; não-admin terá o valor imposto pelo token
+            radiologiaId: filtros.radiologiaId || 'all',
+        });
         const data = await request(`/clinicas${qs}`);
         return { data };
     }
@@ -2083,6 +2083,13 @@ const Api = (() => {
     async function postTipoExame(dados) {
         return request('/tipos-exame', {
             method: 'POST',
+            body: JSON.stringify(dados),
+        });
+    }
+
+    async function putTipoExame(examId, dados) {
+        return request(`/tipos-exame/${examId}`, {
+            method: 'PUT',
             body: JSON.stringify(dados),
         });
     }

@@ -1871,7 +1871,9 @@
             if (confirmBtn) confirmBtn.disabled = true
 
             try {
-                const saved = await Api.postTipoExame({ id: localId, label, duration, value })
+                const saved = isCreate
+                    ? await Api.postTipoExame({ label, duration, value })
+                    : await Api.putTipoExame(localId, { label, duration, value })
 
                 if (!ParametrosModule.data) ParametrosModule.data = { examDurations: [] }
                 if (!ParametrosModule.data.examDurations) ParametrosModule.data.examDurations = []
