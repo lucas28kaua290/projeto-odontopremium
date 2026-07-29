@@ -792,7 +792,7 @@
                 btn.addEventListener('click', () => ModalMedico.open('edit', btn.dataset.doctorId))
             })
             tbody.querySelectorAll('.icon-btn--delete[data-doctor-id]').forEach(btn => {
-                btn.addEventListener('click', () => this.confirmDeleteDoctor(btn.dataset.doctorId))
+                btn.addEventListener('click', () => ClinicasMedicosModule.confirmDeleteDoctor(btn.dataset.doctorId))
             })
         },
 
@@ -2212,9 +2212,9 @@
                         ${PERMISSION_MATRIX.map(row => {
             const val = row[levelKey] || 'no'
             const iconYes = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
-            const iconNo  = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>`
+            const iconNo = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>`
             const iconPartial = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>`
-            const cls  = val === 'yes' ? 'perm-check--yes' : val === 'partial' ? 'perm-check--partial' : 'perm-check--no'
+            const cls = val === 'yes' ? 'perm-check--yes' : val === 'partial' ? 'perm-check--partial' : 'perm-check--no'
             const icon = val === 'yes' ? iconYes : val === 'partial' ? iconPartial : iconNo
             return `
                                 <div class="permission-row">
