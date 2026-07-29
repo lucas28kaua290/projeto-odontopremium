@@ -798,7 +798,7 @@
 
         /** [API] DELETE /medicos/:id */
         async confirmDeleteDoctor(id) {
-            const m = State.medicos.find(m => m.id === id)
+            const m = State.medicos.find(m => String(m.id) === String(id))
             if (!m) return
 
             const confirmed = await new Promise(resolve => {

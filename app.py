@@ -833,6 +833,7 @@ def deletar_clinica(clinica_id):
     if count and count.get("c", 0) > 0:
         return err("Não é possível excluir clínica com médicos vinculados.", 409)
 
+    query("DELETE FROM clinica_radiologia WHERE clinica_id = %s", (clinica_id,), fetch="none")
     query("DELETE FROM clinicas WHERE id = %s", (clinica_id,), fetch="none")
     return ok({"sucesso": True}, "Clínica excluída com sucesso.")
 
