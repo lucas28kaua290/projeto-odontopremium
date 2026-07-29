@@ -250,9 +250,6 @@
                     companyEmail: document.getElementById('companyEmail')?.value?.trim(),
                     companySite: document.getElementById('companySite')?.value?.trim(),
                     companyAddress: document.getElementById('companyAddress')?.value?.trim(),
-                    notifications: {
-                        email: { enabled: document.getElementById('toggleEmail')?.checked ?? false },
-                    },
                     regionalization: {
                         language: document.getElementById('cfgLanguage')?.value,
                         timezone: document.getElementById('cfgTimezone')?.value,
@@ -305,12 +302,6 @@
             set('cfgCurrency', dados.regionalization?.currency)
             set('cfgDateFormat', dados.regionalization?.dateFormat)
             set('cfgTimeFormat', dados.regionalization?.timeFormat)
-
-            const toggleEmail = document.getElementById('toggleEmail')
-            if (toggleEmail) toggleEmail.checked = dados.notifications?.email?.enabled ?? true
-
-            // Dispara update visual do sub-config de e-mail
-            document.getElementById('toggleEmail')?.dispatchEvent(new Event('change'))
         },
 
         /**
@@ -371,32 +362,7 @@
             GeralModule._hideBar = hideBar
         },
 
-        /** Mostrar/ocultar sub-config das notificações conforme toggle */
-        bindToggleSubs() {
-            const pairs = [
-                { toggleId: 'toggleEmail', subId: 'emailSubConfig' },
-            ]
-            pairs.forEach(({ toggleId, subId }) => {
-                const toggle = document.getElementById(toggleId)
-                const sub = document.getElementById(subId)
-                if (!toggle || !sub) return
-
-                const update = (animate = false) => {
-                    if (toggle.checked) {
-                        sub.style.display = ''
-                        if (animate) {
-                            sub.style.animation = 'none'
-                            sub.offsetHeight // reflow
-                            sub.style.animation = ''
-                        }
-                    } else {
-                        sub.style.display = 'none'
-                    }
-                }
-                update(false)
-                toggle.addEventListener('change', () => update(true))
-            })
-        },
+        
     }
 
     /* ===========================================================
