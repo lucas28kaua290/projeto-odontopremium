@@ -1131,19 +1131,21 @@ def listar_agendamentos():
     busca         = request.args.get("busca", "")
 
     sql = """
-        SELECT
-            a.id,
-            a.paciente_id      AS pacienteId,
-            p.nome             AS paciente,
-            p.telefone         AS pacienteTelefone,
-            p.cpf              AS pacienteCpf,
-            DATE_FORMAT(p.nascimento, '%Y-%m-%d') AS pacienteNascimento,
-            CASE
-                WHEN p.nascimento IS NOT NULL
-                THEN TIMESTAMPDIFF(YEAR, p.nascimento, CURDATE())
-                ELSE NULL
-            END                AS pacienteIdade,
-            a.radiologia_id    AS radiologiaId,
+    SELECT
+        a.id,
+        a.paciente_id      AS pacienteId,
+        p.nome             AS paciente,
+        p.telefone         AS pacienteTelefone,
+        p.cpf              AS pacienteCpf,
+        p.email            AS pacienteEmail,
+        p.endereco         AS pacienteEndereco,
+        DATE_FORMAT(p.nascimento, '%Y-%m-%d') AS pacienteNascimento,
+        CASE
+            WHEN p.nascimento IS NOT NULL
+            THEN TIMESTAMPDIFF(YEAR, p.nascimento, CURDATE())
+            ELSE NULL
+        END                AS pacienteIdade,
+        a.radiologia_id    AS radiologiaId,
             r.nome             AS radiologiaNome,
             a.clinica_id       AS clinicaId,
             c.nome             AS clinica,
