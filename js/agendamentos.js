@@ -1639,8 +1639,8 @@ const KanbanHoverCard = (() => {
 
     buildContent(appt);
 
-    // Resolve o link WhatsApp async após renderizar o card
-    if (appt.status === 'agendado') {
+    // Resolve o link WhatsApp async após renderizar o card (agendado e confirmado)
+    if (appt.status === 'agendado' || appt.status === 'confirmado') {
       buildWhatsAppLink(appt).then(link => {
         const anchor = card.querySelector(`[data-wa-pending="${appt.id}"]`);
         if (anchor) anchor.href = link;
@@ -3281,9 +3281,6 @@ const PendingList = (() => {
     const isConfirmado = appt.status === 'confirmado';
     // Link resolvido de forma assíncrona após o item ser inserido no DOM
     const waLabel = isConfirmado ? 'Lembrete' : 'WhatsApp';
-    const waLinkSync = isConfirmado
-      ? buildWhatsAppLinkLembrete(appt)   // lembrete não é async, mantém síncrono
-      : '#';                              // confirmação será resolvida abaixo
     const waTitle = isConfirmado
       ? 'Enviar lembrete pelo WhatsApp'
       : 'Enviar confirmação pelo WhatsApp';
@@ -3306,9 +3303,9 @@ const PendingList = (() => {
           </svg>
           Ver
         </button>
-        <a href="${waLinkSync}" target="_blank" rel="noopener noreferrer"
+        <a href="#" target="_blank" rel="noopener noreferrer"
            class="pending-btn-whatsapp ${isConfirmado ? 'pending-btn-whatsapp--lembrete' : ''}"
-           title="${waTitle}" ${!isConfirmado ? 'data-wa-id' : ''}>
+           title="${waTitle}" data-wa-id>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
             <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"
                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -3376,11 +3373,12 @@ const PendingList = (() => {
     pendentes.forEach(appt => {
       const item = buildItem(appt);
       frag.appendChild(item);
-      if (appt.status !== 'confirmado') {
-        buildWhatsAppLinkConfirmacao(appt).then(link => {
-          const anchor = item.querySelector('[data-wa-id]');
-          if (anchor) anchor.href = link;
-        });
+      const anchor = item.querySelector('[data-wa-id]');
+      if (anchor) {
+        const linkPromise = appt.status === 'confirmado'
+          ? Promise.resolve(buildWhatsAppLinkLembrete(appt))
+          : buildWhatsAppLinkConfirmacao(appt);
+        linkPromise.then(link => { anchor.href = link; });
       }
     });
     listEl.appendChild(frag);
