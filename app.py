@@ -722,12 +722,18 @@ def listar_clinicas():
 
 
 @app.route("/v1/clinicas", methods=["POST"])
-@require_admin
+@require_auth
 def criar_clinica():
     data = request.get_json(silent=True) or {}
     missing = validate_required(data, ["name", "radiologyId"])
     if missing:
         return err("Campos obrigatórios ausentes.", 400, missing)
+
+    # Não-admin só pode criar clínica vinculada à própria radiologia
+    if g.user.get("nivel") != "admin":
+        rad_usuario = g.user.get("radiologia")
+        if data.get("radiologyId") != rad_usuario:
+            return forbidden("Você só pode cadastrar clínicas na sua radiologia.")
 
     if data.get("email") and not validate_email(data["email"]):
         return err("E-mail inválido.", 400)
@@ -756,12 +762,22 @@ def criar_clinica():
 
 
 @app.route("/v1/clinicas/<int:clinica_id>", methods=["PUT"])
-@require_admin
+@require_auth
 def atualizar_clinica(clinica_id):
     data = request.get_json(silent=True) or {}
     exists = query("SELECT id FROM clinicas WHERE id = %s", (clinica_id,), fetch="one")
     if not exists:
         return not_found("Clínica não encontrada.")
+
+    # Não-admin só pode editar clínica vinculada à própria radiologia
+    if g.user.get("nivel") != "admin":
+        rad_usuario = g.user.get("radiologia")
+        vinculo = query(
+            "SELECT 1 FROM clinica_radiologia WHERE clinica_id = %s AND radiologia_id = %s",
+            (clinica_id, rad_usuario), fetch="one"
+        )
+        if not vinculo:
+            return forbidden("Você só pode editar clínicas da sua radiologia.")
 
     if data.get("email") and not validate_email(data["email"]):
         return err("E-mail inválido.", 400)
@@ -795,11 +811,21 @@ def atualizar_clinica(clinica_id):
 
 
 @app.route("/v1/clinicas/<int:clinica_id>", methods=["DELETE"])
-@require_admin
+@require_auth
 def deletar_clinica(clinica_id):
     exists = query("SELECT id FROM clinicas WHERE id = %s", (clinica_id,), fetch="one")
     if not exists:
         return not_found("Clínica não encontrada.")
+
+    # Não-admin só pode excluir clínica vinculada à própria radiologia
+    if g.user.get("nivel") != "admin":
+        rad_usuario = g.user.get("radiologia")
+        vinculo = query(
+            "SELECT 1 FROM clinica_radiologia WHERE clinica_id = %s AND radiologia_id = %s",
+            (clinica_id, rad_usuario), fetch="one"
+        )
+        if not vinculo:
+            return forbidden("Você só pode excluir clínicas da sua radiologia.")
 
     count = query(
         "SELECT COUNT(*) AS c FROM medicos WHERE clinica_id = %s", (clinica_id,), fetch="one"
@@ -902,8 +928,19 @@ def listar_medicos():
 
 
 @app.route("/v1/medicos", methods=["POST"])
-@require_admin
+@require_auth
 def criar_medico():
+    data = request.get_json(silent=True) or {}
+
+    # Não-admin só pode criar médico em clínica da própria radiologia
+    if g.user.get("nivel") != "admin":
+        rad_usuario = g.user.get("radiologia")
+        clinica_ok = query(
+            "SELECT 1 FROM clinica_radiologia WHERE clinica_id = %s AND radiologia_id = %s",
+            (data.get("clinicId"), rad_usuario), fetch="one"
+        )
+        if not clinica_ok:
+            return forbidden("Você só pode cadastrar médicos em clínicas da sua radiologia.")
     data = request.get_json(silent=True) or {}
     missing = validate_required(data, ["name", "clinicId"])
     if missing:
@@ -927,8 +964,19 @@ def criar_medico():
 
 
 @app.route("/v1/medicos/<int:medico_id>", methods=["PUT"])
-@require_admin
+@require_auth
 def atualizar_medico(medico_id):
+    data = request.get_json(silent=True) or {}
+
+    # Não-admin só pode editar médico da própria radiologia
+    if g.user.get("nivel") != "admin":
+        rad_usuario = g.user.get("radiologia")
+        vinculo = query(
+            "SELECT 1 FROM medico_radiologia WHERE medico_id = %s AND radiologia_id = %s",
+            (medico_id, rad_usuario), fetch="one"
+        )
+        if not vinculo:
+            return forbidden("Você só pode editar médicos da sua radiologia.")
     data = request.get_json(silent=True) or {}
     exists = query("SELECT id FROM medicos WHERE id = %s", (medico_id,), fetch="one")
     if not exists:
@@ -953,8 +1001,17 @@ def atualizar_medico(medico_id):
 
 
 @app.route("/v1/medicos/<int:medico_id>", methods=["DELETE"])
-@require_admin
+@require_auth
 def deletar_medico(medico_id):
+    # Não-admin só pode excluir médico da própria radiologia
+    if g.user.get("nivel") != "admin":
+        rad_usuario = g.user.get("radiologia")
+        vinculo = query(
+            "SELECT 1 FROM medico_radiologia WHERE medico_id = %s AND radiologia_id = %s",
+            (medico_id, rad_usuario), fetch="one"
+        )
+        if not vinculo:
+            return forbidden("Você só pode excluir médicos da sua radiologia.")
     exists = query("SELECT id FROM medicos WHERE id = %s", (medico_id,), fetch="one")
     if not exists:
         return not_found("Médico não encontrado.")
