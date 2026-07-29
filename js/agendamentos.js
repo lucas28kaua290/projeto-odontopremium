@@ -917,6 +917,8 @@ const AppointmentModal = (() => {
       (agendamento.pacienteIdade !== null && agendamento.pacienteIdade !== undefined)
         ? `${agendamento.pacienteIdade} anos`
         : '—';
+    document.getElementById('modalPatientEmail').textContent = agendamento.pacienteEmail || '—';
+    document.getElementById('modalPatientEndereco').textContent = agendamento.pacienteEndereco || '—';
 
     document.getElementById('modalExamType').textContent = agendamento.tipoExame;
     document.getElementById('modalExamValue').textContent = Kpis.formatCurrency(agendamento.valor);
