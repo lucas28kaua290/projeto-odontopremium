@@ -2862,15 +2862,19 @@ def financeiro_hierarquia():
 
     for rad in radiologias:
         fat_rad = query(
-            "SELECT COALESCE(SUM(e.valor),0) AS fat, COUNT(*) AS exm "
-            "FROM exames e WHERE e.status='realizado' AND e.radiologia_id = %s "
-            "AND e.data_exame BETWEEN %s AND %s",
+            "SELECT COALESCE(SUM(te.valor_base), 0) AS fat, COUNT(*) AS exm "
+            "FROM agendamentos a "
+            "JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+            "WHERE a.status='realizado' AND a.radiologia_id = %s "
+            "AND a.data_agendamento BETWEEN %s AND %s",
             (rad["id"], di, df), fetch="one"
         )
         fat_rad_ant = query(
-            "SELECT COALESCE(SUM(e.valor),0) AS fat FROM exames e "
-            "WHERE e.status='realizado' AND e.radiologia_id = %s "
-            "AND e.data_exame BETWEEN %s AND %s",
+            "SELECT COALESCE(SUM(te.valor_base), 0) AS fat "
+            "FROM agendamentos a "
+            "JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+            "WHERE a.status='realizado' AND a.radiologia_id = %s "
+            "AND a.data_agendamento BETWEEN %s AND %s",
             (rad["id"], pi, pf), fetch="one"
         )
 
@@ -2880,12 +2884,13 @@ def financeiro_hierarquia():
         # Clínicas vinculadas a esta radiologia
         clinicas_rows = query(
             "SELECT c.id, c.nome, "
-            "       COUNT(DISTINCT e.id) AS exm, "
-            "       COALESCE(SUM(e.valor), 0) AS fat "
+            "       COUNT(DISTINCT a.id) AS exm, "
+            "       COALESCE(SUM(te.valor_base), 0) AS fat "
             "FROM clinicas c "
             "JOIN clinica_radiologia cr ON cr.clinica_id = c.id AND cr.radiologia_id = %s "
-            "LEFT JOIN exames e ON e.clinica_id = c.id AND e.radiologia_id = %s "
-            "       AND e.status = 'realizado' AND e.data_exame BETWEEN %s AND %s "
+            "LEFT JOIN agendamentos a ON a.clinica_id = c.id AND a.radiologia_id = %s "
+            "       AND a.status = 'realizado' AND a.data_agendamento BETWEEN %s AND %s "
+            "LEFT JOIN tipos_exame te ON te.id = a.tipo_exame_id "
             "GROUP BY c.id, c.nome ORDER BY fat DESC",
             (rad["id"], rad["id"], di, df)
         )
@@ -2898,12 +2903,13 @@ def financeiro_hierarquia():
             # Médicos vinculados a esta clínica dentro da radiologia
             medicos_rows = query(
                 "SELECT m.id, m.nome, "
-                "       COUNT(DISTINCT e.id) AS exm, "
-                "       COALESCE(SUM(e.valor), 0) AS fat "
+                "       COUNT(DISTINCT a.id) AS exm, "
+                "       COALESCE(SUM(te.valor_base), 0) AS fat "
                 "FROM medicos m "
-                "JOIN exames e ON e.medico_id = m.id "
-                "       AND e.clinica_id = %s AND e.radiologia_id = %s "
-                "       AND e.status = 'realizado' AND e.data_exame BETWEEN %s AND %s "
+                "JOIN agendamentos a ON a.medico_id = m.id "
+                "       AND a.clinica_id = %s AND a.radiologia_id = %s "
+                "       AND a.status = 'realizado' AND a.data_agendamento BETWEEN %s AND %s "
+                "JOIN tipos_exame te ON te.id = a.tipo_exame_id "
                 "GROUP BY m.id, m.nome ORDER BY fat DESC",
                 (cli["id"], rad["id"], di, df)
             )
@@ -2913,11 +2919,11 @@ def financeiro_hierarquia():
                 "SELECT te.label "
                 "FROM agendamentos a "
                 "JOIN tipos_exame te ON te.id = a.tipo_exame_id "
-                "JOIN clinica_radiologia cr ON cr.radiologia_id = %s "
-                "WHERE a.clinica_id = %s AND a.status = 'realizado' "
+                "WHERE a.clinica_id = %s AND a.radiologia_id = %s "
+                "       AND a.status = 'realizado' "
                 "       AND a.data_agendamento BETWEEN %s AND %s "
                 "GROUP BY te.label ORDER BY COUNT(*) DESC LIMIT 2",
-                (rad["id"], cli["id"], di, df)
+                (cli["id"], rad["id"], di, df)
             )
             cli_tags = [t["label"] for t in (tags_rows or [])]
 
