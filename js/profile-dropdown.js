@@ -16,9 +16,25 @@
         if (!userInfo || !userAvatar || !headerUser) return;
 
         // --- Dados do usuário vindos da sessão (não do DOM estático) ---
-        const sessionUser = (window.IORDPermissions && IORDPermissions.getUser)
-            ? IORDPermissions.getUser()
-            : {};
+        function getSessionUser() {
+            // 1. Tenta IORDPermissions se disponível
+            if (window.IORDPermissions && typeof IORDPermissions.getUser === 'function') {
+                const u = IORDPermissions.getUser();
+                if (u && u.name) return u;
+            }
+            // 2. Lê direto do storage (mesma lógica do api.js)
+            for (const storage of [sessionStorage, localStorage]) {
+                try {
+                    const raw = storage.getItem('iord_auth');
+                    if (!raw) continue;
+                    const session = JSON.parse(raw);
+                    if (session?.user?.name) return session.user;
+                } catch (_) { }
+            }
+            return {};
+        }
+
+        const sessionUser = getSessionUser();
 
         // Nível → label legível
         const levelLabels = {
