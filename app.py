@@ -955,6 +955,17 @@ def criar_medico():
         (data["name"], data.get("specialty"), data["clinicId"],
          data.get("phone"), data.get("email"), data.get("status", "ativo"))
     )
+
+    # Vincula o médico à radiologia
+    rad_id = data.get("radiologyId")
+    if not rad_id and g.user.get("nivel") != "admin":
+        rad_id = g.user.get("radiologia")
+    if rad_id:
+        insert(
+            "INSERT INTO medico_radiologia (medico_id, radiologia_id) VALUES (%s, %s)",
+            (new_id, rad_id)
+        )
+
     medico = query(
         "SELECT m.id, m.nome AS name, m.especialidade AS specialty, "
         "m.clinica_id AS clinicId, m.telefone AS phone, m.email, m.status "

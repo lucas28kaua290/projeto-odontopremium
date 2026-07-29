@@ -734,7 +734,7 @@
             const cf = State.doctorClinicFilter
             return State.medicos.filter(m => {
                 const matchSearch = !q || m.name.toLowerCase().includes(q) || Utils.specialtyLabel(m.specialty).toLowerCase().includes(q)
-                const matchClinic = !cf || m.clinicId === cf
+                const matchClinic = !cf || String(m.clinicId) === String(cf)
                 return matchSearch && matchClinic
             })
         },
@@ -1740,6 +1740,9 @@
                 email: document.getElementById('doctorEmail')?.value?.trim() || '',
                 clinicId: document.getElementById('doctorClinic')?.value || '',
                 status: document.getElementById('doctorStatus')?.value || 'ativo',
+                radiologyId: IORDPermissions.isAdmin()
+                    ? (document.getElementById('doctorRadiology')?.value || '')
+                    : IORDPermissions.getRadiologiaId(),
             }
 
             try {
