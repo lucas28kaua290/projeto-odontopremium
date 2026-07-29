@@ -1920,9 +1920,9 @@
         populateRadiologySelect(selectedId = 'todas') {
             const select = document.getElementById('userRadiology')
             if (!select) return
-            select.innerHTML = `<option value="todas" ${selectedId === 'todas' ? 'selected' : ''}>Todas as Radiologias</option>` +
+            select.innerHTML = `<option value="todas" ${String(selectedId) === 'todas' ? 'selected' : ''}>Todas as Radiologias</option>` +
                 State.radiologias.map(r =>
-                    `<option value="${Utils.escapeHtml(r.id)}" ${r.id === selectedId ? 'selected' : ''}>${Utils.escapeHtml(r.name)}</option>`
+                    `<option value="${Utils.escapeHtml(r.id)}" ${String(r.id) === String(selectedId) ? 'selected' : ''}>${Utils.escapeHtml(r.name)}</option>`
                 ).join('')
         },
 
