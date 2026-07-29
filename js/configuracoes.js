@@ -1177,7 +1177,17 @@
 
             grid.innerHTML = this.data.examDurations.map(e => `
         <div class="exam-duration-item">
-          <span class="exam-duration-item__label">${Utils.escapeHtml(e.label)}</span>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <span class="exam-duration-item__label">${Utils.escapeHtml(e.label)}</span>
+            <div class="table-actions">
+              <button type="button" class="icon-btn icon-btn--edit" data-exam-edit-id="${Utils.escapeHtml(e.id)}" title="Editar tipo de exame" aria-label="Editar ${Utils.escapeHtml(e.label)}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </button>
+              <button type="button" class="icon-btn icon-btn--delete" data-exam-delete-id="${Utils.escapeHtml(e.id)}" title="Excluir tipo de exame" aria-label="Excluir ${Utils.escapeHtml(e.label)}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+          </div>
           <div class="exam-duration-item__input-wrap">
             <input
                 type="number"
@@ -1206,6 +1216,53 @@
           </div>
         </div>
       `).join('')
+
+            // Bind botão editar
+            grid.querySelectorAll('.icon-btn--edit[data-exam-edit-id]').forEach(btn => {
+                btn.addEventListener('click', () => ModalTipoExame.open('edit', btn.dataset.examEditId))
+            })
+
+            // Bind botão excluir
+            grid.querySelectorAll('.icon-btn--delete[data-exam-delete-id]').forEach(btn => {
+                btn.addEventListener('click', () => ParametrosModule.confirmDeleteExam(btn.dataset.examDeleteId))
+            })
+        },
+
+        async confirmDeleteExam(id) {
+            const e = (this.data.examDurations || []).find(e => String(e.id) === String(id))
+            if (!e) return
+
+            const confirmed = await new Promise(resolve => {
+                const toast = document.getElementById('cfgToast')
+                const icon = document.getElementById('cfgToastIcon')
+                const msgEl = document.getElementById('cfgToastMsg')
+                if (!toast || !icon || !msgEl) { resolve(window.confirm(`Excluir "${e.label}"?`)); return }
+
+                icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`
+                msgEl.innerHTML = `<span>Excluir <strong>${Utils.escapeHtml(e.label)}</strong>?</span>
+            <span style="display:flex;gap:8px;margin-left:auto;">
+                <button id="_toastNo"  style="padding:4px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:inherit;cursor:pointer;font-size:12px;">Cancelar</button>
+                <button id="_toastYes" style="padding:4px 12px;border-radius:6px;border:none;background:rgba(194,59,50,0.85);color:#fff;cursor:pointer;font-size:12px;font-weight:600;">Excluir</button>
+            </span>`
+                toast.className = 'cfg-toast cfg-toast--warning'
+                toast.hidden = false
+
+                const cleanup = (val) => { toast.hidden = true; msgEl.innerHTML = ''; resolve(val) }
+                document.getElementById('_toastYes')?.addEventListener('click', () => cleanup(true))
+                document.getElementById('_toastNo')?.addEventListener('click', () => cleanup(false))
+            })
+
+            if (!confirmed) return
+            try {
+                await Api.deleteTipoExame(id)
+                this.data.examDurations = this.data.examDurations.filter(e => String(e.id) !== String(id))
+                this.renderExamDurations()
+                Toast.show('Tipo de exame excluído.')
+            } catch (err) {
+                console.error(err)
+                const msg = err?.body?.message || 'Erro ao excluir tipo de exame.'
+                Toast.show(msg, 'error')
+            }
         },
 
         renderWAMessages() {

@@ -3476,6 +3476,23 @@ def tipos_exame_post():
         return ok({"id": exam_id, "label": label, "duration": duration, "value": value},
                   "Tipo de exame atualizado com sucesso.")
 
+@app.route("/v1/tipos-exame/<string:exam_id>", methods=["DELETE"])
+@require_admin
+def tipos_exame_delete(exam_id):
+    """Exclui um tipo de exame. Bloqueia se houver agendamentos vinculados."""
+    row = query("SELECT id FROM tipos_exame WHERE id = %s", (exam_id,), fetch="one")
+    if not row:
+        return not_found("Tipo de exame não encontrado.")
+
+    count = query(
+        "SELECT COUNT(*) AS c FROM agendamentos WHERE tipo_exame_id = %s", (exam_id,), fetch="one"
+    )
+    if count and count.get("c", 0) > 0:
+        return err("Não é possível excluir um tipo de exame com agendamentos vinculados.", 409)
+
+    query("DELETE FROM tipos_exame WHERE id = %s", (exam_id,), fetch="none")
+    return ok({"sucesso": True}, "Tipo de exame excluído com sucesso.")
+
 
 # -----------------------------------------------------------------------------
 # 18. PERÍODOS / UTILITÁRIOS

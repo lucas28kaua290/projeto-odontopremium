@@ -2087,6 +2087,12 @@ const Api = (() => {
         });
     }
 
+    async function deleteTipoExame(examId) {
+        return request(`/tipos-exame/${examId}`, {
+            method: 'DELETE',
+        });
+    }
+
     /* ===========================================================================
        10. PERÍODO / FILTROS — Utilitários
        =========================================================================== */
@@ -2246,6 +2252,7 @@ const Api = (() => {
         getParametros,
         postParametros,
         postTipoExame,
+        deleteTipoExame,
 
         // 16. Outros
         deleteAgendamento,
