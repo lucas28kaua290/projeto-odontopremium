@@ -2259,6 +2259,7 @@ const Api = (() => {
         getParametros,
         postParametros,
         postTipoExame,
+        putTipoExame,
         deleteTipoExame,
 
         // 16. Outros
