@@ -223,7 +223,6 @@
             this.bindSave()
             this.bindDiscard()
             this.bindChangesDetection()
-            this.bindToggleSubs()
 
             // Carrega dados reais da aba Geral
             try {
