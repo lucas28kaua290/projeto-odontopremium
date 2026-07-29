@@ -2064,7 +2064,7 @@ def hierarquia_arvore():
     rad_where = ""
     rad_params = []
     if radiologia_id != "all":
-        rad_where = "WHERE r.id = %s"
+        rad_where = "WHERE id = %s"
         rad_params = [radiologia_id]
 
     radiologias = query(f"SELECT id, nome FROM radiologias {rad_where} ORDER BY nome", rad_params)
@@ -2855,7 +2855,7 @@ def financeiro_hierarquia():
     rad_where = ""
     rad_params = []
     if radiologia_id != "all":
-        rad_where = "WHERE r.id = %s"; rad_params = [radiologia_id]
+        rad_where = "WHERE id = %s"; rad_params = [radiologia_id]
 
     radiologias = query(f"SELECT id, nome FROM radiologias {rad_where} ORDER BY nome", rad_params)
     resultado = []
