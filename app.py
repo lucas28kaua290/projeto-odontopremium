@@ -3487,7 +3487,7 @@ def tipos_exame_put(exam_id):
               "Tipo de exame atualizado com sucesso.")
 
 @app.route("/v1/tipos-exame/<string:exam_id>", methods=["DELETE"])
-@require_admin
+@require_auth
 def tipos_exame_delete(exam_id):
     """Exclui um tipo de exame. Bloqueia se houver agendamentos vinculados."""
     row = query("SELECT id FROM tipos_exame WHERE id = %s", (exam_id,), fetch="one")
