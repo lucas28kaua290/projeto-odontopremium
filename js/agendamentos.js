@@ -610,10 +610,13 @@ const OccupancyChart = (() => {
   }
 
   function getOcupacaoGeral(state) {
-    const { start, end } = DateUtils.getPeriodRange(state || AppState.getState());
-    const diasNoPeriodo = Math.max(1, Math.round((end - start) / 86400000) + 1);
+    // Sempre semana atual — ignora filtro de período global (igual à getOcupacaoInterna)
+    const hoje = DateUtils.startOfDay(new Date());
+    const start = DateUtils.startOfWeek(hoje);        // domingo
+    const end = DateUtils.addDays(start, 6);           // sábado
+    const diasNoPeriodo = 7;
     const SLOTS_POR_DIA = 12;
-    // Todos os agendamentos do período (sem filtro de radiologia)
+    // Todos os agendamentos da semana atual (sem filtro de radiologia)
     const todos = DataStore.getAgendamentos({ radiologiaId: 'all' })
       .filter(a => DateUtils.isWithinRange(a.data, start, end));
 
