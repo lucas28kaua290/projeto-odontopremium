@@ -636,16 +636,15 @@ const OccupancyChart = (() => {
 
   function getOcupacaoInterna(radiologiaId, state) {
     const dias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-    const SLOTS_POR_DIA = 23; // 07:00–18:00 de 30 em 30 min (espelha allSlots())
+    const SLOTS_POR_DIA = 23; // 07:00–18:00 de 30 em 30 min
     const { start, end } = DateUtils.getPeriodRange(state || AppState.getState());
 
-    // Conta quantas semanas (ocorrências de cada dia da semana) existem no período
-    // para calcular a capacidade proporcional de cada dia
+    // Conta quantas vezes cada dia da semana aparece no período
+    // para normalizar agendamentos acumulados de várias semanas
     const diasNoPeriodo = Math.max(1, Math.round((end - start) / 86400000) + 1);
     const ocorrenciasPorDia = [0, 0, 0, 0, 0, 0, 0];
     for (let i = 0; i < diasNoPeriodo; i++) {
-      const d = DateUtils.addDays(start, i);
-      ocorrenciasPorDia[d.getDay()]++;
+      ocorrenciasPorDia[DateUtils.addDays(start, i).getDay()]++;
     }
 
     const ags = DataStore.getAgendamentos({ radiologiaId })
@@ -659,13 +658,17 @@ const OccupancyChart = (() => {
 
     return dias
       .map((nome, i) => {
+        // Capacidade = slots por dia × ocorrências do dia no período
+        // Agendamentos também são a soma de todas as ocorrências → divisão correta
         const ocorrencias = ocorrenciasPorDia[i] || 1;
         const capacidade = ocorrencias * SLOTS_POR_DIA;
+        // Média de ocupação por ocorrência (o que o usuário espera ver no gráfico)
+        const mediaAgendamentos = porDia[i] / ocorrencias;
         return {
           nome,
-          ocupacao: Math.min(100, Math.round((porDia[i] / capacidade) * 100)),
-          quantidade: porDia[i],
-          slots: capacidade,
+          ocupacao: Math.min(100, Math.round((mediaAgendamentos / SLOTS_POR_DIA) * 100)),
+          quantidade: Math.round(mediaAgendamentos), // média por dia da semana
+          slots: SLOTS_POR_DIA,                      // sempre 23 — capacidade de 1 dia
         };
       })
       .filter(d => d.nome !== 'Domingo');
