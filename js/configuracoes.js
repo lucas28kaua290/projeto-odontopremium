@@ -2035,6 +2035,17 @@
         ModalMedico.init()
         ModalExame.init()
 
+        // Popula State.radiologias com a unidade do usuário
+        // para que o select do modal de clínica funcione corretamente
+        try {
+            const res = await Api.getRadiologias()
+            State.radiologias = (res.data || [])
+                .filter(r => r.id !== 'all')
+                .map(RadiologiasModule.normalizar)
+        } catch (e) {
+            console.error('[NaoAdmin] Erro ao carregar radiologias:', e)
+        }
+
         // 4. Injeta bloco "Minha Unidade" no topo da aba Geral
         await _injetarBlocoUnidade(radId)
 
