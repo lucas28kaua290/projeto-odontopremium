@@ -674,7 +674,7 @@ const Charts = (() => {
           },
         },
         scales: {
-          x: { grid: { display: false }, ticks: { font: { size: 11 }, autoSkip: false, maxRotation: 18, minRotation: 0 } },
+          x: { grid: { display: false }, ticks: { display: false } },
           y: { grid: { color: '#E3E7E8' }, ticks: { font: { size: 11 }, callback: (value) => state.visualizacao === 'faturamento' ? formatCurrencyShort(value) : value } },
         },
       },
@@ -700,10 +700,13 @@ const Charts = (() => {
 
     if (barTitle) barTitle.textContent = isAll
       ? (state.visualizacao === 'faturamento' ? 'Faturamento por Radiologia' : 'Exames por Radiologia')
-      : (state.visualizacao === 'faturamento' ? 'Faturamento por Clínica Referenciadora' : 'Exames por Clínica Referenciadora');
+      : (state.visualizacao === 'faturamento' ? 'Faturamento por Clínicas' : 'Exames por Clínicas');
     if (barSub) barSub.textContent = isAll
       ? `Comparativo entre unidades — ${labelPeriodo}`
-      : `Comparativo dentro de ${nomeRadiologia} — ${labelPeriodo}`;
+      : `${nomeRadiologia} — ${labelPeriodo}`;
+
+    const barHint = document.getElementById('barChartHint');
+    if (barHint) barHint.hidden = isAll;
   }
 
   function bindViewToggle() {
