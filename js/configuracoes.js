@@ -2203,7 +2203,7 @@
                 </div>
             </div>
             <div class="cfg-block__body">
-                <div class="permission-matrix">
+                <div class="permission-matrix permission-matrix--single">
                     <div class="permission-matrix__head">
                         <span class="permission-matrix__col-label">Funcionalidade</span>
                         <span class="permission-matrix__role">${Utils.escapeHtml(levelLabel)}</span>
