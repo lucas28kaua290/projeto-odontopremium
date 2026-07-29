@@ -1198,6 +1198,7 @@
                 max="180"
                 step="5"
                 aria-label="Duração de ${Utils.escapeHtml(e.label)} em minutos"
+                readonly
             >
             <span class="exam-duration-item__unit">min</span>
           </div>
@@ -1212,6 +1213,7 @@
                 step="0.01"
                 aria-label="Valor de ${Utils.escapeHtml(e.label)} em reais"
                 placeholder="0,00"
+                readonly
             >
           </div>
         </div>
@@ -1219,7 +1221,7 @@
 
             // Bind botão editar
             grid.querySelectorAll('.icon-btn--edit[data-exam-edit-id]').forEach(btn => {
-                btn.addEventListener('click', () => ModalTipoExame.open('edit', btn.dataset.examEditId))
+                btn.addEventListener('click', () => ModalExame.open('edit', btn.dataset.examEditId))
             })
 
             // Bind botão excluir
