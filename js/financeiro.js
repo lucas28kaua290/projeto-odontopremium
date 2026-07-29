@@ -1561,7 +1561,7 @@
 
       tree.forEach(radio => {
         const radioVariacao = radio.variacao ?? 0;
-        const radioTags = EXAM_TAGS_BY_RADIO[radio.id] || ['Panorâmica', 'Periapical'];
+        const radioTags = (radio.tags && radio.tags.length > 0) ? radio.tags : ['—'];
         const radioTicket = radio.exames > 0 ? Math.round(radio.faturamento / radio.exames) : 0;
         const radioPct = totalFaturamento > 0 ? (radio.faturamento / totalFaturamento * 100) : 0;
 
@@ -1600,7 +1600,7 @@
         html += `<div class="hier-group is-collapsed" id="hier-grp-${radio.id}"><div class="hier-group__inner">`;
 
         radio.clinicas.forEach(cli => {
-          const cliTags = EXAM_TAGS_BY_CLINICA[cli.nome] || ['Panorâmica'];
+          const cliTags = (cli.tags && cli.tags.length > 0) ? cli.tags : ['—'];
           const cliTicket = cli.exames > 0 ? Math.round(cli.faturamento / cli.exames) : 0;
           const cliPct = totalFaturamento > 0 ? (cli.faturamento / totalFaturamento * 100) : 0;
 
@@ -1641,7 +1641,7 @@
             const medTicket = med.exames > 0 ? Math.round(med.faturamento / med.exames) : 0;
             const medPct = totalFaturamento > 0 ? (med.faturamento / totalFaturamento * 100) : 0;
             // Tags do médico: herda da clínica (mock simplificado)
-            const medTags = (EXAM_TAGS_BY_CLINICA[med.clinicaNome || cli.nome] || ['Panorâmica']).slice(0, 1);
+            const medTags = (cli.tags && cli.tags.length > 0) ? cli.tags.slice(0, 1) : ['—'];
 
             html += `
               <div class="hier-row hier-row--level-3" role="row">
@@ -1909,15 +1909,27 @@
         State._cache.tiposExame = tiposExame || [];
         State._ticketMedio = snapshot.kpis?.ticketMedio?.value;
 
-        // Normaliza hierarquia: backend retorna flat [{ radiologiaId, radiologiaNome, faturamento, exames, variacao }]
-        // Frontend espera tree: [{ id, nome, faturamento, exames, variacao, clinicas:[] }]
+        // Normaliza hierarquia: backend agora retorna tree completa com clinicas e medicos
         const hierarquia = (hierarquiaRaw || []).map(r => ({
           id: r.radiologiaId,
           nome: r.radiologiaNome,
           faturamento: Number(r.faturamento || 0),
           exames: Number(r.exames || 0),
           variacao: Number(r.variacao || 0),
-          clinicas: [],  // backend não retorna clínicas aninhadas neste endpoint
+          tags: r.tags || [],
+          clinicas: (r.clinicas || []).map(c => ({
+            id: c.id,
+            nome: c.nome,
+            faturamento: Number(c.faturamento || 0),
+            exames: Number(c.exames || 0),
+            tags: c.tags || [],
+            medicos: (c.medicos || []).map(m => ({
+              id: m.id,
+              nome: m.nome,
+              faturamento: Number(m.faturamento || 0),
+              exames: Number(m.exames || 0),
+            })),
+          })),
         }));
 
         renderKPIs(snapshot.kpis);

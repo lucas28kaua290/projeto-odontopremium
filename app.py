@@ -2874,8 +2874,81 @@ def financeiro_hierarquia():
             (rad["id"], pi, pf), fetch="one"
         )
 
-        fat_v = to_decimal(fat_rad.get("fat", 0)) if fat_rad else 0
+        fat_v   = to_decimal(fat_rad.get("fat", 0)) if fat_rad else 0
         fat_a_v = to_decimal(fat_rad_ant.get("fat", 0)) if fat_rad_ant else 0
+
+        # Clínicas vinculadas a esta radiologia
+        clinicas_rows = query(
+            "SELECT c.id, c.nome, "
+            "       COUNT(DISTINCT e.id) AS exm, "
+            "       COALESCE(SUM(e.valor), 0) AS fat "
+            "FROM clinicas c "
+            "JOIN clinica_radiologia cr ON cr.clinica_id = c.id AND cr.radiologia_id = %s "
+            "LEFT JOIN exames e ON e.clinica_id = c.id AND e.radiologia_id = %s "
+            "       AND e.status = 'realizado' AND e.data_exame BETWEEN %s AND %s "
+            "GROUP BY c.id, c.nome ORDER BY fat DESC",
+            (rad["id"], rad["id"], di, df)
+        )
+
+        clinicas = []
+        for cli in (clinicas_rows or []):
+            cli_fat = to_decimal(cli.get("fat", 0))
+            cli_exm = cli.get("exm", 0) or 0
+
+            # Médicos vinculados a esta clínica dentro da radiologia
+            medicos_rows = query(
+                "SELECT m.id, m.nome, "
+                "       COUNT(DISTINCT e.id) AS exm, "
+                "       COALESCE(SUM(e.valor), 0) AS fat "
+                "FROM medicos m "
+                "JOIN exames e ON e.medico_id = m.id "
+                "       AND e.clinica_id = %s AND e.radiologia_id = %s "
+                "       AND e.status = 'realizado' AND e.data_exame BETWEEN %s AND %s "
+                "GROUP BY m.id, m.nome ORDER BY fat DESC",
+                (cli["id"], rad["id"], di, df)
+            )
+
+            # Principais tipos de exame desta clínica
+            tags_rows = query(
+                "SELECT te.label "
+                "FROM agendamentos a "
+                "JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+                "JOIN clinica_radiologia cr ON cr.radiologia_id = %s "
+                "WHERE a.clinica_id = %s AND a.status = 'realizado' "
+                "       AND a.data_agendamento BETWEEN %s AND %s "
+                "GROUP BY te.label ORDER BY COUNT(*) DESC LIMIT 2",
+                (rad["id"], cli["id"], di, df)
+            )
+            cli_tags = [t["label"] for t in (tags_rows or [])]
+
+            clinicas.append({
+                "id":          cli["id"],
+                "nome":        cli["nome"],
+                "faturamento": cli_fat,
+                "exames":      cli_exm,
+                "tags":        cli_tags,
+                "medicos": [
+                    {
+                        "id":          m["id"],
+                        "nome":        m["nome"],
+                        "faturamento": to_decimal(m.get("fat", 0)),
+                        "exames":      m.get("exm", 0) or 0,
+                    }
+                    for m in (medicos_rows or [])
+                ],
+            })
+
+        # Principais tipos de exame desta radiologia
+        tags_rad_rows = query(
+            "SELECT te.label "
+            "FROM agendamentos a "
+            "JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+            "WHERE a.radiologia_id = %s AND a.status = 'realizado' "
+            "       AND a.data_agendamento BETWEEN %s AND %s "
+            "GROUP BY te.label ORDER BY COUNT(*) DESC LIMIT 3",
+            (rad["id"], di, df)
+        )
+        rad_tags = [t["label"] for t in (tags_rad_rows or [])]
 
         resultado.append({
             "radiologiaId":   rad["id"],
@@ -2883,6 +2956,8 @@ def financeiro_hierarquia():
             "faturamento":    fat_v,
             "exames":         fat_rad.get("exm", 0) if fat_rad else 0,
             "variacao":       variacao_percentual(fat_v, fat_a_v),
+            "tags":           rad_tags,
+            "clinicas":       clinicas,
         })
 
     return ok(resultado)
