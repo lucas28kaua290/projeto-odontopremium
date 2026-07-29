@@ -45,9 +45,25 @@
         const avatarEl = document.querySelector('.user-avatar');
         if (avatarEl && userInitials) avatarEl.textContent = userInitials;
 
-        // 1. Cria a estrutura do Dropdown
         const dropdown = document.createElement('div');
         dropdown.id = 'profile-dropdown-menu';
+
+        Object.assign(dropdown.style, {
+            position: 'absolute',
+            top: 'calc(100% + 8px)',
+            right: '0',
+            minWidth: '220px',
+            background: 'var(--color-surface)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+            padding: '12px',
+            zIndex: '9999',
+            opacity: '0',
+            transform: 'translateY(-10px)',
+            pointerEvents: 'none',
+            transition: 'opacity 0.2s ease, transform 0.2s ease',
+        });
 
         dropdown.innerHTML = `
             <div style="display: flex; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border); margin-bottom: 8px;">
@@ -75,8 +91,10 @@
             </ul>
         `;
 
-        // O header precisa de position relative para o absolute funcionar
-        headerUser.style.position = 'relative';
+        Object.assign(headerUser.style, {
+            position: 'relative',
+            zIndex: '100',
+        });
         headerUser.appendChild(dropdown);
 
         // 2. Lógica de Abrir/Fechar
