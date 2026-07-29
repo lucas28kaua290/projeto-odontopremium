@@ -852,26 +852,23 @@ def listar_medicos():
                m.clinica_id AS clinicId, m.telefone AS phone, m.email, m.status,
                c.nome AS clinicaNome,
                mr.radiologia_id AS radiologiaId, r.nome AS radiologiaNome,
-               COALESCE(SUM(CASE WHEN e.status='realizado'
-                                  AND e.data_exame BETWEEN %s AND %s
+               COALESCE(SUM(CASE WHEN a.status='realizado'
+                                  AND a.data_agendamento BETWEEN %s AND %s
                                   THEN 1 ELSE 0 END), 0) AS exames,
-               COALESCE(SUM(CASE WHEN e.status='realizado'
-                                  AND e.data_exame BETWEEN %s AND %s
-                                  THEN e.valor ELSE 0 END), 0) AS faturamento,
-               COALESCE(SUM(CASE WHEN co.status='pendente'
-                                  AND e.data_exame BETWEEN %s AND %s
-                                  THEN co.valor_comissao ELSE 0 END), 0) AS pendente,
-               COALESCE(SUM(CASE WHEN e.data_exame BETWEEN %s AND %s
-                                  THEN co.valor_comissao ELSE 0 END), 0) AS comissao
+               COALESCE(SUM(CASE WHEN a.status='realizado'
+                                  AND a.data_agendamento BETWEEN %s AND %s
+                                  THEN te.valor_base ELSE 0 END), 0) AS faturamento,
+               0 AS pendente,
+               0 AS comissao
         FROM medicos m
         JOIN clinicas c ON c.id = m.clinica_id
         LEFT JOIN medico_radiologia mr ON mr.medico_id = m.id
         LEFT JOIN radiologias r ON r.id = mr.radiologia_id
-        LEFT JOIN exames e ON e.medico_id = m.id
-        LEFT JOIN comissoes co ON co.exame_id = e.id
+        LEFT JOIN agendamentos a ON a.medico_id = m.id
+        LEFT JOIN tipos_exame te ON te.id = a.tipo_exame_id
         WHERE 1=1
     """
-    params = [di, df, di, df, di, df, di, df]
+    params = [di, df, di, df]
 
     # Escopo por radiologia: não-admin só vê médicos da própria unidade
     rad_param   = request.args.get("radiologiaId", "")
@@ -880,7 +877,7 @@ def listar_medicos():
     rad_filtro  = rad_usuario if nivel != "admin" else rad_param
 
     if rad_filtro and rad_filtro not in ("all", "todas", ""):
-        sql += " AND cr.radiologia_id = %s"
+        sql += " AND mr.radiologia_id = %s"
         params.append(rad_filtro)
         
     if radiologia_id and radiologia_id != "all":
