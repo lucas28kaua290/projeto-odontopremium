@@ -2211,15 +2211,17 @@
                     <div class="permission-matrix__body">
                         ${PERMISSION_MATRIX.map(row => {
             const val = row[levelKey] || 'no'
-            const icon = val === 'yes'
-                ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="var(--color-positive,#0E8F63)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
-                : val === 'partial'
-                    ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="var(--color-warning,#B27A0E)" stroke-width="2.2" stroke-linecap="round"/></svg>`
-                    : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="var(--color-negative,#C23B32)" stroke-width="2" stroke-linecap="round"/></svg>`
+            const iconYes = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+            const iconNo  = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>`
+            const iconPartial = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>`
+            const cls  = val === 'yes' ? 'perm-check--yes' : val === 'partial' ? 'perm-check--partial' : 'perm-check--no'
+            const icon = val === 'yes' ? iconYes : val === 'partial' ? iconPartial : iconNo
             return `
-                                <div class="permission-matrix__row">
-                                    <span class="permission-matrix__feature">${Utils.escapeHtml(row.feature)}</span>
-                                    <span class="permission-matrix__cell">${icon}</span>
+                                <div class="permission-row">
+                                    <span class="permission-row__feature">${Utils.escapeHtml(row.feature)}</span>
+                                    <div class="permission-row__cell">
+                                        <div class="perm-check ${cls}">${icon}</div>
+                                    </div>
                                 </div>`
         }).join('')}
                     </div>
