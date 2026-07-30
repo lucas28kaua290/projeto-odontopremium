@@ -506,7 +506,7 @@
               <path d="M9 2h6v4H9V2zM5 6h14v16H5V6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
               <path d="M9 11h6M9 15h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
             </svg>
-            Exame
+            Exame e Pagamento
           </h4>
           <div class="modal-section__grid">
             <div class="modal-field">
@@ -514,12 +514,28 @@
               <span class="modal-field__value"><span class="exam-tag" id="modalExamType">&mdash;</span></span>
             </div>
             <div class="modal-field">
-              <span class="modal-field__label">Valor</span>
+              <span class="modal-field__label">Valor do exame</span>
               <span class="modal-field__value modal-field__value--mono" id="modalExamValue">&mdash;</span>
             </div>
             <div class="modal-field">
               <span class="modal-field__label">Duração estimada</span>
               <span class="modal-field__value" id="modalExamDuration">&mdash;</span>
+            </div>
+            <div class="modal-field">
+              <span class="modal-field__label">Forma de pagamento</span>
+              <span class="modal-field__value" id="modalPagForma">—</span>
+            </div>
+            <div class="modal-field" id="modalPagValor1Wrap">
+              <span class="modal-field__label" id="modalPagValor1Label">Valor pago</span>
+              <span class="modal-field__value modal-field__value--mono" id="modalPagValor1">—</span>
+            </div>
+            <div class="modal-field" id="modalPagForma2Wrap" hidden>
+              <span class="modal-field__label">2ª forma</span>
+              <span class="modal-field__value" id="modalPagForma2">—</span>
+            </div>
+            <div class="modal-field" id="modalPagValor2Wrap" hidden>
+              <span class="modal-field__label">Valor 2ª forma</span>
+              <span class="modal-field__value modal-field__value--mono" id="modalPagValor2">—</span>
             </div>
           </div>
         </section>
@@ -557,33 +573,6 @@
             Observações
           </h4>
           <p class="modal-observations" id="modalObservations">Nenhuma observação registrada.</p>
-        </section>
-
-        <section class="modal-section" id="modalPagamentoSection">
-          <h4 class="modal-section__title">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-              <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            Pagamento
-          </h4>
-          <div class="modal-section__grid">
-            <div class="modal-field">
-              <span class="modal-field__label">Forma</span>
-              <span class="modal-field__value" id="modalPagForma">—</span>
-            </div>
-            <div class="modal-field" id="modalPagValor1Wrap">
-              <span class="modal-field__label" id="modalPagValor1Label">Valor</span>
-              <span class="modal-field__value modal-field__value--mono" id="modalPagValor1">—</span>
-            </div>
-            <div class="modal-field" id="modalPagForma2Wrap" hidden>
-              <span class="modal-field__label">2ª forma</span>
-              <span class="modal-field__value" id="modalPagForma2">—</span>
-            </div>
-            <div class="modal-field" id="modalPagValor2Wrap" hidden>
-              <span class="modal-field__label">Valor 2ª forma</span>
-              <span class="modal-field__value modal-field__value--mono" id="modalPagValor2">—</span>
-            </div>
-          </div>
         </section>
 
       </div>

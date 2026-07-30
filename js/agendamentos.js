@@ -968,6 +968,8 @@ const AppointmentModal = (() => {
       formaEl.textContent  = pForma1 || '—';
       v1Label.textContent  = 'Valor';
       v1El.textContent     = pVal1 != null ? fmtBRL(pVal1) : '—';
+      document.getElementById('modalPagForma2').textContent  = '—';
+      document.getElementById('modalPagValor2').textContent  = '—';
       forma2W.hidden = true;
       val2W.hidden   = true;
     }
