@@ -39,7 +39,13 @@ const Api = (() => {
        =========================================================================== */
 
     /** URL base da API. Trocar pela URL real de produção / staging conforme o ambiente. */
-    const BASE_URL = 'https://iordfinanceiro.com.br/v1';
+    const BASE_URL = (() => {
+        const host = window.location.hostname;
+        if (host === 'dev.iordfinanceiro.com.br') {
+            return 'https://dev.iordfinanceiro.com.br/v1';
+        }
+        return 'https://iordfinanceiro.com.br/v1';
+    })();
 
     /**
      * Retorna o token de autenticação armazenado na sessão.
