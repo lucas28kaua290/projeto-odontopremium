@@ -933,6 +933,45 @@ const AppointmentModal = (() => {
     document.getElementById('modalObservations').textContent =
       agendamento.observacoes || 'Nenhuma observação registrada.';
 
+    /* Pagamento */
+    const FORMAS = { especie: 'Espécie', pix: 'PIX', cartao: 'Cartão', plano: 'Plano' };
+    const pTipo   = agendamento.pagamentoTipo;
+    const pForma1 = FORMAS[agendamento.pagamentoForma1] || agendamento.pagamentoForma1 || null;
+    const pVal1   = agendamento.pagamentoValor1;
+    const pForma2 = FORMAS[agendamento.pagamentoForma2] || agendamento.pagamentoForma2 || null;
+    const pVal2   = agendamento.pagamentoValor2;
+
+    const fmtBRL = (v) => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    const formaEl  = document.getElementById('modalPagForma');
+    const v1El     = document.getElementById('modalPagValor1');
+    const v1Label  = document.getElementById('modalPagValor1Label');
+    const forma2W  = document.getElementById('modalPagForma2Wrap');
+    const val2W    = document.getElementById('modalPagValor2Wrap');
+
+    if (!pTipo && !pForma1) {
+      // Sem dados de pagamento registrados
+      formaEl.textContent  = '—';
+      v1El.textContent     = '—';
+      v1Label.textContent  = 'Valor';
+      forma2W.hidden = true;
+      val2W.hidden   = true;
+    } else if (pTipo === 'dividido') {
+      formaEl.textContent  = pForma1 || '—';
+      v1Label.textContent  = 'Valor 1ª forma';
+      v1El.textContent     = pVal1 != null ? fmtBRL(pVal1) : '—';
+      document.getElementById('modalPagForma2').textContent = pForma2 || '—';
+      document.getElementById('modalPagValor2').textContent = pVal2 != null ? fmtBRL(pVal2) : '—';
+      forma2W.hidden = false;
+      val2W.hidden   = false;
+    } else {
+      formaEl.textContent  = pForma1 || '—';
+      v1Label.textContent  = 'Valor';
+      v1El.textContent     = pVal1 != null ? fmtBRL(pVal1) : '—';
+      forma2W.hidden = true;
+      val2W.hidden   = true;
+    }
+
     /* Botão WhatsApp dinâmico */
     const waBtn = document.getElementById('modalBtnWhatsapp');
     const waLabel = document.getElementById('modalBtnWhatsappLabel');
@@ -2774,6 +2813,15 @@ const NewAppointmentModal = (() => {
     document.getElementById('newTimeHint').textContent = '— preencha exame, radiologia e data';
 
     overlay.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+    // Reset pagamento
+    document.getElementById('newPagTipo').value = 'unico';
+    document.getElementById('newPagForma1').value = '';
+    document.getElementById('newPagValor1').value = '';
+    document.getElementById('newPagForma2').value = '';
+    document.getElementById('newPagValor2').value = '';
+    document.getElementById('newPagDivididoWrap').hidden = true;
+    document.getElementById('newPagTotalVal').textContent = 'R$ 0,00';
   }
 
   function fillFormForEdit(ag) {
@@ -2795,6 +2843,16 @@ const NewAppointmentModal = (() => {
     document.getElementById('newDate').value = ag.data || '';
     document.getElementById('newStatus').value = ag.status || 'agendado';
     document.getElementById('newObservacoes').value = ag.observacoes || '';
+
+    // Pagamento
+    const pagTipo = ag.pagamentoTipo || 'unico';
+    document.getElementById('newPagTipo').value = pagTipo;
+    document.getElementById('newPagForma1').value = ag.pagamentoForma1 || '';
+    document.getElementById('newPagValor1').value = ag.pagamentoValor1 || '';
+    document.getElementById('newPagForma2').value = ag.pagamentoForma2 || '';
+    document.getElementById('newPagValor2').value = ag.pagamentoValor2 || '';
+    document.getElementById('newPagDivididoWrap').hidden = (pagTipo !== 'dividido');
+    _atualizarTotalPagamento();
 
     // 2. Tipo de exame (select já populado por _populateTipoExameSelect em openEdit)
     document.getElementById('newTipoExame').value = ag.tipoExameId || ag.tipoExame || '';
@@ -2909,6 +2967,13 @@ const NewAppointmentModal = (() => {
       clinica: document.getElementById('newClinica').options[document.getElementById('newClinica').selectedIndex]?.text || '',
       status: document.getElementById('newStatus').value,
       observacoes: document.getElementById('newObservacoes').value.trim(),
+      pagamentoTipo:   document.getElementById('newPagTipo').value,
+      pagamentoForma1: document.getElementById('newPagForma1').value || null,
+      pagamentoValor1: parseFloat(document.getElementById('newPagValor1').value) || null,
+      pagamentoForma2: document.getElementById('newPagTipo').value === 'dividido'
+        ? (document.getElementById('newPagForma2').value || null) : null,
+      pagamentoValor2: document.getElementById('newPagTipo').value === 'dividido'
+        ? (parseFloat(document.getElementById('newPagValor2').value) || null) : null,
     };
   }
 
@@ -3084,6 +3149,16 @@ const NewAppointmentModal = (() => {
   }
 
   /* ------------------------------------------------------------------
+     PAGAMENTO — soma automática
+  ------------------------------------------------------------------ */
+  function _atualizarTotalPagamento() {
+    const v1 = parseFloat(document.getElementById('newPagValor1').value) || 0;
+    const v2 = parseFloat(document.getElementById('newPagValor2').value) || 0;
+    document.getElementById('newPagTotalVal').textContent =
+      (v1 + v2).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  /* ------------------------------------------------------------------
      BIND EVENTS
   ------------------------------------------------------------------ */
   function bindEvents() {
@@ -3096,6 +3171,15 @@ const NewAppointmentModal = (() => {
 
     document.getElementById('newRadiologia').addEventListener('change', onRadiologiaChange);
     document.getElementById('newClinica').addEventListener('change', onClinicaChange);
+
+    // Pagamento: toggle único vs dividido
+    document.getElementById('newPagTipo').addEventListener('change', (e) => {
+      document.getElementById('newPagDivididoWrap').hidden = (e.target.value !== 'dividido');
+    });
+    // Soma automática do total dividido
+    ['newPagValor1', 'newPagValor2'].forEach(id => {
+      document.getElementById(id).addEventListener('input', _atualizarTotalPagamento);
+    });
     document.getElementById('newTipoExame').addEventListener('change', () => { updateValuePreview(); tryUpdateHorarios(); });
     document.getElementById('newDate').addEventListener('change', tryUpdateHorarios);
     document.getElementById('newTimeStart').addEventListener('change', onHorarioChange);

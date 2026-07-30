@@ -559,6 +559,33 @@
           <p class="modal-observations" id="modalObservations">Nenhuma observação registrada.</p>
         </section>
 
+        <section class="modal-section" id="modalPagamentoSection">
+          <h4 class="modal-section__title">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+              <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Pagamento
+          </h4>
+          <div class="modal-section__grid">
+            <div class="modal-field">
+              <span class="modal-field__label">Forma</span>
+              <span class="modal-field__value" id="modalPagForma">—</span>
+            </div>
+            <div class="modal-field" id="modalPagValor1Wrap">
+              <span class="modal-field__label" id="modalPagValor1Label">Valor</span>
+              <span class="modal-field__value modal-field__value--mono" id="modalPagValor1">—</span>
+            </div>
+            <div class="modal-field" id="modalPagForma2Wrap" hidden>
+              <span class="modal-field__label">2ª forma</span>
+              <span class="modal-field__value" id="modalPagForma2">—</span>
+            </div>
+            <div class="modal-field" id="modalPagValor2Wrap" hidden>
+              <span class="modal-field__label">Valor 2ª forma</span>
+              <span class="modal-field__value modal-field__value--mono" id="modalPagValor2">—</span>
+            </div>
+          </div>
+        </section>
+
       </div>
 
       <!-- FOOTER -->
@@ -845,6 +872,81 @@
           <label class="form-field__label" for="newObservacoes">Observações</label>
           <textarea id="newObservacoes" class="form-field__textarea" rows="3"
             placeholder="Informações adicionais sobre o paciente ou o exame..."></textarea>
+        </div>
+
+        <!-- SEÇÃO 4: Pagamento -->
+        <div class="form-section-title">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+            <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Pagamento
+        </div>
+
+        <div class="form-row form-row--2" style="align-items:flex-end;">
+          <div class="form-field">
+            <label class="form-field__label" for="newPagTipo">Tipo</label>
+            <div class="form-field__select-wrapper">
+              <select id="newPagTipo" class="form-field__select">
+                <option value="unico">Forma única</option>
+                <option value="dividido">Dividido</option>
+              </select>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+          <div class="form-field" id="newPagForma1Wrap">
+            <label class="form-field__label" for="newPagForma1">Forma</label>
+            <div class="form-field__select-wrapper">
+              <select id="newPagForma1" class="form-field__select">
+                <option value="">— selecione —</option>
+                <option value="especie">Espécie</option>
+                <option value="pix">PIX</option>
+                <option value="cartao">Cartão</option>
+                <option value="plano">Plano</option>
+              </select>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Campos do pagamento dividido -->
+        <div id="newPagDivididoWrap" hidden>
+          <div class="form-row form-row--2">
+            <div class="form-field">
+              <label class="form-field__label" for="newPagValor1">Valor — 1ª forma</label>
+              <input type="number" id="newPagValor1" class="form-field__input" placeholder="0,00" min="0" step="0.01">
+            </div>
+            <div class="form-field">
+              <label class="form-field__label" for="newPagForma2">2ª forma</label>
+              <div class="form-field__select-wrapper">
+                <select id="newPagForma2" class="form-field__select">
+                  <option value="">— selecione —</option>
+                  <option value="especie">Espécie</option>
+                  <option value="pix">PIX</option>
+                  <option value="cartao">Cartão</option>
+                  <option value="plano">Plano</option>
+                </select>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div class="form-row form-row--2">
+            <div class="form-field">
+              <label class="form-field__label" for="newPagValor2">Valor — 2ª forma</label>
+              <input type="number" id="newPagValor2" class="form-field__input" placeholder="0,00" min="0" step="0.01">
+            </div>
+            <div class="form-field">
+              <label class="form-field__label">Total</label>
+              <div class="form-value-preview" id="newPagTotalPreview" style="margin:0;">
+                <span id="newPagTotalVal" style="font-weight:600;">R$ 0,00</span>
+              </div>
+            </div>
+          </div>
         </div>
 
       </div>

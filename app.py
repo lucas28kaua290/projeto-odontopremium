@@ -1238,6 +1238,11 @@ def listar_agendamentos():
             te.valor_base      AS valor,
             a.status,
             a.observacoes,
+            a.pagamento_tipo   AS pagamentoTipo,
+            a.pagamento_forma_1 AS pagamentoForma1,
+            a.pagamento_valor_1 AS pagamentoValor1,
+            a.pagamento_forma_2 AS pagamentoForma2,
+            a.pagamento_valor_2 AS pagamentoValor2,
             a.criado_em        AS criadoEm
         FROM agendamentos a
         JOIN pacientes   p  ON p.id  = a.paciente_id
@@ -1286,12 +1291,16 @@ def criar_agendamento():
 
     new_id = insert(
         "INSERT INTO agendamentos (paciente_id, radiologia_id, clinica_id, medico_id, "
-        "tipo_exame_id, data_agendamento, hora_agendamento, status, observacoes) "
-        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        "tipo_exame_id, data_agendamento, hora_agendamento, status, observacoes, "
+        "pagamento_tipo, pagamento_forma_1, pagamento_valor_1, pagamento_forma_2, pagamento_valor_2) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
         (data["pacienteId"], data["radiologiaId"],
          data.get("clinicaId"), data.get("medicoId"),
          data["tipoExameId"], data["data"], data["horarioInicio"],
-         data.get("status", "agendado"), data.get("observacoes"))
+         data.get("status", "agendado"), data.get("observacoes"),
+         data.get("pagamentoTipo"), data.get("pagamentoForma1"),
+         data.get("pagamentoValor1"), data.get("pagamentoForma2"),
+         data.get("pagamentoValor2"))
     )
     return created({"id": new_id}, "Agendamento criado com sucesso.")
 
@@ -1308,15 +1317,20 @@ def atualizar_agendamento(agendamento_id):
     params = []
 
     mapa = {
-        "pacienteId":     "paciente_id",
-        "radiologiaId":   "radiologia_id",
-        "clinicaId":      "clinica_id",
-        "medicoId":       "medico_id",
-        "tipoExameId":    "tipo_exame_id",
-        "data":           "data_agendamento",
-        "horarioInicio":  "hora_agendamento",
-        "status":         "status",
-        "observacoes":    "observacoes",
+        "pacienteId":       "paciente_id",
+        "radiologiaId":     "radiologia_id",
+        "clinicaId":        "clinica_id",
+        "medicoId":         "medico_id",
+        "tipoExameId":      "tipo_exame_id",
+        "data":             "data_agendamento",
+        "horarioInicio":    "hora_agendamento",
+        "status":           "status",
+        "observacoes":      "observacoes",
+        "pagamentoTipo":    "pagamento_tipo",
+        "pagamentoForma1":  "pagamento_forma_1",
+        "pagamentoValor1":  "pagamento_valor_1",
+        "pagamentoForma2":  "pagamento_forma_2",
+        "pagamentoValor2":  "pagamento_valor_2",
     }
 
     for js_key, db_col in mapa.items():
