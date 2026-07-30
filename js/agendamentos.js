@@ -937,37 +937,44 @@ const AppointmentModal = (() => {
     const FORMAS = { especie: 'Espécie', pix: 'PIX', cartao: 'Cartão', plano: 'Plano' };
     const pTipo   = agendamento.pagamentoTipo;
     const pForma1 = FORMAS[agendamento.pagamentoForma1] || agendamento.pagamentoForma1 || null;
-    const pVal1   = agendamento.pagamentoValor1;
+    const pVal1   = agendamento.pagamentoValor1 != null ? parseFloat(agendamento.pagamentoValor1) : null;
     const pForma2 = FORMAS[agendamento.pagamentoForma2] || agendamento.pagamentoForma2 || null;
-    const pVal2   = agendamento.pagamentoValor2;
+    const pVal2   = agendamento.pagamentoValor2 != null ? parseFloat(agendamento.pagamentoValor2) : null;
 
-    const fmtBRL = (v) => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const fmtBRL  = (v) => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-    const formaEl  = document.getElementById('modalPagForma');
-    const v1El     = document.getElementById('modalPagValor1');
-    const v1Label  = document.getElementById('modalPagValor1Label');
-    const forma2W  = document.getElementById('modalPagForma2Wrap');
-    const val2W    = document.getElementById('modalPagValor2Wrap');
+    const pagTipoBadge = document.getElementById('modalPagTipoBadge');
+    const formaEl      = document.getElementById('modalPagForma');
+    const v1Wrap       = document.getElementById('modalPagValor1Wrap');
+    const v1El         = document.getElementById('modalPagValor1');
+    const v1Label      = document.getElementById('modalPagValor1Label');
+    const forma2W      = document.getElementById('modalPagForma2Wrap');
+    const val2W        = document.getElementById('modalPagValor2Wrap');
 
     if (!pTipo && !pForma1) {
-      // Sem dados de pagamento registrados
-      formaEl.textContent  = '—';
-      v1El.textContent     = '—';
-      v1Label.textContent  = 'Valor';
+      if (pagTipoBadge) pagTipoBadge.textContent = '—';
+      formaEl.textContent = '—';
+      v1El.textContent    = '—';
+      v1Label.textContent = 'Valor pago';
+      v1Wrap.hidden  = false;
       forma2W.hidden = true;
       val2W.hidden   = true;
     } else if (pTipo === 'dividido') {
-      formaEl.textContent  = pForma1 || '—';
-      v1Label.textContent  = 'Valor 1ª forma';
-      v1El.textContent     = pVal1 != null ? fmtBRL(pVal1) : '—';
-      document.getElementById('modalPagForma2').textContent = pForma2 || '—';
-      document.getElementById('modalPagValor2').textContent = pVal2 != null ? fmtBRL(pVal2) : '—';
+      if (pagTipoBadge) pagTipoBadge.textContent = 'Dividido';
+      formaEl.textContent = pForma1 || '—';
+      v1Label.textContent = 'Valor 1ª forma';
+      v1El.textContent    = pVal1 != null && !isNaN(pVal1) ? fmtBRL(pVal1) : '—';
+      v1Wrap.hidden  = false;
+      document.getElementById('modalPagForma2').textContent  = pForma2 || '—';
+      document.getElementById('modalPagValor2').textContent  = pVal2 != null && !isNaN(pVal2) ? fmtBRL(pVal2) : '—';
       forma2W.hidden = false;
       val2W.hidden   = false;
     } else {
-      formaEl.textContent  = pForma1 || '—';
-      v1Label.textContent  = 'Valor';
-      v1El.textContent     = pVal1 != null ? fmtBRL(pVal1) : '—';
+      if (pagTipoBadge) pagTipoBadge.textContent = 'Pagamento único';
+      formaEl.textContent = pForma1 || '—';
+      v1Label.textContent = 'Valor pago';
+      v1El.textContent    = pVal1 != null && !isNaN(pVal1) ? fmtBRL(pVal1) : '—';
+      v1Wrap.hidden  = false;
       document.getElementById('modalPagForma2').textContent  = '—';
       document.getElementById('modalPagValor2').textContent  = '—';
       forma2W.hidden = true;
@@ -3156,8 +3163,38 @@ const NewAppointmentModal = (() => {
   function _atualizarTotalPagamento() {
     const v1 = parseFloat(document.getElementById('newPagValor1').value) || 0;
     const v2 = parseFloat(document.getElementById('newPagValor2').value) || 0;
-    document.getElementById('newPagTotalVal').textContent =
-      (v1 + v2).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const total = v1 + v2;
+
+    const tipoExame = document.getElementById('newTipoExame').value;
+    const valorExame = VALOR_POR_EXAME[tipoExame] || 0;
+
+    const totalEl = document.getElementById('newPagTotalVal');
+    const statusEl = document.getElementById('newPagValidadorStatus');
+
+    totalEl.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    if (!statusEl) return;
+
+    if (valorExame === 0 || (v1 === 0 && v2 === 0)) {
+      statusEl.textContent = '';
+      statusEl.className = 'pag-validador';
+      return;
+    }
+
+    const diff = Math.round((total - valorExame) * 100) / 100; // evita float noise
+
+    if (diff === 0) {
+      statusEl.textContent = '✓ Total confere com o valor do exame';
+      statusEl.className = 'pag-validador pag-validador--ok';
+    } else if (diff < 0) {
+      const falta = Math.abs(diff).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      statusEl.textContent = `⚠ Faltam ${falta} para cobrir o valor do exame`;
+      statusEl.className = 'pag-validador pag-validador--warn';
+    } else {
+      const excede = diff.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      statusEl.textContent = `⚠ Total excede em ${excede} o valor do exame`;
+      statusEl.className = 'pag-validador pag-validador--warn';
+    }
   }
 
   /* ------------------------------------------------------------------
