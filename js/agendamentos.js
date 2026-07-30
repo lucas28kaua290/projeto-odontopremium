@@ -964,21 +964,21 @@ const AppointmentModal = (() => {
       formaEl.textContent = pForma1 || '—';
       v1Label.textContent = 'Valor 1ª forma';
       v1El.textContent    = pVal1 != null && !isNaN(pVal1) ? fmtBRL(pVal1) : '—';
-      v1Wrap.hidden  = false;
+      v1Wrap.removeAttribute('hidden');
       document.getElementById('modalPagForma2').textContent  = pForma2 || '—';
       document.getElementById('modalPagValor2').textContent  = pVal2 != null && !isNaN(pVal2) ? fmtBRL(pVal2) : '—';
-      forma2W.hidden = false;
-      val2W.hidden   = false;
+      forma2W.style.display = '';
+      val2W.style.display   = '';
     } else {
       if (pagTipoBadge) pagTipoBadge.textContent = 'Pagamento único';
       formaEl.textContent = pForma1 || '—';
       v1Label.textContent = 'Valor pago';
       v1El.textContent    = pVal1 != null && !isNaN(pVal1) ? fmtBRL(pVal1) : '—';
-      v1Wrap.hidden  = false;
+      v1Wrap.removeAttribute('hidden');
       document.getElementById('modalPagForma2').textContent  = '—';
       document.getElementById('modalPagValor2').textContent  = '—';
-      forma2W.setAttribute('hidden', '');
-      val2W.setAttribute('hidden', '');
+      forma2W.style.display = 'none';
+      val2W.style.display   = 'none';
     }
 
     /* Botão WhatsApp dinâmico */
