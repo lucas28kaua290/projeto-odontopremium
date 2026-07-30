@@ -67,14 +67,15 @@ from dotenv import load_dotenv
 # 1. CONFIGURAÇÃO
 # -----------------------------------------------------------------------------
 
-load_dotenv()
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(_BASE_DIR, ".env"))
 
 app = Flask(__name__)
 CORS(app, origins="*", allow_headers=["Authorization", "Content-Type"])
 
 DB_HOST     = os.getenv("DB_HOST",     "localhost")
 DB_PORT     = int(os.getenv("DB_PORT", "3306"))
-DB_NAME     = os.getenv("DB_NAME",     "iord")
+DB_NAME     = os.getenv("DB_NAME")      # sem fallback — falha explícita se não configurado
 DB_USER     = os.getenv("DB_USER",     "root")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 JWT_SECRET  = os.getenv("JWT_SECRET",  "TROQUE-ESTA-CHAVE-EM-PRODUCAO")
@@ -82,7 +83,7 @@ JWT_ALGO    = "HS256"
 JWT_EXP_H   = int(os.getenv("JWT_EXP_HOURS", "8"))
 UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", "uploads")
 
-# --- SMTP (envio de e-mails transacionais: senha de novo usuário, notificações) ---
+# --- SMTP ---
 SMTP_HOST      = os.getenv("SMTP_HOST", "")
 SMTP_PORT      = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER      = os.getenv("SMTP_USER", "")
@@ -96,6 +97,14 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("iord")
+
+if not DB_NAME:
+    raise RuntimeError("DB_NAME não definido! Verifique o .env em: " + _BASE_DIR)
+
+log.info("=" * 60)
+log.info("IORD iniciando — DB_HOST=%s  DB_NAME=%s  DB_PORT=%s", DB_HOST, DB_NAME, DB_PORT)
+log.info(".env carregado de: %s", _BASE_DIR)
+log.info("=" * 60)
 
 
 # -----------------------------------------------------------------------------
