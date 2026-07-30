@@ -399,9 +399,6 @@ const Kpis = (() => {
       return acc + pct;
     }, 0) / (radsParaOcupacao.length || 1);
 
-    document.getElementById('kpiOcupacaoGeral')
-      .querySelector('[data-field="value"]').textContent = `${Math.round(mediaOcupacao)}%`;
-
     const doDia = todosDaRadiologia.filter(a => a.data === hojeISO);
     const confirmadosHoje = doDia.filter(a => a.status === 'confirmado' || a.status === 'realizado').length;
     const pendentesHoje = doDia.length - confirmadosHoje;
@@ -409,14 +406,6 @@ const Kpis = (() => {
     kpiHoje.querySelector('[data-field="value"]').textContent = formatNumber(doDia.length);
     kpiHoje.querySelector('[data-field="context"]').textContent =
       `${confirmadosHoje} confirmados · ${pendentesHoje} pendentes`;
-
-    const proximos7 = DateUtils.addDays(DateUtils.startOfDay(new Date()), 7);
-    const janela7 = todosDaRadiologia.filter(a =>
-      DateUtils.isWithinRange(a.data, DateUtils.startOfDay(new Date()), proximos7)
-    );
-    const preenchimento = Math.min(100, Math.round((janela7.length / (SLOTS_POR_DIA * 7)) * 100));
-    document.getElementById('kpiPreenchimento')
-      .querySelector('[data-field="value"]').textContent = `${preenchimento}%`;
 
     const faturamentoPrevisto = agendamentos
       .filter(a => a.status === 'confirmado' || a.status === 'realizado')
