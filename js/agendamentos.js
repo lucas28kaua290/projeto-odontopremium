@@ -977,8 +977,8 @@ const AppointmentModal = (() => {
       v1Wrap.hidden  = false;
       document.getElementById('modalPagForma2').textContent  = '—';
       document.getElementById('modalPagValor2').textContent  = '—';
-      forma2W.hidden = true;
-      val2W.hidden   = true;
+      forma2W.setAttribute('hidden', '');
+      val2W.setAttribute('hidden', '');
     }
 
     /* Botão WhatsApp dinâmico */
@@ -2831,6 +2831,8 @@ const NewAppointmentModal = (() => {
     document.getElementById('newPagValor2').value = '';
     document.getElementById('newPagDivididoWrap').hidden = true;
     document.getElementById('newPagTotalVal').textContent = 'R$ 0,00';
+    const pagValidador = document.getElementById('newPagValidadorStatus');
+    if (pagValidador) { pagValidador.textContent = ''; pagValidador.className = 'pag-validador'; }
   }
 
   function fillFormForEdit(ag) {
@@ -3158,8 +3160,14 @@ const NewAppointmentModal = (() => {
   }
 
   /* ------------------------------------------------------------------
-     PAGAMENTO — soma automática
+     PAGAMENTO — helpers
   ------------------------------------------------------------------ */
+  function _preencherValorUnico() {
+    const tipoExame = document.getElementById('newTipoExame').value;
+    const valorExame = VALOR_POR_EXAME[tipoExame] || 0;
+    document.getElementById('newPagValor1').value = valorExame > 0 ? valorExame : '';
+  }
+
   function _atualizarTotalPagamento() {
     const v1 = parseFloat(document.getElementById('newPagValor1').value) || 0;
     const v2 = parseFloat(document.getElementById('newPagValor2').value) || 0;
@@ -3213,13 +3221,22 @@ const NewAppointmentModal = (() => {
 
     // Pagamento: toggle único vs dividido
     document.getElementById('newPagTipo').addEventListener('change', (e) => {
-      document.getElementById('newPagDivididoWrap').hidden = (e.target.value !== 'dividido');
+      const isDividido = e.target.value === 'dividido';
+      document.getElementById('newPagDivididoWrap').hidden = !isDividido;
+      if (!isDividido) _preencherValorUnico();
+    });
+    document.getElementById('newPagForma1').addEventListener('change', () => {
+      if (document.getElementById('newPagTipo').value === 'unico') _preencherValorUnico();
     });
     // Soma automática do total dividido
     ['newPagValor1', 'newPagValor2'].forEach(id => {
       document.getElementById(id).addEventListener('input', _atualizarTotalPagamento);
     });
-    document.getElementById('newTipoExame').addEventListener('change', () => { updateValuePreview(); tryUpdateHorarios(); });
+    document.getElementById('newTipoExame').addEventListener('change', () => {
+      updateValuePreview();
+      tryUpdateHorarios();
+      if (document.getElementById('newPagTipo').value === 'unico') _preencherValorUnico();
+    });
     document.getElementById('newDate').addEventListener('change', tryUpdateHorarios);
     document.getElementById('newTimeStart').addEventListener('change', onHorarioChange);
 
