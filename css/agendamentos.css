@@ -4530,13 +4530,21 @@ input:focus-visible {
     padding: 6px var(--space-3);
   }
 
-  /* ── Nav sidebar: labels somem (só ícone) ── */
   .nav-link__label {
     display: none;
   }
 
   .nav-link {
     padding: 10px;
+  }
+
+  /* Dentro do drawer aberto, restaura os labels */
+  .sidebar.is-open .nav-link__label {
+    display: inline;
+  }
+
+  .sidebar.is-open .nav-link {
+    padding: 10px var(--space-3);
   }
 }
 

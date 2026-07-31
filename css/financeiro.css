@@ -3715,6 +3715,11 @@ td.td-change {
   .fin-search {
     min-width: 150px;
   }
+
+  /* Header: garante que o avatar não seja cortado */
+  .app-header {
+    padding: 0 var(--space-3);
+  }
 }
 
 @media (max-width: 768px) {
@@ -3789,7 +3794,22 @@ td.td-change {
 
   .fin-period-bar {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+  }
+
+  .fin-period-bar .custom-range {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    width: 100%;
+  }
+
+  .fin-period-bar .custom-range__input {
+    width: 100%;
+  }
+
+  .fin-period-bar .custom-range__sep {
+    text-align: center;
   }
 }
 
