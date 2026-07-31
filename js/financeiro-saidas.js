@@ -187,24 +187,45 @@
           borderWidth: 2,
           borderColor: '#fff',
           hoverOffset: 4,
-          clip: false // Impede o corte dos elementos nos limites do canvas
         }],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '65%',
-        layout: {
-          padding: 6 // Respiro interno para o tooltip/hoverOffset não cortarem nas bordas
-        },
+        cutout: '62%',
         plugins: {
           legend: { display: false },
           tooltip: {
-            enabled: true,
-            displayColors: false,
-            callbacks: {
-              label: ctx => ` ${fmt(ctx.raw)} (${items[ctx.dataIndex]?.percentual ?? 0}%)`,
-            },
+            enabled: false, // Desativa tooltip interno do canvas
+            external: function (context) {
+              // Tooltip customizado em HTML (não corta nas bordas do canvas)
+              let tooltipEl = document.getElementById('saidas-chart-tooltip');
+              if (!tooltipEl) {
+                tooltipEl = document.createElement('div');
+                tooltipEl.id = 'saidas-chart-tooltip';
+                tooltipEl.className = 'saidas-custom-tooltip';
+                document.body.appendChild(tooltipEl);
+              }
+
+              const tooltipModel = context.tooltip;
+              if (tooltipModel.opacity === 0) {
+                tooltipEl.style.opacity = '0';
+                return;
+              }
+
+              if (tooltipModel.body) {
+                const i = tooltipModel.dataPoints[0].dataIndex;
+                tooltipEl.innerHTML = `
+                  <div class="tooltip-title">${labels[i]}</div>
+                  <div class="tooltip-value">${fmt(values[i])} (${items[i]?.percentual ?? 0}%)</div>
+                `;
+              }
+
+              const position = context.chart.canvas.getBoundingClientRect();
+              tooltipEl.style.opacity = '1';
+              tooltipEl.style.left = position.left + window.pageXOffset + tooltipModel.caretX + 'px';
+              tooltipEl.style.top = position.top + window.pageYOffset + tooltipModel.caretY - 40 + 'px';
+            }
           },
         },
       },

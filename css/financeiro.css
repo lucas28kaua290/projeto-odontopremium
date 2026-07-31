@@ -3217,18 +3217,15 @@ td.td-change {
 .saidas-pizza-container {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding-top: var(--space-2);
-  flex: 1;
+  gap: 16px; 
+  padding-top: 4px;
 }
 
 .saidas-pizza-wrap {
   position: relative;
-  width: 85px;
-  height: 85px;
+  width: 110px; /* Aumentado de 85px para 110px */
+  height: 110px;
   flex-shrink: 0;
-  overflow: visible !important;
 }
 
 .saidas-pizza-wrap canvas {
@@ -3240,11 +3237,9 @@ td.td-change {
 .saidas-pizza-legend {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   flex: 1;
-  max-height: 85px;
-  overflow-y: auto;
-  padding-right: 2px;
+  max-width: 220px; /* Limita a largura máxima para aproximar os valores */
 }
 
 .saidas-pizza-leg-label {
@@ -3256,17 +3251,47 @@ td.td-change {
 
 .saidas-pizza-leg-val {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 600;
   color: var(--color-text);
-  margin-left: 6px;
+  white-space: nowrap;
+}
+
+/* Tooltip HTML Flutuante (sem risco de corte) */
+.saidas-custom-tooltip {
+  position: absolute;
+  background: rgba(18, 24, 38, 0.9);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+}
+
+.saidas-custom-tooltip .tooltip-title {
+  font-weight: 600;
+  margin-bottom: 2px;
+  color: #94a3b8;
+}
+
+.saidas-custom-tooltip .tooltip-value {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: #fff;
 }
 
 .saidas-pizza-leg-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.72rem; /* Texto menor e compacto */
+  gap: 12px; /* Controla a distância máxima entre texto e valor */
+  font-size: 0.75rem;
   line-height: 1.2;
 }
 
