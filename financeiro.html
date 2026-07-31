@@ -157,6 +157,15 @@
           </svg>
           Relatórios
         </button>
+
+        <!-- NOVO: aba Saídas -->
+        <button type="button" class="fin-tab" data-tab="saidas" role="tab" aria-selected="false">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+            <path d="M12 19l-7-7 7-7M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+          Saídas
+        </button>
       </nav>
 
       <!-- Filtro de período (global, sincronizado com todas as abas) -->
@@ -870,6 +879,180 @@
 
       </section>
 
+      <!-- =======================================================
+         ABA: SAÍDAS
+      ======================================================== -->
+      <section id="tab-saidas" class="fin-panel fin-panel--hidden" aria-label="Saídas e Despesas">
+
+        <!-- ── KPIs ── -->
+        <div class="fin-kpi-grid fin-kpi-grid--saidas">
+
+          <!-- Card 1: Total de Saídas -->
+          <article class="fin-kpi-card fin-kpi-card--danger" id="kpiSaidasTotal">
+            <div class="fin-kpi-card__header">
+              <span class="fin-kpi-card__label">Total de Saídas no Período</span>
+              <span class="fin-kpi-card__icon fin-kpi-card__icon--danger">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 19l-7-7 7-7M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                </svg>
+              </span>
+            </div>
+            <div class="fin-kpi-card__value" id="kpiSaidasTotalVal">R$ --</div>
+            <div class="fin-kpi-card__footer">
+              <span class="fin-kpi-card__context" id="kpiSaidasTotalCtx">Carregando...</span>
+            </div>
+          </article>
+
+          <!-- Card 2: Maior Categoria -->
+          <article class="fin-kpi-card" id="kpiSaidasCategoria">
+            <div class="fin-kpi-card__header">
+              <span class="fin-kpi-card__label">Maior Categoria</span>
+              <span class="fin-kpi-card__icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 6h16M4 10h16M4 14h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+              </span>
+            </div>
+            <div class="fin-kpi-card__value fin-kpi-card__value--sm" id="kpiSaidasCategoriaVal">--</div>
+            <div class="fin-kpi-card__footer">
+              <span class="fin-kpi-card__context" id="kpiSaidasCategoriaCtx">onde mais se gastou</span>
+            </div>
+          </article>
+
+          <!-- Card 3: Por Forma de Pagamento (pizza) -->
+          <article class="fin-kpi-card fin-kpi-card--chart" id="kpiSaidasForma">
+            <div class="fin-kpi-card__header">
+              <span class="fin-kpi-card__label">Por Forma de Pagamento</span>
+              <span class="fin-kpi-card__icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
+                  <path d="M12 3a9 9 0 016.3 15.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+              </span>
+            </div>
+            <div class="saidas-pizza-wrap">
+              <canvas id="saidasFormaChart" aria-label="Pizza de saídas por forma de pagamento"></canvas>
+              <div class="saidas-pizza-legend" id="saidasFormaLegend"></div>
+            </div>
+          </article>
+
+        </div>
+
+        <!-- ── Toolbar: botão + filtros ── -->
+        <div class="saidas-toolbar">
+          <button type="button" class="btn btn--primary" id="btnNovaSaida">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+            Nova Saída
+          </button>
+
+          <div class="saidas-filters">
+            <!-- Radiologia (admin: todas; não-admin: fixo) -->
+            <div class="saidas-filter-group" id="saidasRadiologiaGroup">
+              <label class="saidas-filter-label" for="saidasRadiologiaFilter">Radiologia</label>
+              <div class="period-select-wrapper">
+                <select id="saidasRadiologiaFilter" class="period-select">
+                  <!-- Populado pelo JS -->
+                </select>
+                <svg class="period-select__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+              </div>
+            </div>
+
+            <!-- Categoria -->
+            <div class="saidas-filter-group">
+              <label class="saidas-filter-label" for="saidasCategoriaFilter">Categoria</label>
+              <div class="period-select-wrapper">
+                <select id="saidasCategoriaFilter" class="period-select">
+                  <option value="">Todas</option>
+                  <option value="material">Material</option>
+                  <option value="manutencao">Manutenção</option>
+                  <option value="limpeza">Limpeza</option>
+                  <option value="marketing">Marketing</option>
+                  <option value="transporte">Transporte</option>
+                  <option value="pessoal">Pessoal</option>
+                  <option value="outros">Outros</option>
+                </select>
+                <svg class="period-select__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+              </div>
+            </div>
+
+            <!-- Forma de pagamento -->
+            <div class="saidas-filter-group">
+              <label class="saidas-filter-label" for="saidasFormaFilter">Forma de Pgto</label>
+              <div class="period-select-wrapper">
+                <select id="saidasFormaFilter" class="period-select">
+                  <option value="">Todas</option>
+                  <option value="pix">PIX</option>
+                  <option value="dinheiro">Dinheiro</option>
+                  <option value="cartao">Cartão</option>
+                  <option value="transferencia">Transferência</option>
+                  <option value="boleto">Boleto</option>
+                </select>
+                <svg class="period-select__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+              </div>
+            </div>
+
+            <!-- Busca por descrição -->
+            <div class="saidas-filter-group saidas-filter-group--search">
+              <label class="saidas-filter-label" for="saidasSearch">Buscar</label>
+              <div class="saidas-search-wrap">
+                <svg class="saidas-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8" />
+                  <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+                <input type="text" id="saidasSearch" class="saidas-search-input" placeholder="Descrição..."
+                  aria-label="Buscar por descrição">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Tabela de saídas ── -->
+        <div class="table-card">
+          <div class="table-card__header">
+            <div>
+              <h3 class="table-card__title">Listagem de Saídas</h3>
+              <span class="table-card__hint" id="saidasTableHint">Mais recentes primeiro</span>
+            </div>
+            <button type="button" class="btn btn--ghost btn--sm" id="btnExportSaidas">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor"
+                  stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              Exportar CSV
+            </button>
+          </div>
+          <div class="table-card__scroll">
+            <table class="data-table" id="saidasTable">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Descrição</th>
+                  <th>Categoria</th>
+                  <th class="data-table__num">Valor</th>
+                  <th>Forma de Pgto</th>
+                  <th>Radiologia</th>
+                  <th class="data-table__action">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="saidasTableBody">
+                <tr>
+                  <td colspan="7" class="data-table__empty">Carregando...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
     </main>
   </div>
 
@@ -998,11 +1181,133 @@
     </div>
   </div>
 
+  <!-- =======================================================
+     MODAL: CADASTRO / EDIÇÃO DE SAÍDA
+  ======================================================== -->
+  <div class="modal-backdrop" id="modalSaidaBackdrop" hidden aria-hidden="true">
+    <div class="modal modal--md" id="modalSaida" role="dialog" aria-modal="true"
+      aria-labelledby="modalSaidaTitle">
+ 
+      <div class="modal__header">
+        <h2 class="modal__title" id="modalSaidaTitle">Nova Saída</h2>
+        <button type="button" class="modal__close" id="modalSaidaClose" aria-label="Fechar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+ 
+      <div class="modal__body">
+        <input type="hidden" id="saidaEditId">
+ 
+        <div class="modal-form-grid modal-form-grid--2">
+ 
+          <!-- Data -->
+          <div class="form-field">
+            <label class="form-label" for="saidaData">Data <span class="form-required">*</span></label>
+            <input type="date" id="saidaData" class="form-input" required>
+          </div>
+ 
+          <!-- Valor -->
+          <div class="form-field">
+            <label class="form-label" for="saidaValor">Valor <span class="form-required">*</span></label>
+            <div class="form-input-money-wrap">
+              <span class="form-input-money-prefix">R$</span>
+              <input type="text" id="saidaValor" class="form-input form-input--money"
+                placeholder="0,00" inputmode="numeric" required>
+            </div>
+          </div>
+ 
+          <!-- Descrição (full width) -->
+          <div class="form-field form-field--full">
+            <label class="form-label" for="saidaDescricao">Descrição <span class="form-required">*</span></label>
+            <input type="text" id="saidaDescricao" class="form-input"
+              placeholder="O que foi comprado ou pago?" required maxlength="200">
+          </div>
+ 
+          <!-- Categoria -->
+          <div class="form-field">
+            <label class="form-label" for="saidaCategoria">Categoria <span class="form-required">*</span></label>
+            <div class="period-select-wrapper">
+              <select id="saidaCategoria" class="period-select form-input" required>
+                <option value="">Selecione...</option>
+                <option value="material">Material</option>
+                <option value="manutencao">Manutenção</option>
+                <option value="limpeza">Limpeza</option>
+                <option value="marketing">Marketing</option>
+                <option value="transporte">Transporte</option>
+                <option value="pessoal">Pessoal</option>
+                <option value="outros">Outros</option>
+              </select>
+              <svg class="period-select__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </div>
+ 
+          <!-- Forma de Pagamento -->
+          <div class="form-field">
+            <label class="form-label" for="saidaForma">Forma de Pagamento <span class="form-required">*</span></label>
+            <div class="period-select-wrapper">
+              <select id="saidaForma" class="period-select form-input" required>
+                <option value="">Selecione...</option>
+                <option value="pix">PIX</option>
+                <option value="dinheiro">Dinheiro</option>
+                <option value="cartao">Cartão</option>
+                <option value="transferencia">Transferência</option>
+                <option value="boleto">Boleto</option>
+              </select>
+              <svg class="period-select__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </div>
+ 
+          <!-- Radiologia (admin escolhe; não-admin fixo) -->
+          <div class="form-field form-field--full" id="saidaRadiologiaField">
+            <label class="form-label" for="saidaRadiologia">Radiologia <span class="form-required">*</span></label>
+            <div class="period-select-wrapper">
+              <select id="saidaRadiologia" class="period-select form-input" required>
+                <!-- Populado pelo JS -->
+              </select>
+              <svg class="period-select__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </div>
+ 
+          <!-- Observação (full width, opcional) -->
+          <div class="form-field form-field--full">
+            <label class="form-label" for="saidaObservacao">Observação <span class="form-optional">(opcional)</span></label>
+            <textarea id="saidaObservacao" class="form-input form-input--textarea"
+              placeholder="Algum detalhe adicional..." rows="3" maxlength="500"></textarea>
+          </div>
+ 
+        </div>
+ 
+        <!-- Resumo inline antes de salvar -->
+        <div class="saida-modal-preview" id="saidaModalPreview" hidden></div>
+ 
+      </div>
+ 
+      <div class="modal__footer">
+        <button type="button" class="btn btn--ghost" id="modalSaidaCancel">Cancelar</button>
+        <button type="button" class="btn btn--primary" id="modalSaidaConfirm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Salvar Saída
+        </button>
+      </div>
+    </div>
+  </div>
   <!-- SCRIPTS -->
 
   <script src="js/auth.js"></script>
   <script src="js/api.js"></script>
   <script src="js/financeiro.js"></script>
+  <script src="js/financeiro-saidas.js"></script>
   <script src="js/profile-dropdown.js"></script>
   <script>
     try { window.IORDAuth.requireLogin() } catch (e) { }
