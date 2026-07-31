@@ -4248,7 +4248,8 @@ input:focus-visible {
 
   /* ── Header ── */
   .app-header {
-    padding: 0 var(--space-4);
+    padding: 0 var(--space-3);
+    overflow: hidden;
   }
 
   .brand-text__subtitle {

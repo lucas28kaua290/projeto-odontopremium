@@ -3719,6 +3719,7 @@ td.td-change {
   /* Header: garante que o avatar não seja cortado */
   .app-header {
     padding: 0 var(--space-3);
+    overflow: hidden;
   }
 }
 
