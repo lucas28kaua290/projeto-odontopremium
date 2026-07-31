@@ -2048,11 +2048,13 @@ input:focus-visible {
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
   opacity: 0;
+  pointer-events: none; /* ← invisível E não captura cliques */
   transition: opacity var(--transition-base);
 }
 
 .sidebar-overlay.is-visible {
   opacity: 1;
+  pointer-events: auto; /* ← só captura cliques quando está de fato visível */
 }
 
 /* =============================================================
@@ -2460,6 +2462,7 @@ input:focus-visible {
   /* ── Overlay de fundo ── */
   .sidebar-overlay {
     display: block;
+    pointer-events: none;
   }
 
   /* ── Nav: volta ao eixo vertical dentro do drawer ── */
