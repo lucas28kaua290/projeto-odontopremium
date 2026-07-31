@@ -931,17 +931,21 @@
                 </svg>
               </span>
             </div>
+
+            <!-- Wrapper contendo APENAS o canvas -->
             <div class="saidas-pizza-wrap">
               <canvas id="saidasFormaChart" aria-label="Pizza de saídas por forma de pagamento"></canvas>
-              <div class="saidas-pizza-legend" id="saidasFormaLegend"></div>
             </div>
+
+            <!-- Legenda posicionada fora do wrapper -->
+            <div class="saidas-pizza-legend" id="saidasFormaLegend"></div>
           </article>
 
         </div>
 
         <!-- ── Toolbar: botão + filtros ── -->
         <div class="saidas-toolbar">
-          
+
           <div class="saidas-filters">
             <!-- Radiologia (admin: todas; não-admin: fixo) -->
             <div class="saidas-filter-group" id="saidasRadiologiaGroup">
@@ -1185,46 +1189,45 @@
      MODAL: CADASTRO / EDIÇÃO DE SAÍDA
   ======================================================== -->
   <div class="modal-backdrop" id="modalSaidaBackdrop" hidden aria-hidden="true">
-    <div class="modal modal--md" id="modalSaida" role="dialog" aria-modal="true"
-      aria-labelledby="modalSaidaTitle">
- 
+    <div class="modal modal--md" id="modalSaida" role="dialog" aria-modal="true" aria-labelledby="modalSaidaTitle">
+
       <div class="modal__header">
         <h2 class="modal__title" id="modalSaidaTitle">Nova Saída</h2>
         <button type="button" class="modal__close" id="modalSaidaClose" aria-label="Fechar">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
           </svg>
         </button>
       </div>
- 
+
       <div class="modal__body">
         <input type="hidden" id="saidaEditId">
- 
+
         <div class="modal-form-grid modal-form-grid--2">
- 
+
           <!-- Data -->
           <div class="form-field">
             <label class="form-label" for="saidaData">Data <span class="form-required">*</span></label>
             <input type="date" id="saidaData" class="form-input" required>
           </div>
- 
+
           <!-- Valor -->
           <div class="form-field">
             <label class="form-label" for="saidaValor">Valor <span class="form-required">*</span></label>
             <div class="form-input-money-wrap">
               <span class="form-input-money-prefix">R$</span>
-              <input type="text" id="saidaValor" class="form-input form-input--money"
-                placeholder="0,00" inputmode="numeric" required>
+              <input type="text" id="saidaValor" class="form-input form-input--money" placeholder="0,00"
+                inputmode="numeric" required>
             </div>
           </div>
- 
+
           <!-- Descrição (full width) -->
           <div class="form-field form-field--full">
             <label class="form-label" for="saidaDescricao">Descrição <span class="form-required">*</span></label>
-            <input type="text" id="saidaDescricao" class="form-input"
-              placeholder="O que foi comprado ou pago?" required maxlength="200">
+            <input type="text" id="saidaDescricao" class="form-input" placeholder="O que foi comprado ou pago?" required
+              maxlength="200">
           </div>
- 
+
           <!-- Categoria -->
           <div class="form-field">
             <label class="form-label" for="saidaCategoria">Categoria <span class="form-required">*</span></label>
@@ -1240,11 +1243,11 @@
                 <option value="outros">Outros</option>
               </select>
               <svg class="period-select__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
               </svg>
             </div>
           </div>
- 
+
           <!-- Forma de Pagamento -->
           <div class="form-field">
             <label class="form-label" for="saidaForma">Forma de Pagamento <span class="form-required">*</span></label>
@@ -1258,11 +1261,11 @@
                 <option value="boleto">Boleto</option>
               </select>
               <svg class="period-select__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
               </svg>
             </div>
           </div>
- 
+
           <!-- Radiologia (admin escolhe; não-admin fixo) -->
           <div class="form-field form-field--full" id="saidaRadiologiaField">
             <label class="form-label" for="saidaRadiologia">Radiologia <span class="form-required">*</span></label>
@@ -1271,31 +1274,32 @@
                 <!-- Populado pelo JS -->
               </select>
               <svg class="period-select__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
               </svg>
             </div>
           </div>
- 
+
           <!-- Observação (full width, opcional) -->
           <div class="form-field form-field--full">
-            <label class="form-label" for="saidaObservacao">Observação <span class="form-optional">(opcional)</span></label>
+            <label class="form-label" for="saidaObservacao">Observação <span
+                class="form-optional">(opcional)</span></label>
             <textarea id="saidaObservacao" class="form-input form-input--textarea"
               placeholder="Algum detalhe adicional..." rows="3" maxlength="500"></textarea>
           </div>
- 
+
         </div>
- 
+
         <!-- Resumo inline antes de salvar -->
         <div class="saida-modal-preview" id="saidaModalPreview" hidden></div>
- 
+
       </div>
- 
+
       <div class="modal__footer">
         <button type="button" class="btn btn--ghost" id="modalSaidaCancel">Cancelar</button>
         <button type="button" class="btn btn--primary" id="modalSaidaConfirm">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
           </svg>
           Salvar Saída
         </button>
