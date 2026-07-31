@@ -341,7 +341,6 @@
                   <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                <span>Editar</span>
               </button>
               <button type="button" class="tbl-action-btn tbl-action-btn--delete"
                 data-saida-del="${r.id}" title="Excluir saída"
@@ -352,7 +351,6 @@
                   <path d="M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                <span>Excluir</span>
               </button>
             </div>
           </td>
