@@ -3735,6 +3735,15 @@ def saidas_criar():
     if nivel != "admin" and rad_usuario and rad_usuario != "todas":
         radiologia_id = rad_usuario  # força a radiologia do usuário
 
+    CATEGORIAS_VALIDAS = {'material', 'manutencao', 'limpeza', 'marketing', 'transporte', 'salario', 'aluguel', 'energia', 'outros'}
+    FORMAS_VALIDAS     = {'pix', 'dinheiro', 'cartao', 'transferencia', 'boleto'}
+
+    if data["categoria"] not in CATEGORIAS_VALIDAS:
+        return err(f"Categoria inválida: '{data['categoria']}'. Valores aceitos: {', '.join(sorted(CATEGORIAS_VALIDAS))}")
+
+    if data["formaPagamento"] not in FORMAS_VALIDAS:
+        return err(f"Forma de pagamento inválida: '{data['formaPagamento']}'. Valores aceitos: {', '.join(sorted(FORMAS_VALIDAS))}")
+
     try:
         valor = float(data["valor"])
         if valor <= 0:
@@ -3742,7 +3751,13 @@ def saidas_criar():
     except (ValueError, TypeError):
         return err("Valor inválido.")
 
-    query(
+    criado_por_id = g.user.get("id") or g.user.get("sub")
+    try:
+        criado_por_id = int(criado_por_id) if criado_por_id is not None else None
+    except (ValueError, TypeError):
+        criado_por_id = None
+
+    new_id = insert(
         "INSERT INTO saidas "
         "(radiologia_id, data_saida, descricao, categoria, valor, forma_pagamento, observacao, criado_por) "
         "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
@@ -3754,14 +3769,32 @@ def saidas_criar():
             valor,
             data["formaPagamento"],
             (data.get("observacao") or "").strip() or None,
-            g.user.get("email") or g.user.get("nome") or "sistema",
-        ),
-        fetch="none"
+            criado_por_id,
+        )
     )
-    new_id_row = query("SELECT LAST_INSERT_ID() AS id", fetch="one")
-    new_id = new_id_row["id"] if new_id_row else None
     return created({"id": new_id}, "Saída registrada com sucesso.")
 
+@app.route("/v1/saidas/opcoes", methods=["GET"])
+@require_auth
+def saidas_opcoes():
+    """[API] GET /saidas/opcoes — Retorna os ENUMs válidos de categoria e forma_pagamento."""
+    row = query(
+        "SELECT COLUMN_NAME, COLUMN_TYPE FROM information_schema.COLUMNS "
+        "WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'saidas' "
+        "AND COLUMN_NAME IN ('categoria', 'forma_pagamento')",
+        (DB_NAME,)
+    )
+    result = {}
+    for col in (row or []):
+        # COLUMN_TYPE vem como: enum('pix','dinheiro','cartao')
+        raw = col["COLUMN_TYPE"]  # str
+        values = re.findall(r"'([^']+)'", raw)
+        result[col["COLUMN_NAME"]] = values
+
+    return ok({
+        "categorias":      result.get("categoria", []),
+        "formasPagamento": result.get("forma_pagamento", []),
+    })
 
 @app.route("/v1/saidas/<int:saida_id>", methods=["PUT"])
 @require_auth

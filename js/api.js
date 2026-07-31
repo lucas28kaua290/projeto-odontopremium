@@ -2181,6 +2181,11 @@ const Api = (() => {
         return { data: Array.isArray(data) ? data : [] };
     }
 
+    async function getSaidasOpcoes() {
+        const data = await request('/saidas/opcoes');
+        return { data };
+    }
+
     /**
      * KPIs da aba Saídas.
      *
@@ -2371,6 +2376,7 @@ const Api = (() => {
         // 16. Saídas
         getSaidas,
         getSaidasKPIs,
+        getSaidasOpcoes,
         postSaida,
         updateSaida,
         deleteSaida,

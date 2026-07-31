@@ -28,23 +28,29 @@
     '#E05C5C', '#0E8F63', '#B27A0E',
   ];
 
-  const CATEGORIAS = [
-    { value: 'material', label: 'Material' },
-    { value: 'manutencao', label: 'Manutenção' },
-    { value: 'limpeza', label: 'Limpeza' },
-    { value: 'marketing', label: 'Marketing' },
-    { value: 'transporte', label: 'Transporte' },
-    { value: 'pessoal', label: 'Pessoal' },
-    { value: 'outros', label: 'Outros' },
-  ];
+  let CATEGORIAS = [];
+  let FORMAS     = [];
 
-  const FORMAS = [
-    { value: 'pix', label: 'PIX' },
-    { value: 'dinheiro', label: 'Dinheiro' },
-    { value: 'cartao', label: 'Cartão' },
-    { value: 'transferencia', label: 'Transferência' },
-    { value: 'boleto', label: 'Boleto' },
-  ];
+  const LABELS_CATEGORIA = {};
+  const LABELS_FORMA     = {};
+
+  // Preenchidas dinamicamente via /saidas/opcoes — fallback vazio até carregar
+  let CATEGORIAS = [];
+  let FORMAS     = [];
+
+  // Labels legíveis para cada value (geradas após carregar opções)
+  const LABELS_CATEGORIA = {};
+  const LABELS_FORMA     = {};
+
+  const LABEL_MAP = {
+    // categorias
+    material:   'Material',   manutencao: 'Manutenção', limpeza:  'Limpeza',
+    marketing:  'Marketing',  transporte: 'Transporte', salario:  'Salário',
+    aluguel:    'Aluguel',    energia:    'Energia',    outros:   'Outros',
+    // formas
+    pix:         'PIX',       dinheiro:   'Dinheiro',   cartao:   'Cartão',
+    transferencia: 'Transferência',                      boleto:   'Boleto',
+  };
 
   /* ─────────────────────────────────────────────────────────
      ESTADO LOCAL
@@ -89,11 +95,11 @@
   }
 
   function labelCategoria(v) {
-    return CATEGORIAS.find(c => c.value === v)?.label || v || '--';
+    return LABELS_CATEGORIA[v] || LABEL_MAP[v] || v || '--';
   }
 
   function labelForma(v) {
-    return FORMAS.find(f => f.value === v)?.label || v || '--';
+    return LABELS_FORMA[v] || LABEL_MAP[v] || v || '--';
   }
 
   function unmaskMoney(str) {
@@ -134,6 +140,21 @@
     }, 3200);
   }
 
+  function _populateSelect(id, items, placeholderLabel) {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const currentVal = sel.value;
+    sel.innerHTML = `<option value="">${placeholderLabel}</option>`;
+    items.forEach(({ value, label }) => {
+      const opt = document.createElement('option');
+      opt.value = value;
+      opt.textContent = label;
+      sel.appendChild(opt);
+    });
+    // Restaura valor se ainda válido (caso modal já estivesse aberto)
+    if (currentVal) sel.value = currentVal;
+  }
+  
   function buildFiltros() {
     const base = {
       periodo: S.periodo,
@@ -316,24 +337,30 @@
           <td>${formaBadge}</td>
           <td class="saidas-radio-cell">${escHtml(radioNome)}</td>
           <td class="data-table__action">
-            <button type="button" class="btn-icon btn-icon--edit"
-              data-saida-edit="${r.id}" title="Editar">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"
-                  stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
-                  stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-              </svg>
-            </button>
-            <button type="button" class="btn-icon btn-icon--delete"
-              data-saida-del="${r.id}" title="Excluir">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="1.8"
-                  stroke-linecap="round"/>
-                <path d="M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"
-                  stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-              </svg>
-            </button>
+            <div class="tbl-actions">
+              <button type="button" class="tbl-action-btn tbl-action-btn--edit"
+                data-saida-edit="${r.id}" title="Editar saída"
+                aria-label="Editar saída">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Editar</span>
+              </button>
+              <button type="button" class="tbl-action-btn tbl-action-btn--delete"
+                data-saida-del="${r.id}" title="Excluir saída"
+                aria-label="Excluir saída">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                  <polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Excluir</span>
+              </button>
+            </div>
           </td>
         </tr>`;
     }).join('');
@@ -386,8 +413,88 @@
   /* ─────────────────────────────────────────────────────────
      DELETE com confirmação
   ───────────────────────────────────────────────────────── */
+  /* Modal de confirmação de exclusão (inline, sem window.confirm) */
+  const DeleteConfirm = (() => {
+    let _resolveCallback = null;
+
+    function getOrCreate() {
+      let el = document.getElementById('saidasDeleteConfirm');
+      if (el) return el;
+      el = document.createElement('div');
+      el.id = 'saidasDeleteConfirm';
+      el.setAttribute('aria-modal', 'true');
+      el.setAttribute('role', 'dialog');
+      el.style.cssText = [
+        'display:none', 'position:fixed', 'inset:0', 'z-index:10000',
+        'align-items:center', 'justify-content:center',
+        'background:rgba(19,39,43,.45)', 'backdrop-filter:blur(2px)',
+      ].join(';');
+      el.innerHTML = `
+        <div style="
+          background:var(--color-surface,#fff);
+          border-radius:14px;
+          padding:28px 28px 22px;
+          max-width:360px;
+          width:calc(100% - 32px);
+          box-shadow:0 20px 60px -10px rgba(19,39,43,.28);
+          text-align:center;
+        ">
+          <div style="
+            width:44px;height:44px;border-radius:50%;
+            background:#FEE2E2;display:flex;align-items:center;
+            justify-content:center;margin:0 auto 14px;
+          ">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <polyline points="3 6 5 6 21 6" stroke="#C23B32" stroke-width="2" stroke-linecap="round"/>
+              <path d="M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2" stroke="#C23B32" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <p style="font-size:.9375rem;font-weight:600;color:var(--color-text,#13272B);margin:0 0 6px">
+            Excluir saída?
+          </p>
+          <p style="font-size:.8125rem;color:var(--color-text-muted,#6B7B7F);margin:0 0 22px;line-height:1.5">
+            Esta ação não pode ser desfeita.
+          </p>
+          <div style="display:flex;gap:10px;justify-content:center;">
+            <button id="saidasDeleteCancel" style="
+              flex:1;padding:9px 0;border-radius:8px;font-size:.8125rem;
+              font-weight:600;cursor:pointer;border:1.5px solid var(--color-border,#E2E8EC);
+              background:transparent;color:var(--color-text,#13272B);
+            ">Cancelar</button>
+            <button id="saidasDeleteOk" style="
+              flex:1;padding:9px 0;border-radius:8px;font-size:.8125rem;
+              font-weight:600;cursor:pointer;border:none;
+              background:#C23B32;color:#fff;
+            ">Excluir</button>
+          </div>
+        </div>`;
+      document.body.appendChild(el);
+
+      document.getElementById('saidasDeleteCancel').addEventListener('click', () => resolve(false));
+      document.getElementById('saidasDeleteOk').addEventListener('click',    () => resolve(true));
+      el.addEventListener('click', e => { if (e.target === el) resolve(false); });
+      return el;
+    }
+
+    function resolve(confirmed) {
+      getOrCreate().style.display = 'none';
+      if (_resolveCallback) { _resolveCallback(confirmed); _resolveCallback = null; }
+    }
+
+    function ask() {
+      return new Promise(res => {
+        _resolveCallback = res;
+        const el = getOrCreate();
+        el.style.display = 'flex';
+      });
+    }
+
+    return { ask };
+  })();
+
   async function confirmDelete(id) {
-    if (!confirm('Deseja excluir esta saída? A ação não pode ser desfeita.')) return;
+    const ok = await DeleteConfirm.ask();
+    if (!ok) return;
     try {
       await Api.deleteSaida(id);
       toast('Saída excluída com sucesso.', 'success');
@@ -706,10 +813,33 @@
     try {
       const res = await Api.getRadiologias();
       const lista = res?.data || [];
-      // filtra 'all' se vier da API
       S.radiologias = lista.filter(r => r.id !== 'all');
     } catch (err) {
       console.warn('[Saídas] Não foi possível carregar radiologias:', err);
+    }
+
+    // Carrega ENUMs reais do banco
+    try {
+      const ops = await Api.getSaidasOpcoes();
+      const d   = ops?.data || {};
+
+      CATEGORIAS = (d.categorias || []).map(v => ({ value: v, label: LABEL_MAP[v] || v }));
+      FORMAS     = (d.formasPagamento || []).map(v => ({ value: v, label: LABEL_MAP[v] || v }));
+
+      // Popula lookup rápido
+      CATEGORIAS.forEach(c => { LABELS_CATEGORIA[c.value] = c.label; });
+      FORMAS.forEach(f     => { LABELS_FORMA[f.value]     = f.label; });
+
+      // Popula os <select> de filtro com os valores reais
+      _populateSelect('saidasCategoriaFilter', CATEGORIAS, 'Todas as categorias');
+      _populateSelect('saidasFormaFilter',     FORMAS,     'Todas as formas');
+
+      // Popula os <select> do modal de cadastro
+      _populateSelect('saidaCategoria', CATEGORIAS, 'Selecione...');
+      _populateSelect('saidaForma',     FORMAS,     'Selecione...');
+
+    } catch (err) {
+      console.warn('[Saídas] Não foi possível carregar opções de ENUM:', err);
     }
 
     // Sincroniza filtro de período com o select global
