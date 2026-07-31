@@ -1694,13 +1694,25 @@ def atualizar_paciente(paciente_id):
     params = []
 
     for campo in campos_permitidos:
-        if campo in data:
-            val = data[campo]
-            if campo == "cpf":
-                cpf_limpo = re.sub(r"\D", "", val)
+        if campo not in data:
+            continue
+        val = data[campo]
+
+        # Ignora campos vazios/nulos — não sobrescreve o que já está no banco
+        if val is None or (isinstance(val, str) and not val.strip()):
+            continue
+
+        if campo == "cpf":
+            cpf_limpo = re.sub(r"\D", "", str(val))
+            if len(cpf_limpo) == 11:
                 val = f"{cpf_limpo[:3]}.{cpf_limpo[3:6]}.{cpf_limpo[6:9]}-{cpf_limpo[9:]}"
-            sets.append(f"{campo} = %s")
-            params.append(val)
+            elif cpf_limpo:
+                val = cpf_limpo  # salva sem máscara se vier incompleto
+            else:
+                continue  # vazio após limpar — ignora
+
+        sets.append(f"{campo} = %s")
+        params.append(val)
 
     if not sets:
         return err("Nenhum campo para atualizar.", 400)
