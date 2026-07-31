@@ -1940,15 +1940,11 @@ input:focus-visible {
 ============================================================= */
 .kpi-grid--agenda {
   grid-template-columns: repeat(4, 1fr);
-  max-width: 1400px;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 @media (max-width: 1440px) {
   .kpi-grid--agenda {
     grid-template-columns: repeat(4, 1fr);
-    max-width: 100%;
   }
 }
 
