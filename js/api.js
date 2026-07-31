@@ -2149,6 +2149,106 @@ const Api = (() => {
     }
 
     /* ===========================================================================
+       16. SAÍDAS (despesas por radiologia)
+       =========================================================================== */
+
+    /**
+     * Lista saídas com filtros.
+     *
+     * [API] GET /saidas
+     *
+     * @param {object} filtros
+     * @param {string} filtros.radiologiaId
+     * @param {string} filtros.periodo
+     * @param {string} [filtros.dataInicio]
+     * @param {string} [filtros.dataFim]
+     * @param {string} [filtros.categoria]
+     * @param {string} [filtros.formaPagamento]
+     * @param {string} [filtros.q]             – busca por descrição
+     *
+     * Resposta esperada:
+     * [
+     *   {
+     *     id, radiologiaId, radiologiaNome,
+     *     dataSaida, descricao, categoria,
+     *     valor, formaPagamento, observacao,
+     *     criadoPor, criadoEm
+     *   }, ...
+     * ]
+     */
+    async function getSaidas(filtros = {}) {
+        const data = await request('/saidas' + buildQuery(filtros));
+        return { data: Array.isArray(data) ? data : [] };
+    }
+
+    /**
+     * KPIs da aba Saídas.
+     *
+     * [API] GET /saidas/kpis
+     *
+     * Resposta esperada:
+     * {
+     *   totalSaidas:       number,
+     *   maiorCategoria:    { nome: string, valor: number },
+     *   porFormaPagamento: [{ forma, valor, percentual }, ...]
+     * }
+     */
+    async function getSaidasKPIs(filtros = {}) {
+        const data = await request('/saidas/kpis' + buildQuery(filtros));
+        return { data };
+    }
+
+    /**
+     * Cria uma nova saída.
+     *
+     * [API] POST /saidas
+     *
+     * @param {object} payload
+     * @param {string} payload.radiologiaId
+     * @param {string} payload.dataSaida       – ISO date 'YYYY-MM-DD'
+     * @param {string} payload.descricao
+     * @param {string} payload.categoria
+     * @param {number} payload.valor
+     * @param {string} payload.formaPagamento
+     * @param {string} [payload.observacao]
+     */
+    async function postSaida(payload) {
+        const data = await request('/saidas', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        });
+        return { data };
+    }
+
+    /**
+     * Atualiza uma saída existente.
+     *
+     * [API] PUT /saidas/:id
+     *
+     * @param {number} id
+     * @param {object} payload – campos a atualizar (mesmos do postSaida)
+     */
+    async function updateSaida(id, payload) {
+        const data = await request(`/saidas/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload),
+        });
+        return { data };
+    }
+
+    /**
+     * Remove uma saída.
+     *
+     * [API] DELETE /saidas/:id
+     *
+     * @param {number} id
+     */
+    async function deleteSaida(id) {
+        const data = await request(`/saidas/${id}`, { method: 'DELETE' });
+        return { data };
+    }
+
+    /* ===========================================================================
        INTERFACE PÚBLICA
        =========================================================================== */
     return {
@@ -2268,7 +2368,14 @@ const Api = (() => {
         putTipoExame,
         deleteTipoExame,
 
-        // 16. Outros
+        // 16. Saídas
+        getSaidas,
+        getSaidasKPIs,
+        postSaida,
+        updateSaida,
+        deleteSaida,
+
+        // 17. Outros
         deleteAgendamento,
         getLinkConfirmacaoAgendamento,
         validarCpfConfirmacao,

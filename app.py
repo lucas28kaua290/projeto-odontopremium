@@ -3550,6 +3550,282 @@ def periodos_opcoes():
 
 
 # -----------------------------------------------------------------------------
+# 19. SAÍDAS (despesas por radiologia)
+# -----------------------------------------------------------------------------
+
+@app.route("/v1/saidas", methods=["GET"])
+@require_auth
+def saidas_listar():
+    """
+    [API] GET /saidas
+    Lista as saídas com filtros opcionais.
+
+    Query params:
+      radiologiaId    – 'all' ou id da radiologia
+      periodo         – periodo_para_datas padrão
+      dataInicio      – ISO date (custom)
+      dataFim         – ISO date (custom)
+      categoria       – valor do ENUM ou '' para todas
+      forma_pagamento – valor do ENUM ou '' para todas
+      q               – busca livre em descricao
+    """
+    radiologia_id   = request.args.get("radiologiaId", "all")
+    periodo         = request.args.get("periodo", "mes_atual")
+    data_inicio     = request.args.get("dataInicio")
+    data_fim        = request.args.get("dataFim")
+    categoria       = request.args.get("categoria", "")
+    forma_pagamento = request.args.get("formaPagamento", "")
+    q               = request.args.get("q", "").strip()
+
+    di, df, _, _ = periodo_para_datas(periodo, data_inicio, data_fim)
+
+    # Restrição de radiologia para não-admin
+    nivel         = g.user.get("nivel", "")
+    rad_usuario   = g.user.get("radiologia", "")
+    if nivel != "admin" and rad_usuario and rad_usuario != "todas":
+        radiologia_id = rad_usuario
+
+    rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id, alias="s")
+
+    conditions = [f"s.data_saida BETWEEN %s AND %s {rad_sql}"]
+    params     = [di, df] + rad_params
+
+    if categoria:
+        conditions.append("s.categoria = %s")
+        params.append(categoria)
+    if forma_pagamento:
+        conditions.append("s.forma_pagamento = %s")
+        params.append(forma_pagamento)
+    if q:
+        conditions.append("s.descricao LIKE %s")
+        params.append(f"%{q}%")
+
+    where = " AND ".join(conditions)
+    rows = query(
+        f"SELECT s.id, s.radiologia_id, r.nome AS radiologia_nome, "
+        f"s.data_saida, s.descricao, s.categoria, s.valor, "
+        f"s.forma_pagamento, s.observacao, s.criado_por, s.criado_em "
+        f"FROM saidas s "
+        f"LEFT JOIN radiologias r ON r.id = s.radiologia_id "
+        f"WHERE {where} "
+        f"ORDER BY s.data_saida DESC, s.id DESC",
+        params
+    )
+
+    result = []
+    for row in (rows or []):
+        result.append({
+            "id":              row["id"],
+            "radiologiaId":    row["radiologia_id"],
+            "radiologiaNome":  row.get("radiologia_nome") or row["radiologia_id"],
+            "dataSaida":       str(row["data_saida"]),
+            "descricao":       row["descricao"],
+            "categoria":       row["categoria"],
+            "valor":           to_decimal(row["valor"]),
+            "formaPagamento":  row["forma_pagamento"],
+            "observacao":      row.get("observacao") or "",
+            "criadoPor":       row.get("criado_por") or "",
+            "criadoEm":        str(row["criado_em"]) if row.get("criado_em") else "",
+        })
+    return ok(result)
+
+
+@app.route("/v1/saidas/kpis", methods=["GET"])
+@require_auth
+def saidas_kpis():
+    """
+    [API] GET /saidas/kpis
+    Retorna os KPIs da aba Saídas:
+      - totalSaidas         (float)
+      - maiorCategoria      { nome, valor }
+      - porFormaPagamento   [{ forma, valor, percentual }]
+
+    Aceita os mesmos filtros de /saidas.
+    """
+    radiologia_id   = request.args.get("radiologiaId", "all")
+    periodo         = request.args.get("periodo", "mes_atual")
+    data_inicio     = request.args.get("dataInicio")
+    data_fim        = request.args.get("dataFim")
+    categoria       = request.args.get("categoria", "")
+    forma_pagamento = request.args.get("formaPagamento", "")
+    q               = request.args.get("q", "").strip()
+
+    di, df, _, _ = periodo_para_datas(periodo, data_inicio, data_fim)
+
+    nivel       = g.user.get("nivel", "")
+    rad_usuario = g.user.get("radiologia", "")
+    if nivel != "admin" and rad_usuario and rad_usuario != "todas":
+        radiologia_id = rad_usuario
+
+    rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id, alias="s")
+
+    conditions = [f"s.data_saida BETWEEN %s AND %s {rad_sql}"]
+    params     = [di, df] + rad_params
+
+    if categoria:
+        conditions.append("s.categoria = %s")
+        params.append(categoria)
+    if forma_pagamento:
+        conditions.append("s.forma_pagamento = %s")
+        params.append(forma_pagamento)
+    if q:
+        conditions.append("s.descricao LIKE %s")
+        params.append(f"%{q}%")
+
+    where = " AND ".join(conditions)
+
+    # Total geral
+    total_row = query(
+        f"SELECT COALESCE(SUM(s.valor), 0) AS total FROM saidas s WHERE {where}",
+        params, fetch="one"
+    )
+    total_saidas = to_decimal(total_row.get("total", 0)) if total_row else 0.0
+
+    # Maior categoria
+    cat_rows = query(
+        f"SELECT s.categoria, COALESCE(SUM(s.valor), 0) AS total "
+        f"FROM saidas s WHERE {where} "
+        f"GROUP BY s.categoria ORDER BY total DESC",
+        params
+    )
+    maior_categoria = {"nome": "—", "valor": 0.0}
+    if cat_rows:
+        maior_categoria = {
+            "nome":  cat_rows[0]["categoria"],
+            "valor": to_decimal(cat_rows[0]["total"]),
+        }
+
+    # Breakdown por forma de pagamento
+    forma_rows = query(
+        f"SELECT s.forma_pagamento, COALESCE(SUM(s.valor), 0) AS total "
+        f"FROM saidas s WHERE {where} "
+        f"GROUP BY s.forma_pagamento ORDER BY total DESC",
+        params
+    )
+    por_forma = []
+    for row in (forma_rows or []):
+        val = to_decimal(row["total"])
+        pct = round(val / total_saidas * 100, 1) if total_saidas else 0.0
+        por_forma.append({
+            "forma":       row["forma_pagamento"],
+            "valor":       val,
+            "percentual":  pct,
+        })
+
+    return ok({
+        "totalSaidas":       total_saidas,
+        "maiorCategoria":    maior_categoria,
+        "porFormaPagamento": por_forma,
+    })
+
+
+@app.route("/v1/saidas", methods=["POST"])
+@require_auth
+def saidas_criar():
+    """[API] POST /saidas — Cria uma nova saída."""
+    data = request.get_json(silent=True) or {}
+
+    missing = validate_required(data, ["dataSaida", "descricao", "categoria", "valor", "formaPagamento", "radiologiaId"])
+    if missing:
+        return err(f"Campos obrigatórios ausentes: {', '.join(missing)}")
+
+    nivel       = g.user.get("nivel", "")
+    rad_usuario = g.user.get("radiologia", "")
+    radiologia_id = data["radiologiaId"]
+    if nivel != "admin" and rad_usuario and rad_usuario != "todas":
+        radiologia_id = rad_usuario  # força a radiologia do usuário
+
+    try:
+        valor = float(data["valor"])
+        if valor <= 0:
+            return err("O valor da saída deve ser maior que zero.")
+    except (ValueError, TypeError):
+        return err("Valor inválido.")
+
+    query(
+        "INSERT INTO saidas "
+        "(radiologia_id, data_saida, descricao, categoria, valor, forma_pagamento, observacao, criado_por) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+        (
+            radiologia_id,
+            data["dataSaida"],
+            data["descricao"].strip(),
+            data["categoria"],
+            valor,
+            data["formaPagamento"],
+            (data.get("observacao") or "").strip() or None,
+            g.user.get("email") or g.user.get("nome") or "sistema",
+        ),
+        fetch="none"
+    )
+    new_id_row = query("SELECT LAST_INSERT_ID() AS id", fetch="one")
+    new_id = new_id_row["id"] if new_id_row else None
+    return created({"id": new_id}, "Saída registrada com sucesso.")
+
+
+@app.route("/v1/saidas/<int:saida_id>", methods=["PUT"])
+@require_auth
+def saidas_atualizar(saida_id):
+    """[API] PUT /saidas/:id — Atualiza uma saída existente."""
+    data = request.get_json(silent=True) or {}
+
+    row = query("SELECT id, radiologia_id FROM saidas WHERE id = %s", (saida_id,), fetch="one")
+    if not row:
+        return not_found("Saída não encontrada.")
+
+    nivel       = g.user.get("nivel", "")
+    rad_usuario = g.user.get("radiologia", "")
+    if nivel != "admin" and rad_usuario and rad_usuario != "todas":
+        if row["radiologia_id"] != rad_usuario:
+            return forbidden("Sem permissão para editar esta saída.")
+
+    fields, params = [], []
+    mapping = {
+        "dataSaida":       "data_saida",
+        "descricao":       "descricao",
+        "categoria":       "categoria",
+        "valor":           "valor",
+        "formaPagamento":  "forma_pagamento",
+        "observacao":      "observacao",
+        "radiologiaId":    "radiologia_id",
+    }
+    for js_key, db_col in mapping.items():
+        if js_key in data:
+            val = data[js_key]
+            if js_key == "valor":
+                val = float(val)
+            elif js_key == "descricao" and isinstance(val, str):
+                val = val.strip()
+            fields.append(f"{db_col} = %s")
+            params.append(val)
+
+    if not fields:
+        return err("Nenhum campo para atualizar.")
+
+    params.append(saida_id)
+    query(f"UPDATE saidas SET {', '.join(fields)} WHERE id = %s", params, fetch="none")
+    return ok({"id": saida_id}, "Saída atualizada com sucesso.")
+
+
+@app.route("/v1/saidas/<int:saida_id>", methods=["DELETE"])
+@require_auth
+def saidas_excluir(saida_id):
+    """[API] DELETE /saidas/:id — Remove uma saída."""
+    row = query("SELECT id, radiologia_id FROM saidas WHERE id = %s", (saida_id,), fetch="one")
+    if not row:
+        return not_found("Saída não encontrada.")
+
+    nivel       = g.user.get("nivel", "")
+    rad_usuario = g.user.get("radiologia", "")
+    if nivel != "admin" and rad_usuario and rad_usuario != "todas":
+        if row["radiologia_id"] != rad_usuario:
+            return forbidden("Sem permissão para excluir esta saída.")
+
+    query("DELETE FROM saidas WHERE id = %s", (saida_id,), fetch="none")
+    return ok({"id": saida_id}, "Saída excluída com sucesso.")
+
+
+# -----------------------------------------------------------------------------
 # TRATAMENTO GLOBAL DE ERROS
 # -----------------------------------------------------------------------------
 
