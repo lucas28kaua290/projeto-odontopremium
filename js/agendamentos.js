@@ -3273,6 +3273,50 @@ const NewAppointmentModal = (() => {
 })();
 
 /* =================================================================
+   MOBILE NAV — Sidebar hambúrguer (idêntico ao dashboard)
+================================================================= */
+const MobileNav = (() => {
+  function init() {
+    const toggle = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (!toggle || !sidebar || !overlay) return;
+
+    function open() {
+      sidebar.classList.add('is-open');
+      overlay.classList.add('is-visible');
+      toggle.setAttribute('aria-expanded', 'true');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function close() {
+      sidebar.classList.remove('is-open');
+      overlay.classList.remove('is-visible');
+      toggle.setAttribute('aria-expanded', 'false');
+      document.body.style.overflow = '';
+    }
+
+    toggle.addEventListener('click', () => {
+      sidebar.classList.contains('is-open') ? close() : open();
+    });
+
+    overlay.addEventListener('click', close);
+
+    sidebar.querySelectorAll('.nav-link').forEach(link => {
+      link.addEventListener('click', () => {
+        if (window.innerWidth <= 1024) close();
+      });
+    });
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 1024) close();
+    });
+  }
+
+  return { init };
+})();
+
+/* =================================================================
    14. SIDEBAR
 ================================================================= */
 const Sidebar = (() => {
@@ -3598,6 +3642,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   KanbanView.init();
   DayView.init();
   ViewSwitcher.init();
+  MobileNav.init();
   Sidebar.init();
 
   // Subscriber: recarrega do servidor sempre que filtros relevantes mudam.

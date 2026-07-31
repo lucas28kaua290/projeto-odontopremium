@@ -191,7 +191,6 @@
 }
 
 @media (max-width: 900px) {
-
   .kpi-grid--6,
   .kpi-grid--5 {
     grid-template-columns: repeat(2, 1fr);
@@ -199,7 +198,17 @@
 }
 
 @media (max-width: 480px) {
+  .kpi-grid--6,
+  .kpi-grid--5 {
+    grid-template-columns: repeat(2, 1fr);
+  }
 
+  .kpi-grid--3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 320px) {
   .kpi-grid--6,
   .kpi-grid--5,
   .kpi-grid--3 {
@@ -346,7 +355,7 @@
 
 @media (max-width: 480px) {
   .fin-kpi-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -3781,5 +3790,67 @@ td.td-change {
   .fin-period-bar {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+/* =============================================================
+   SIDEBAR MOBILE — hambúrguer + overlay
+============================================================= */
+.sidebar-toggle {
+  display: none;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: var(--radius-sm);
+  color: rgba(253, 255, 254, 0.90);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.20);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #fff;
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 26, 30, 0.45);
+  backdrop-filter: blur(2px);
+  z-index: 90;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-base);
+}
+
+.sidebar-overlay.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (max-width: 1024px) {
+  .sidebar-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar-overlay {
+    display: block;
+    pointer-events: none;
+  }
+
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform var(--transition-base);
+    z-index: 95;
+    box-shadow: none;
+  }
+
+  .sidebar.is-open {
+    transform: translateX(0);
+    box-shadow: var(--shadow-lg);
   }
 }

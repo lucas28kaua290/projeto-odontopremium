@@ -336,18 +336,70 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 .sidebar__footer { padding: 0 var(--space-5); }
 .sidebar__version { font-size: var(--fs-xs); color: var(--color-sidebar-text); opacity: 0.6; }
 
-@media (max-width: 1024px) {
-  .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--color-sidebar-border); padding: var(--space-3); position: static; height: auto; }
-  .main-content { margin-left: 0; }
-  .nav-list { flex-direction: row; flex-wrap: wrap; gap: var(--space-2); padding: 0; }
-  .nav-link::before { left: 50%; top: auto; bottom: -4px; transform: translateX(-50%); width: 0; height: 3px; }
-  .nav-link.is-active::before { width: 60%; height: 3px; }
-  .sidebar__footer { display: none; }
+/* Botão hambúrguer: oculto em desktop, visível em mobile */
+.sidebar-toggle {
+  display: none;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: var(--radius-sm);
+  color: rgba(253, 255, 254, 0.90);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
-@media (max-width: 640px) {
-  .nav-link__label { display: none; }
-  .nav-link { padding: 10px; }
+.sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.20);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #fff;
+}
+
+/* Overlay escuro atrás da sidebar aberta */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 26, 30, 0.45);
+  backdrop-filter: blur(2px);
+  z-index: 90;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-base);
+}
+
+.sidebar-overlay.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (max-width: 1024px) {
+  /* Mostra o botão hambúrguer */
+  .sidebar-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Overlay disponível para aparecer, mas sem bloquear cliques enquanto fechado */
+  .sidebar-overlay {
+    display: block;
+    pointer-events: none;
+  }
+
+  /* Sidebar vira drawer lateral */
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform var(--transition-base);
+    z-index: 95;
+    box-shadow: none;
+  }
+
+  .sidebar.is-open {
+    transform: translateX(0);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .main-content { margin-left: 0; }
 }
 
 /* =============================================================
@@ -459,8 +511,24 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 }
 
 @media (max-width: 900px) {
-  .search-bar { flex-direction: column; align-items: stretch; gap: var(--space-4); }
+  .search-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+  }
+
   .search-bar__divider { width: 100%; height: 1px; }
+
+  .search-bar__main { flex: none; min-width: 0; }
+
+  .search-bar__input { font-size: var(--fs-sm); padding: 8px 28px 8px 28px; }
+
+  .search-bar__scope {
+    gap: var(--space-2);
+  }
+
+  .filters-bar__label { display: none; }
 }
 
 /* =============================================================

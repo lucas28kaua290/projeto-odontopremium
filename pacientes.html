@@ -20,6 +20,20 @@
      HEADER
 ============================================================= -->
   <header class="app-header">
+    <button
+      type="button"
+      class="header-icon-btn sidebar-toggle"
+      id="sidebarToggle"
+      aria-label="Abrir menu"
+      aria-expanded="false"
+      aria-controls="sidebar">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M3 12h18M3 6h18M3 18h18"
+          stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </button>
+
     <div class="app-header__brand">
       <div class="brand-mark" aria-hidden="true">
         <img src="logo-iord.png" alt="IORD" class="logo-img" />
@@ -31,7 +45,6 @@
     </div>
 
     <div class="app-header__user">
-
       <div class="header-divider"></div>
       <div class="user-info">
         <span class="user-info__name">Dr. Iago</span>
@@ -40,6 +53,9 @@
       <div class="user-avatar">DI</div>
     </div>
   </header>
+
+  <!-- OVERLAY MOBILE -->
+  <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
 
   <!-- =============================================================
      SHELL (Sidebar + Conteúdo)

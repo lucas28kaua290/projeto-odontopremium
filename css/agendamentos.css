@@ -406,30 +406,8 @@ input:focus-visible {
   animation-delay: 160ms;
 }
 
-@media (max-width: 1024px) {
-  .app-shell {
-    flex-direction: column;
-  }
-}
 
-@media (max-width: 640px) {
-  .app-header {
-    padding: 0 var(--space-4);
-  }
 
-  .brand-text__subtitle {
-    display: none;
-  }
-
-  .user-info {
-    display: none;
-  }
-
-  .main-content {
-    padding: var(--space-4);
-    gap: var(--space-4);
-  }
-}
 
 /* =============================================================
    4. SIDEBAR
@@ -523,49 +501,9 @@ input:focus-visible {
   opacity: 0.6;
 }
 
-@media (max-width: 1024px) {
-  .sidebar {
-    width: 100%;
-    border-right: none;
-    border-bottom: 1px solid var(--color-sidebar-border);
-    padding: var(--space-3);
-  }
 
-  .nav-list {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-    padding: 0;
-  }
 
-  .nav-link::before {
-    left: 50%;
-    top: auto;
-    bottom: -4px;
-    transform: translateX(-50%);
-    width: 0;
-    height: 3px;
-  }
 
-  .nav-link.is-active::before {
-    width: 60%;
-    height: 3px;
-  }
-
-  .sidebar__footer {
-    display: none;
-  }
-}
-
-@media (max-width: 640px) {
-  .nav-link__label {
-    display: none;
-  }
-
-  .nav-link {
-    padding: 10px;
-  }
-}
 
 /* =============================================================
    5. FILTROS GLOBAIS
@@ -609,50 +547,32 @@ input:focus-visible {
   padding: 7px 18px;
   border-radius: 999px;
   border: 1px solid var(--color-border-strong);
-  background: linear-gradient(180deg,
-      var(--color-surface) 0%,
-      var(--color-surface-muted) 100%);
+  background: var(--color-surface);
   font-size: var(--fs-sm);
   font-weight: var(--fw-medium);
   color: var(--color-text-muted);
   white-space: nowrap;
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.07),
-    0 1px 2px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.7),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
-  transition: color .2s, background .2s, box-shadow .2s, transform .18s, border-color .2s;
+  box-shadow: var(--shadow-xs);
+  transition: color var(--transition-fast), background var(--transition-fast),
+    border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .pill:hover {
   border-color: var(--color-primary-light);
   color: var(--color-primary-dark);
-  transform: translateY(-1px);
-  box-shadow:
-    0 4px 8px rgba(0, 0, 0, 0.10),
-    0 1px 3px rgba(0, 0, 0, 0.07),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+  background: var(--color-primary-50);
+  box-shadow: var(--shadow-sm);
 }
 
 .pill:active {
-  transform: translateY(0);
+  box-shadow: none;
 }
 
 .pill.is-active {
-  background: linear-gradient(160deg,
-      #01d4cc 0%,
-      #018093 55%,
-      #016b7a 100%);
+  background: var(--gradient-brand);
   border-color: transparent;
   color: white;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
-  transform: translateY(-1px);
-  box-shadow:
-    0 6px 16px -3px rgba(1, 128, 147, 0.55),
-    0 2px 6px rgba(0, 0, 0, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px -3px rgba(1, 128, 147, 0.40);
 }
 
 .filters-bar__group--period {
@@ -716,19 +636,9 @@ input:focus-visible {
   color: var(--color-text-subtle);
 }
 
-@media (max-width: 1024px) {
-  .filters-bar__group--period {
-    margin-left: 0;
-  }
-}
 
-@media (max-width: 640px) {
-  .filters-bar {
-    flex-direction: column;
-    align-items: stretch;
-    padding: var(--space-4);
-  }
-}
+
+
 
 /* =============================================================
    6. KPIs
@@ -903,17 +813,10 @@ input:focus-visible {
   display: inline-flex;
   padding: 4px;
   border-radius: 999px;
-  background: linear-gradient(180deg,
-      var(--color-surface) 0%,
-      var(--color-surface-muted) 100%);
+  background: var(--color-surface-muted);
   border: 1px solid var(--color-border);
-  box-shadow:
-    0 6px 14px rgba(0, 0, 0, 0.10),
-    0 2px 4px rgba(0, 0, 0, 0.07),
-    inset 0 2px 4px rgba(0, 0, 0, 0.06),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.7);
+  box-shadow: var(--shadow-xs);
 }
-
 
 .view-toggle__btn {
   position: relative;
@@ -926,34 +829,20 @@ input:focus-visible {
   font-weight: var(--fw-medium);
   color: var(--color-text-muted);
   white-space: nowrap;
-  transition: color .2s, background .2s, box-shadow .2s, transform .18s, letter-spacing .2s;
+  transition: color var(--transition-fast), background var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .view-toggle__btn:hover:not(.is-active) {
   color: var(--color-text);
-  background: linear-gradient(160deg,
-      rgba(255, 255, 255, 0.7) 0%,
-      rgba(0, 0, 0, 0.03) 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    0 1px 3px rgba(0, 0, 0, 0.08);
-  transform: translateY(-0.5px);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-xs);
 }
 
 .view-toggle__btn.is-active {
-  background: linear-gradient(160deg,
-      #01d4cc 0%,
-      #018093 55%,
-      #016b7a 100%);
+  background: var(--gradient-brand);
   color: white;
-  box-shadow:
-    0 6px 16px -3px rgba(1, 128, 147, 0.55),
-    0 2px 6px rgba(0, 0, 0, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.15);
-  transform: translateY(-1px);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
-  letter-spacing: 0.01em;
+  box-shadow: 0 4px 12px -3px rgba(1, 128, 147, 0.40);
 }
 
 .charts-grid {
@@ -1819,16 +1708,7 @@ input:focus-visible {
   flex-wrap: wrap;
 }
 
-@media (max-width: 768px) {
-  .section-toolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
 
-  .section-toolbar__actions {
-    justify-content: flex-start;
-  }
-}
 
 /* =============================================================
    1. CABEÇALHO DE PÁGINA
@@ -1856,17 +1736,7 @@ input:focus-visible {
   margin-top: 5px;
 }
 
-@media (max-width: 640px) {
-  .page-heading {
-    flex-direction: column;
-    align-items: stretch;
-  }
 
-  .page-heading .btn {
-    width: 100%;
-    justify-content: center;
-  }
-}
 
 /* =============================================================
    2. FILTROS
@@ -1924,16 +1794,7 @@ input:focus-visible {
 }
 
 
-@media (max-width: 900px) {
-  .filters-bar--agenda {
-    flex-direction: column;
-    align-items: stretch;
-  }
 
-  .filters-bar__group--grow {
-    min-width: 0;
-  }
-}
 
 /* =============================================================
    3. KPIs
@@ -2049,6 +1910,30 @@ input:focus-visible {
   justify-content: center;
   gap: 6px;
   font-size: var(--fs-sm);
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* Em telas pequenas, os toggles crescem para caber no espaço disponível */
+@media (max-width: 640px) {
+  .view-toggle--3,
+  .view-toggle--2 {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .view-toggle--3 .view-toggle__btn,
+  .view-toggle--2 .view-toggle__btn {
+    padding: 8px 6px;
+    font-size: var(--fs-xs);
+    gap: 4px;
+  }
+
+  /* Esconde ícone SVG dos botões de granularidade (Mensal/Semanal) 
+     para não ficar só o ícone circular */
+  .view-toggle--2 .view-toggle__btn svg {
+    display: none;
+  }
 }
 
 /* =============================================================
@@ -3468,44 +3353,9 @@ input:focus-visible {
   background-color: var(--color-negative-bg);
 }
 
-@media (max-width: 640px) {
-  .appointment-modal__header {
-    padding: var(--space-4);
-  }
 
-  .appointment-modal__body {
-    padding: var(--space-4);
-  }
 
-  .appointment-modal__footer {
-    padding: var(--space-3) var(--space-4);
-    flex-direction: column;
-    align-items: stretch;
-  }
 
-  .modal-btn-whatsapp {
-    margin-left: 0;
-    justify-content: center;
-  }
-
-  .modal-footer__secondary {
-    justify-content: flex-start;
-  }
-
-  .modal-section__grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (max-width: 420px) {
-  .appointment-modal__time {
-    font-size: 1.7rem;
-  }
-
-  .modal-section__grid {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* =============================================================
    9. MODAL DE LISTA DO DIA
@@ -3595,17 +3445,7 @@ input:focus-visible {
 /* =============================================================
    11. RESPONSIVO GERAL
 ============================================================= */
-@media (max-width: 480px) {
 
-  .day-list-modal,
-  .appointment-modal {
-    border-radius: var(--radius-lg);
-  }
-
-  .view-toggle--3 .view-toggle__btn svg {
-    display: none;
-  }
-}
 
 /* =============================================================
    12. MODAL DE NOVO AGENDAMENTO
@@ -3883,40 +3723,9 @@ input:focus-visible {
   }
 }
 
-/* Responsivo do formulário */
-@media (max-width: 640px) {
-  .form-row--3 {
-    grid-template-columns: 1fr 1fr;
-  }
 
-  .form-row--2 {
-    grid-template-columns: 1fr;
-  }
 
-  .form-field--span2 {
-    grid-column: span 1;
-  }
 
-  .new-appointment-modal__footer {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .new-appointment-modal__footer-actions {
-    flex-direction: column;
-  }
-
-  .new-appointment-modal__footer-actions .btn {
-    width: 100%;
-    justify-content: center;
-  }
-}
-
-@media (max-width: 420px) {
-  .form-row--3 {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* =============================================================
    13. CAMPO DEPENDENTE — hint + spinner de disponibilidade
@@ -4204,3 +4013,607 @@ input:focus-visible {
 }
 .pag-validador--ok   { color: var(--color-positive, #1a7f5a); }
 .pag-validador--warn { color: var(--color-warning,  #b45309); }
+
+/* =============================================================
+   SIDEBAR MOBILE — hambúrguer + overlay
+   Segue exatamente o mesmo padrão do dashboard (MobileNav)
+============================================================= */
+
+/* Botão hambúrguer: oculto em desktop, visível em mobile */
+.sidebar-toggle {
+  display: none;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: var(--radius-sm);
+  color: rgba(253, 255, 254, 0.90);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.20);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #fff;
+}
+
+/* Overlay escuro atrás da sidebar aberta */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 26, 30, 0.45);
+  backdrop-filter: blur(2px);
+  z-index: 90;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-base);
+}
+
+.sidebar-overlay.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (max-width: 1024px) {
+  /* Mostra o botão hambúrguer */
+  .sidebar-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Overlay disponível para aparecer */
+  .sidebar-overlay {
+    display: block;
+    pointer-events: none;
+  }
+
+  /* Sidebar vira drawer lateral */
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform var(--transition-base);
+    z-index: 95;
+    box-shadow: none;
+  }
+
+  .sidebar.is-open {
+    transform: translateX(0);
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+/* =============================================================
+   RESPONSIVO CONSOLIDADO — Agendamentos
+   Segue exatamente os mesmos breakpoints do dashboard (styles.css)
+   ① ≤ 1024px  Sidebar vira nav horizontal; main-content sem margem
+   ② ≤  900px  Filtros agenda empilham; kanban 2 cols; day-summary 2 cols
+   ③ ≤  768px  KPIs agenda 2 cols; section-toolbar empilha
+   ④ ≤  640px  Header simplificado; filtros em coluna; modal compacto
+   ⑤ ≤  480px  KPIs 1 col; kanban 1 col; day-summary 1 col
+   ⑥ ≤  375px  Ajustes finos para telas estreitas
+============================================================= */
+
+/* ─────────────────────────────────────────────────────────
+   ① ≤ 1024px — Tablets landscape / desktop pequeno
+   Sidebar colapsa para nav horizontal no topo
+   main-content perde margem lateral fixa
+───────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+
+  /* ── main-content: ocupa 100% sem offset da sidebar ── */
+  .main-content {
+    margin-left: 0;
+    padding: var(--space-5);
+    max-width: 100%;
+  }
+
+  /* ── Occupancy cards: 4 → 2 colunas ── */
+  .occupancy-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* ── Occupancy split: lado a lado → empilhado ── */
+  .occupancy-split-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pending-panel__list {
+    max-height: 320px;
+  }
+
+  /* ── Charts: sempre 1 coluna ── */
+  .charts-grid,
+  .charts-grid--single {
+    grid-template-columns: 1fr;
+  }
+
+  /* ── Filtro de período: sem auto-margin ── */
+  .filters-bar__group--period {
+    margin-left: 0;
+  }
+
+  /* ── Kanban toolbar: busca ocupa mais espaço ── */
+  .search-input-wrapper--kanban {
+    max-width: 100%;
+  }
+}
+
+
+/* ─────────────────────────────────────────────────────────
+   ② ≤ 900px — Tablets portrait / landscape pequeno
+   Filtros da agenda empilham
+   Kanban: 4 → 2 colunas
+   Day summary: 4 → 2 colunas
+───────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+
+  /* ── Filtros agenda: empilham verticalmente ── */
+  .filters-bar--agenda {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+
+  .filters-bar__group--grow {
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* ── Kanban: 4 → 2 colunas ── */
+  .kanban-board {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* ── Day summary: 4 → 2 ── */
+  .day-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* ── Kanban toolbar: empilha busca e hint ── */
+  .kanban-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+
+  .kanban-toolbar__hint {
+    justify-content: flex-start;
+  }
+}
+
+
+/* ─────────────────────────────────────────────────────────
+   ③ ≤ 768px — Tablets portrait
+   KPIs agenda: 4 → 2 colunas
+   Section toolbar empilha
+   Calendar nav empilha
+───────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* ── KPIs agenda: 4 → 2 ── */
+  .kpi-grid--agenda {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* ── Section toolbar empilha ── */
+  .section-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .section-toolbar__actions {
+    justify-content: flex-start;
+  }
+
+  /* ── Calendar nav: controles e legend empilham ── */
+  .calendar-nav {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+  }
+
+  .calendar-nav__controls {
+    justify-content: space-between;
+  }
+
+  .calendar-nav__label {
+    min-width: unset;
+    text-align: left;
+  }
+
+  /* ── Day nav: empilha status pills ── */
+  .day-nav {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+  }
+
+  /* ── Occupancy cards: 4 → 2 (reforço) ── */
+  .occupancy-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+
+/* ─────────────────────────────────────────────────────────
+   ④ ≤ 640px — Smartphones grandes / mobile landscape
+   Header simplificado
+   Filtros em coluna única
+   View toggle: largura total
+   Calendar: células menores, sem pills de nome
+   Modal: compacto, footer em coluna
+───────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+
+  /* ── Header ── */
+  .app-header {
+    padding: 0 var(--space-4);
+  }
+
+  .brand-text__subtitle {
+    display: none;
+  }
+
+  .user-info {
+    display: none;
+  }
+
+  /* ── Main content ── */
+  .main-content {
+    padding: var(--space-4);
+    gap: var(--space-4);
+  }
+
+  /* ── Filtros gerais ── */
+  .filters-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: var(--space-4);
+    gap: var(--space-3);
+  }
+
+  .filters-bar__group--period {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+  }
+
+  /* ── Page heading: empilha botão ── */
+  .page-heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .page-heading .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* ── Charts toolbar: empilha ── */
+  .charts-section__toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+
+  /* ── View toggle: largura total ── */
+  .view-toggle {
+    width: 100%;
+  }
+
+  .view-toggle::before {
+    display: none;
+  }
+
+  .view-toggle__btn {
+    flex: 1;
+    font-size: var(--fs-xs);
+    padding: 9px var(--space-2);
+    text-align: center;
+  }
+
+  /* ── Chart body: altura reduzida ── */
+  .chart-card__body {
+    height: 240px;
+  }
+
+  /* ── Calendário: células menores ── */
+  .calendar-day {
+    min-height: 72px;
+    padding: 6px 6px 8px;
+    gap: 3px;
+  }
+
+  .calendar-day__appt-pill-name {
+    display: none; /* só exibe horário, economiza espaço */
+  }
+
+  .calendar-grid__weekdays span {
+    font-size: 9px;
+    padding: 8px 0;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Occupancy cards: 2 colunas compactas ── */
+  .occupancy-cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+  }
+
+  .occ-card {
+    padding: var(--space-3) var(--space-3);
+  }
+
+  .occ-card__value {
+    font-size: 1.6rem;
+  }
+
+  .occupancy-legend {
+    display: none;
+  }
+
+  /* ── Kanban toolbar: legenda hint some ── */
+  .kanban-toolbar__hint {
+    display: none;
+  }
+
+  /* ── Timeline: coluna de hora menor ── */
+  .timeline-row {
+    grid-template-columns: 46px 1fr;
+  }
+
+  .timeline-row__hour {
+    padding-right: var(--space-2);
+    font-size: 10px;
+  }
+
+  .timeline-row__track {
+    padding-left: var(--space-3);
+  }
+
+  .timeline-appt {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .timeline-appt__avatar {
+    display: none;
+  }
+
+  .timeline-appt__value {
+    display: none;
+  }
+
+  .timeline-appt__time {
+    min-width: unset;
+  }
+
+  /* ── Pending item: ações em coluna ── */
+  .pending-item__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* ── Modal de detalhes ── */
+  .appointment-modal__header {
+    padding: var(--space-4);
+  }
+
+  .appointment-modal__body {
+    padding: var(--space-4);
+  }
+
+  .appointment-modal__footer {
+    padding: var(--space-3) var(--space-4);
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modal-btn-whatsapp {
+    margin-left: 0;
+    justify-content: center;
+  }
+
+  .modal-footer__secondary {
+    justify-content: flex-start;
+  }
+
+  .modal-section__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* ── Modal de novo agendamento ── */
+  .new-appointment-modal__body {
+    padding: var(--space-4);
+    max-height: calc(100vh - 200px);
+  }
+
+  .new-appointment-modal__header {
+    padding: var(--space-4);
+  }
+
+  .new-appointment-modal__footer {
+    padding: var(--space-3) var(--space-4);
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .new-appointment-modal__footer-actions {
+    flex-direction: column;
+    margin-left: 0;
+  }
+
+  .new-appointment-modal__footer-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* ── Form rows: reduz colunas ── */
+  .form-row--3 {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .form-row--2 {
+    grid-template-columns: 1fr;
+  }
+
+  .form-field--span2 {
+    grid-column: span 1;
+  }
+}
+
+
+/* ─────────────────────────────────────────────────────────
+   ⑤ ≤ 480px — Smartphones padrão (iPhone 14, Pixel, Galaxy)
+   KPIs: 1 coluna
+   Kanban: 1 coluna
+   Day summary: 1 coluna
+   Nav labels: ocultam
+───────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+
+  /* ── KPIs agenda: 2 → 1 coluna ── */
+  .kpi-grid--agenda {
+    grid-template-columns: 1fr;
+  }
+
+  .kpi-card__value {
+    font-size: 1.5rem;
+  }
+
+  /* ── Kanban: 2 → 1 coluna ── */
+  .kanban-board {
+    grid-template-columns: 1fr;
+  }
+
+  .kanban-column {
+    max-height: 60vh;
+  }
+
+  /* ── Day summary: 1 coluna ── */
+  .day-summary {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+
+  /* ── Occupancy: 2 → 1 coluna ── */
+  .occupancy-cards {
+    grid-template-columns: 1fr;
+  }
+
+  /* ── Modal de detalhes: grid 1 coluna ── */
+  .modal-section__grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* ── Modal: border-radius menor ── */
+  .day-list-modal,
+  .appointment-modal {
+    border-radius: var(--radius-lg);
+  }
+
+  /* ── View toggle: ícones somem, só texto ── */
+  .view-toggle--3 .view-toggle__btn svg {
+    display: none;
+  }
+
+  /* ── Form rows: tudo 1 coluna ── */
+  .form-row--3,
+  .form-row--2 {
+    grid-template-columns: 1fr;
+  }
+
+  /* ── Pill group: pills menores ── */
+  .pill {
+    font-size: var(--fs-xs);
+    padding: 6px var(--space-3);
+  }
+
+  /* ── Nav sidebar: labels somem (só ícone) ── */
+  .nav-link__label {
+    display: none;
+  }
+
+  .nav-link {
+    padding: 10px;
+  }
+}
+
+
+/* ─────────────────────────────────────────────────────────
+   ⑥ ≤ 375px — Smartphones compactos (iPhone SE, Mini)
+   Ajustes finos para evitar overflow horizontal
+───────────────────────────────────────────────────────── */
+@media (max-width: 375px) {
+
+  /* ── Header: padding mínimo ── */
+  .app-header {
+    padding: 0 var(--space-3);
+  }
+
+  /* ── Main content ── */
+  .main-content {
+    padding: var(--space-3);
+    gap: var(--space-3);
+  }
+
+  /* ── KPI: valor menor para evitar overflow ── */
+  .kpi-card__value {
+    font-size: 1.25rem;
+    overflow-wrap: break-word;
+    word-break: break-all;
+  }
+
+  .kpi-card {
+    padding: var(--space-3);
+  }
+
+  /* ── Filtros: padding mínimo ── */
+  .filters-bar {
+    padding: var(--space-3);
+    gap: var(--space-3);
+  }
+
+  /* ── Calendário: células ainda mais compactas ── */
+  .calendar-day {
+    min-height: 56px;
+    padding: 4px 4px 6px;
+  }
+
+  .calendar-day__number {
+    width: 22px;
+    height: 22px;
+    font-size: 10px;
+  }
+
+  /* ── Modal: padding mínimo ── */
+  .appointment-modal__header,
+  .appointment-modal__body,
+  .new-appointment-modal__header,
+  .new-appointment-modal__body {
+    padding: var(--space-3);
+  }
+
+  .appointment-modal__time {
+    font-size: 1.7rem;
+  }
+
+  /* ── Toast: ocupa quase toda a tela ── */
+  .toast {
+    left: var(--space-3);
+    right: var(--space-3);
+    bottom: var(--space-4);
+  }
+
+  /* ── Pills: tamanho mínimo ── */
+  .pill {
+    font-size: 11px;
+    padding: 5px var(--space-2);
+  }
+
+  /* ── Day summary card: padding reduzido ── */
+  .day-summary__card {
+    padding: var(--space-3) var(--space-3);
+  }
+}
