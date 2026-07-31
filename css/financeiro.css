@@ -3126,15 +3126,27 @@ td.td-change {
 /* ==================================================
    ABA DE SAÍDAS — KPIs com altura controlada
 ================================================== */
+/* Animação Keyframe de Entrada (se não estiver declarada globalmente) */
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 .fin-kpi-grid--saidas {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr 1fr 1.2fr;
   gap: var(--space-4);
   width: 100%;
   max-width: 1400px;
   margin: 0 auto;
   align-items: stretch;
+  animation: fadeSlideIn var(--transition-slow) both;
 }
 
 .fin-kpi-card-saida {
@@ -3151,17 +3163,71 @@ td.td-change {
   max-height: 220px;
   box-shadow: var(--shadow-sm);
   overflow: hidden;
-  /* nada vaza / cresce pra fora */
+  
+  /* Transições para o efeito do Hover */
   transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
+}
+
+.fin-kpi-card--chart {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.fin-kpi-card-saida::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--gradient-brand-soft);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-base);
+}
+
+/* Efeito de Elevação e Destaque no Hover */
+.fin-kpi-card-saida:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary-100);
+}
+
+.fin-kpi-card-saida:hover::after {
+  opacity: 1;
+}
+
+/* Animação do Ícone dentro do Card no Hover */
+.fin-kpi-card-saida .fin-kpi-card__icon {
+  transition: transform var(--transition-base);
+}
+
+.fin-kpi-card-saida:hover .fin-kpi-card__icon {
+  transform: scale(1.08) rotate(-4deg);
+}
+
+/* Garantir que o conteúdo fique acima do ::after */
+.fin-kpi-card-saida .fin-kpi-card__header,
+.fin-kpi-card-saida .fin-kpi-card__value,
+.fin-kpi-card-saida .fin-kpi-card__footer,
+.fin-kpi-card-saida .saidas-pizza-wrap,
+.fin-kpi-card-saida .saidas-pizza-legend {
+  position: relative;
+  z-index: 1;
+}
+
+.saidas-pizza-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-top: var(--space-2);
+  flex: 1;
 }
 
 .saidas-pizza-wrap {
   position: relative;
-  width: 100%;
-  height: 140px;
-  max-height: 140px;
-  flex: 1 1 auto;
-  min-height: 0;
+  width: 90px;
+  height: 90px;
+  flex-shrink: 0;
 }
 
 .saidas-pizza-wrap canvas {
@@ -3169,7 +3235,54 @@ td.td-change {
   height: 100% !important;
 }
 
-/* Área do gráfico pizza dentro do 3º KPI */
+/* Legenda Estilizada da Pizza */
+.saidas-pizza-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  max-height: 100px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.saidas-pizza-legend-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+}
+
+.saidas-pizza-legend-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.saidas-pizza-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.saidas-pizza-legend-val {
+  font-family: var(--font-mono);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text);
+  margin-left: 8px;
+}
+
+@media (max-width: 900px) {
+  .fin-kpi-grid--saidas {
+    grid-template-columns: 1fr;
+  }
+}
+
 .fin-kpi-card-saida .chart-wrap,
 .fin-kpi-card-saida canvas {
   flex: 1 1 auto;
@@ -3179,6 +3292,8 @@ td.td-change {
   height: 140px !important;
 }
 
+
+/* Responsividade */
 @media (max-width: 900px) {
   .fin-kpi-grid--saidas {
     grid-template-columns: 1fr;
@@ -3390,6 +3505,93 @@ td.td-change {
   }
 }
 
+/* =============================================================
+   ESTILOS ESPECÍFICOS DE SAÍDAS & BOTÕES DE AÇÃO
+============================================================= */
+
+/* Botões de Ações em Grupo */
+.table-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+}
+
+/* Base dos botões de ação */
+.action-btn {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-subtle);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  transition: all var(--transition-fast);
+}
+
+/* Hover genérico */
+.action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-xs);
+}
+
+.action-btn:active {
+  transform: translateY(0);
+}
+
+/* Ação de Edição (Visual Primário/Sutil) */
+.action-btn--edit:hover {
+  color: var(--color-primary-dark);
+  background-color: var(--color-primary-50);
+  border-color: var(--color-primary-light);
+}
+
+/* Ação de Exclusão (Visual de Alerta/Perigo) */
+.action-btn--delete:hover {
+  color: var(--color-negative);
+  background-color: var(--color-negative-bg);
+  border-color: rgba(194, 59, 50, 0.25);
+}
+
+/* Tratamento numérico para saídas */
+.data-table__num--negative {
+  color: var(--color-negative);
+  font-weight: var(--fw-semibold);
+}
+
+/* Badges/Tags auxiliares para preenchimento da tabela */
+.tag-category {
+  display: inline-block;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.tag-payment {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: var(--fw-semibold);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-primary-50);
+  color: var(--color-primary-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.data-table__empty {
+  text-align: center;
+  padding: var(--space-8) !important;
+  color: var(--color-text-subtle);
+  font-style: italic;
+}
 /* =============================================================
    16. RESPONSIVO
 ============================================================= */

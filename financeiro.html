@@ -888,7 +888,7 @@
         <div class="fin-kpi-grid fin-kpi-grid--saidas">
 
           <!-- Card 1: Total de Saídas -->
-          <article class="fin-kpi-card-saida fin-kpi-card--danger" id="kpiSaidasTotal">
+          <article class="fin-kpi-card fin-kpi-card--danger" id="kpiSaidasTotal">
             <div class="fin-kpi-card__header">
               <span class="fin-kpi-card__label">Total de Saídas no Período</span>
               <span class="fin-kpi-card__icon fin-kpi-card__icon--danger">
@@ -905,7 +905,7 @@
           </article>
 
           <!-- Card 2: Maior Categoria -->
-          <article class="fin-kpi-card-saida" id="kpiSaidasCategoria">
+          <article class="fin-kpi-card" id="kpiSaidasCategoria">
             <div class="fin-kpi-card__header">
               <span class="fin-kpi-card__label">Maior Categoria</span>
               <span class="fin-kpi-card__icon">
@@ -921,7 +921,7 @@
           </article>
 
           <!-- Card 3: Por Forma de Pagamento (pizza) -->
-          <article class="fin-kpi-card-saida fin-kpi-card--chart" id="kpiSaidasForma">
+          <article class="fin-kpi-card fin-kpi-card--chart" id="kpiSaidasForma">
             <div class="fin-kpi-card__header">
               <span class="fin-kpi-card__label">Por Forma de Pagamento</span>
               <span class="fin-kpi-card__icon">
@@ -932,13 +932,13 @@
               </span>
             </div>
 
-            <!-- Wrapper contendo APENAS o canvas -->
-            <div class="saidas-pizza-wrap">
-              <canvas id="saidasFormaChart" aria-label="Pizza de saídas por forma de pagamento"></canvas>
+            <!-- Wrapper do gráfico + legenda estilizada -->
+            <div class="saidas-pizza-container">
+              <div class="saidas-pizza-wrap">
+                <canvas id="saidasFormaChart" aria-label="Pizza de saídas por forma de pagamento"></canvas>
+              </div>
+              <div class="saidas-pizza-legend" id="saidasFormaLegend"></div>
             </div>
-
-            <!-- Legenda posicionada fora do wrapper -->
-            <div class="saidas-pizza-legend" id="saidasFormaLegend"></div>
           </article>
 
         </div>
@@ -1034,6 +1034,7 @@
               Exportar CSV
             </button>
           </div>
+
           <div class="table-card__scroll">
             <table class="data-table" id="saidasTable">
               <thead>
@@ -1048,9 +1049,44 @@
                 </tr>
               </thead>
               <tbody id="saidasTableBody">
+                <!-- Exemplo de Linha Preenchida (Substitua via JS no render) -->
                 <tr>
-                  <td colspan="7" class="data-table__empty">Carregando...</td>
+                  <td>16/03/2026</td>
+                  <td>
+                    <span class="data-table__name-primary">Manutenção do Equipamento X-Ray</span>
+                    <span class="data-table__name-secondary">Cod: #OUT-8921</span>
+                  </td>
+                  <td><span class="tag-category">Equipamentos</span></td>
+                  <td class="data-table__num data-table__num--negative">R$ 1.250,00</td>
+                  <td><span class="tag-payment">PIX</span></td>
+                  <td>Radiologia Central</td>
+                  <td class="data-table__action">
+                    <div class="table-actions">
+                      <button type="button" class="action-btn action-btn--edit" title="Editar saída">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                      </button>
+                      <button type="button" class="action-btn action-btn--delete" title="Excluir saída">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                          </path>
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
                 </tr>
+
+                <!-- Estado Carregando/Vazio -->
+                <!--
+        <tr>
+          <td colspan="7" class="data-table__empty">Carregando...</td>
+        </tr>
+        -->
               </tbody>
             </table>
           </div>
