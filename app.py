@@ -291,7 +291,10 @@ def periodo_para_datas(periodo: str, data_inicio: str = None, data_fim: str = No
         delta = (df - di).days + 1
         return di, df, di - datetime.timedelta(days=delta), df - datetime.timedelta(days=delta)
 
-    if periodo == "mes_atual":
+    if periodo == "dia":
+        di = hoje
+        df = hoje
+    elif periodo == "mes_atual":
         di = hoje.replace(day=1)
         df = hoje
     elif periodo == "ultimos_30":
@@ -3535,6 +3538,7 @@ def tipos_exame_delete(exam_id):
 @require_auth
 def periodos_opcoes():
     opcoes = [
+        {"id": "dia",        "label": "Dia"},
         {"id": "mes_atual",  "label": "Mês atual"},
         {"id": "ultimos_30", "label": "Últimos 30 dias"},
         {"id": "trimestre",  "label": "Trimestre"},

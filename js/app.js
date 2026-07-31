@@ -23,7 +23,7 @@ const AppState = (() => {
   let state = {
     radiologiaSelecionada: IORDPermissions.isAdmin() ? 'all' : IORDPermissions.getRadiologiaId(),
     clinicaSelecionada: 'all',
-    periodo: 'mes_atual',
+    periodo: 'dia',
     customDateStart: null,
     customDateEnd: null,
     visualizacao: 'faturamento',
