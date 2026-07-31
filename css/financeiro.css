@@ -3626,6 +3626,18 @@ td.td-change {
   color: var(--color-text-subtle);
   font-style: italic;
 }
+
+/* Ajuste de largura mínima específico para a pizza */
+#saidas-chart-tooltip {
+  min-width: 190px;
+  max-width: 240px;
+}
+
+#saidas-chart-tooltip .cjs-tooltip__inner {
+  padding: var(--space-3);
+  gap: var(--space-2);
+}
+
 /* =============================================================
    16. RESPONSIVO
 ============================================================= */

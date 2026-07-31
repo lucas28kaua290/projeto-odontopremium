@@ -196,14 +196,13 @@
         plugins: {
           legend: { display: false },
           tooltip: {
-            enabled: false, // Desativa tooltip interno do canvas
+            enabled: false,
             external: function (context) {
-              // Tooltip customizado em HTML (não corta nas bordas do canvas)
               let tooltipEl = document.getElementById('saidas-chart-tooltip');
               if (!tooltipEl) {
                 tooltipEl = document.createElement('div');
                 tooltipEl.id = 'saidas-chart-tooltip';
-                tooltipEl.className = 'saidas-custom-tooltip';
+                tooltipEl.className = 'chartjs-tooltip';
                 document.body.appendChild(tooltipEl);
               }
 
@@ -214,17 +213,31 @@
               }
 
               if (tooltipModel.body) {
-                const i = tooltipModel.dataPoints[0].dataIndex;
+                const idx = tooltipModel.dataPoints[0].dataIndex;
+                const item = items[idx];
+
                 tooltipEl.innerHTML = `
-                  <div class="tooltip-title">${labels[i]}</div>
-                  <div class="tooltip-value">${fmt(values[i])} (${items[i]?.percentual ?? 0}%)</div>
+                  <div class="cjs-tooltip__inner">
+                    <div class="cjs-tooltip__eyebrow">Forma de Pagamento</div>
+                    <div class="cjs-tooltip__row-top">
+                      <span class="cjs-tooltip__row-label">
+                        <span class="cjs-tooltip__dot" style="background:${cores[idx]}"></span>
+                        ${labels[idx]}
+                      </span>
+                      <span class="cjs-tooltip__row-value">${fmt(values[idx])}</span>
+                    </div>
+                    <div class="cjs-tooltip__bar-track">
+                      <div class="cjs-tooltip__bar-fill" style="width: ${item?.percentual ?? 0}%; background:${cores[idx]}"></div>
+                    </div>
+                    <div class="cjs-tooltip__row-percent">${item?.percentual ?? 0}% do total de saídas</div>
+                  </div>
                 `;
               }
 
               const position = context.chart.canvas.getBoundingClientRect();
               tooltipEl.style.opacity = '1';
-              tooltipEl.style.left = position.left + window.pageXOffset + tooltipModel.caretX + 'px';
-              tooltipEl.style.top = position.top + window.pageYOffset + tooltipModel.caretY - 40 + 'px';
+              tooltipEl.style.left = position.left + tooltipModel.caretX + 12 + 'px';
+              tooltipEl.style.top = position.top + tooltipModel.caretY - 20 + 'px';
             }
           },
         },
