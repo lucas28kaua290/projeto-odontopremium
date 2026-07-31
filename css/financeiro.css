@@ -3546,9 +3546,11 @@ td.td-change {
 /* Botões de Ações em Grupo */
 .table-actions {
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: var(--space-1);
+  gap: var(--space-2, 6px);
+  white-space: nowrap;
 }
 
 /* Base dos botões de ação */
