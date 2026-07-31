@@ -2842,6 +2842,234 @@ td.td-change {
 
 .modal-goal-preview svg { flex-shrink: 0; color: var(--color-primary); }
 
+/*
+==================================================
+    ABA DE SAÍDAS
+==================================================
+*/
+
+
+.fin-kpi-grid--saidas {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.fin-kpi-grid--saidas .fin-kpi-card-saida {
+  width: 100%;
+}
+
+.fin-kpi-card-saida {
+  position: relative;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
+}
+
+.saidas-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Botão Primário (Nova Saída) */
+.btn--primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 9px var(--space-4);
+  background: var(--gradient-brand);
+  color: var(--color-bg);
+  font-family: var(--font-base);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  box-shadow: 0 4px 14px -3px rgba(1, 128, 147, 0.45);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px -3px rgba(1, 128, 147, 0.55);
+}
+
+.btn--primary:active {
+  transform: translateY(0);
+}
+
+/* Grupo de Filtros */
+.saidas-filters {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  flex: 0 1 auto; 
+  justify-content: flex-start; 
+}
+
+/* Item de Filtro Individual */
+.saidas-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 140px;
+}
+
+.saidas-filter-group--search {
+  min-width: 180px;
+  flex-grow: 1;
+  max-width: 260px;
+}
+
+/* Labels */
+.saidas-filter-label {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Wrapper do Select com Ícone Dropdown */
+.period-select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.period-select {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 7px 32px 7px var(--space-3);
+  font-family: var(--font-base);
+  font-size: var(--fs-sm);
+  color: var(--color-text);
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+
+.period-select:hover {
+  border-color: var(--color-border-strong);
+  background-color: var(--color-surface);
+}
+
+.period-select:focus {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
+  background-color: var(--color-surface);
+}
+
+.period-select__chevron {
+  position: absolute;
+  right: var(--space-3);
+  color: var(--color-text-subtle);
+  pointer-events: none;
+  transition: color var(--transition-fast);
+}
+
+.period-select-wrapper:hover .period-select__chevron {
+  color: var(--color-text);
+}
+
+/* Campo de Busca */
+.saidas-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.saidas-search-icon {
+  position: absolute;
+  left: var(--space-3);
+  color: var(--color-text-subtle);
+  pointer-events: none;
+  transition: color var(--transition-fast);
+}
+
+.saidas-search-input {
+  width: 100%;
+  background-color: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 7px var(--space-3) 7px 32px;
+  font-family: var(--font-base);
+  font-size: var(--fs-sm);
+  color: var(--color-text);
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+
+.saidas-search-input::placeholder {
+  color: var(--color-text-subtle);
+}
+
+.saidas-search-input:hover {
+  border-color: var(--color-border-strong);
+  background-color: var(--color-surface);
+}
+
+.saidas-search-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
+  background-color: var(--color-surface);
+}
+
+.saidas-search-wrap:focus-within .saidas-search-icon {
+  color: var(--color-primary);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .saidas-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn--primary {
+    width: 100%;
+  }
+
+  .saidas-filters {
+    justify-content: space-between;
+  }
+
+  .saidas-filter-group {
+    flex: 1 1 calc(50% - var(--space-2));
+    min-width: 0;
+  }
+
+  .saidas-filter-group--search {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+}
 
 /* =============================================================
    16. RESPONSIVO
