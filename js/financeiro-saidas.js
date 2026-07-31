@@ -28,12 +28,6 @@
     '#E05C5C', '#0E8F63', '#B27A0E',
   ];
 
-  let CATEGORIAS = [];
-  let FORMAS     = [];
-
-  const LABELS_CATEGORIA = {};
-  const LABELS_FORMA     = {};
-
   // Preenchidas dinamicamente via /saidas/opcoes — fallback vazio até carregar
   let CATEGORIAS = [];
   let FORMAS     = [];
@@ -154,7 +148,7 @@
     // Restaura valor se ainda válido (caso modal já estivesse aberto)
     if (currentVal) sel.value = currentVal;
   }
-  
+
   function buildFiltros() {
     const base = {
       periodo: S.periodo,
