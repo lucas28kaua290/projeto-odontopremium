@@ -29,21 +29,21 @@
   ];
 
   const CATEGORIAS = [
-    { value: 'material',    label: 'Material' },
-    { value: 'manutencao',  label: 'Manutenção' },
-    { value: 'limpeza',     label: 'Limpeza' },
-    { value: 'marketing',   label: 'Marketing' },
-    { value: 'transporte',  label: 'Transporte' },
-    { value: 'pessoal',     label: 'Pessoal' },
-    { value: 'outros',      label: 'Outros' },
+    { value: 'material', label: 'Material' },
+    { value: 'manutencao', label: 'Manutenção' },
+    { value: 'limpeza', label: 'Limpeza' },
+    { value: 'marketing', label: 'Marketing' },
+    { value: 'transporte', label: 'Transporte' },
+    { value: 'pessoal', label: 'Pessoal' },
+    { value: 'outros', label: 'Outros' },
   ];
 
   const FORMAS = [
-    { value: 'pix',           label: 'PIX' },
-    { value: 'dinheiro',      label: 'Dinheiro' },
-    { value: 'cartao',        label: 'Cartão' },
+    { value: 'pix', label: 'PIX' },
+    { value: 'dinheiro', label: 'Dinheiro' },
+    { value: 'cartao', label: 'Cartão' },
     { value: 'transferencia', label: 'Transferência' },
-    { value: 'boleto',        label: 'Boleto' },
+    { value: 'boleto', label: 'Boleto' },
   ];
 
   /* ─────────────────────────────────────────────────────────
@@ -136,12 +136,12 @@
 
   function buildFiltros() {
     const base = {
-      periodo:    S.periodo,
+      periodo: S.periodo,
       dataInicio: S.customStart || undefined,
-      dataFim:    S.customEnd   || undefined,
-      categoria:  S.categoria   || undefined,
-      formaPagamento: S.forma   || undefined,
-      q:          S.q           || undefined,
+      dataFim: S.customEnd || undefined,
+      categoria: S.categoria || undefined,
+      formaPagamento: S.forma || undefined,
+      q: S.q || undefined,
     };
     if (S.isAdmin) {
       base.radiologiaId = S.radiologiaId || undefined;
@@ -168,14 +168,14 @@
 
     if (!items.length) {
       canvas.style.display = 'none';
-      if (legendEl) legendEl.innerHTML = '<span style="color:var(--color-text-muted);font-size:.8rem">Sem dados</span>';
+      if (legendEl) legendEl.innerHTML = '<span style="color:var(--color-text-muted);font-size:.75rem">Sem dados</span>';
       return;
     }
 
     canvas.style.display = '';
     const labels = items.map(i => labelForma(i.forma));
     const values = items.map(i => i.valor);
-    const cores  = items.map((_, idx) => CORES_PIZZA[idx % CORES_PIZZA.length]);
+    const cores = items.map((_, idx) => CORES_PIZZA[idx % CORES_PIZZA.length]);
 
     S.pizzaChart = new Chart(canvas, {
       type: 'doughnut',
@@ -186,19 +186,24 @@
           backgroundColor: cores,
           borderWidth: 2,
           borderColor: '#fff',
-          hoverOffset: 6,
+          hoverOffset: 4,
+          clip: false // Impede o corte dos elementos nos limites do canvas
         }],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         cutout: '65%',
+        layout: {
+          padding: 6 // Respiro interno para o tooltip/hoverOffset não cortarem nas bordas
+        },
         plugins: {
           legend: { display: false },
           tooltip: {
             enabled: true,
+            displayColors: false,
             callbacks: {
-              label: ctx => ` ${fmt(ctx.raw)}  (${items[ctx.dataIndex]?.percentual ?? 0}%)`,
+              label: ctx => ` ${fmt(ctx.raw)} (${items[ctx.dataIndex]?.percentual ?? 0}%)`,
             },
           },
         },
@@ -208,8 +213,10 @@
     if (legendEl) {
       legendEl.innerHTML = items.map((item, i) => `
         <div class="saidas-pizza-leg-item">
-          <span class="saidas-pizza-leg-dot" style="background:${cores[i]}"></span>
-          <span class="saidas-pizza-leg-label">${labelForma(item.forma)}</span>
+          <span class="saidas-pizza-leg-left">
+            <span class="saidas-pizza-leg-dot" style="background:${cores[i]}"></span>
+            <span class="saidas-pizza-leg-label">${labelForma(item.forma)}</span>
+          </span>
           <span class="saidas-pizza-leg-val">${item.percentual ?? 0}%</span>
         </div>
       `).join('');
@@ -252,7 +259,7 @@
   function renderTabela(rows) {
     S._rows = rows;
     const tbody = document.getElementById('saidasTableBody');
-    const hint  = document.getElementById('saidasTableHint');
+    const hint = document.getElementById('saidasTableHint');
     if (!tbody) return;
 
     if (hint) hint.textContent = `${rows.length} registro${rows.length !== 1 ? 's' : ''} encontrado${rows.length !== 1 ? 's' : ''}`;
@@ -399,12 +406,12 @@
       el('saidaEditId').value = isEdit ? row.id : '';
 
       // campos
-      el('saidaData').value        = isEdit ? String(row.dataSaida).split('T')[0] : today();
-      el('saidaDescricao').value   = isEdit ? (row.descricao || '') : '';
-      el('saidaCategoria').value   = isEdit ? (row.categoria || '') : '';
-      el('saidaForma').value       = isEdit ? (row.formaPagamento || '') : '';
-      el('saidaValor').value       = isEdit ? maskMoney(row.valor) : '';
-      el('saidaObservacao').value  = isEdit ? (row.observacao || '') : '';
+      el('saidaData').value = isEdit ? String(row.dataSaida).split('T')[0] : today();
+      el('saidaDescricao').value = isEdit ? (row.descricao || '') : '';
+      el('saidaCategoria').value = isEdit ? (row.categoria || '') : '';
+      el('saidaForma').value = isEdit ? (row.formaPagamento || '') : '';
+      el('saidaValor').value = isEdit ? maskMoney(row.valor) : '';
+      el('saidaObservacao').value = isEdit ? (row.observacao || '') : '';
 
       populateRadiologiaSelect();
       if (isEdit && S.isAdmin) {
@@ -428,15 +435,15 @@
 
     async function save() {
       // validação
-      const data    = el('saidaData').value;
-      const desc    = el('saidaDescricao').value.trim();
-      const cat     = el('saidaCategoria').value;
-      const forma   = el('saidaForma').value;
-      const valStr  = el('saidaValor').value;
-      const obs     = el('saidaObservacao').value.trim();
+      const data = el('saidaData').value;
+      const desc = el('saidaDescricao').value.trim();
+      const cat = el('saidaCategoria').value;
+      const forma = el('saidaForma').value;
+      const valStr = el('saidaValor').value;
+      const obs = el('saidaObservacao').value.trim();
       const radioId = el('saidaRadiologia').value;
-      const editId  = el('saidaEditId').value;
-      const valor   = unmaskMoney(valStr);
+      const editId = el('saidaEditId').value;
+      const valor = unmaskMoney(valStr);
 
       if (!data || !desc || !cat || !forma || !valor || !radioId) {
         toast('Preencha todos os campos obrigatórios.', 'error');
@@ -444,13 +451,13 @@
       }
 
       const payload = {
-        radiologiaId:   radioId,
-        dataSaida:      data,
-        descricao:      desc,
-        categoria:      cat,
-        valor:          valor,
+        radiologiaId: radioId,
+        dataSaida: data,
+        descricao: desc,
+        categoria: cat,
+        valor: valor,
         formaPagamento: forma,
-        observacao:     obs || undefined,
+        observacao: obs || undefined,
       };
 
       const confirmBtn = el('modalSaidaConfirm');
@@ -591,19 +598,19 @@
   function syncPeriodo() {
     const periodoSel = document.getElementById('periodFilter');
     const customStart = document.getElementById('customDateStart');
-    const customEnd   = document.getElementById('customDateEnd');
+    const customEnd = document.getElementById('customDateEnd');
 
     function update() {
       S.periodo = periodoSel?.value || 'mes_atual';
       S.customStart = S.periodo === 'custom' ? (customStart?.value || null) : null;
-      S.customEnd   = S.periodo === 'custom' ? (customEnd?.value   || null) : null;
+      S.customEnd = S.periodo === 'custom' ? (customEnd?.value || null) : null;
     }
 
     periodoSel?.addEventListener('change', () => {
       update();
       // só recarrega se a aba Saídas estiver ativa
       if (document.getElementById('tab-saidas')?.classList.contains('is-active') === false &&
-          !document.getElementById('tab-saidas')?.hidden === false) {
+        !document.getElementById('tab-saidas')?.hidden === false) {
         // verifica outra forma: se o panel não tem a classe fin-panel--hidden
         if (!document.getElementById('tab-saidas')?.classList.contains('fin-panel--hidden')) {
           reload();
@@ -649,7 +656,7 @@
      BOOTSTRAP
   ───────────────────────────────────────────────────────── */
   async function init() {
-    try { window.IORDAuth?.requireLogin(); } catch (_) {}
+    try { window.IORDAuth?.requireLogin(); } catch (_) { }
 
     // Descobre permissões
     S.isAdmin = typeof IORDPermissions !== 'undefined'

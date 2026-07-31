@@ -3225,9 +3225,10 @@ td.td-change {
 
 .saidas-pizza-wrap {
   position: relative;
-  width: 90px;
-  height: 90px;
+  width: 85px;
+  height: 85px;
   flex-shrink: 0;
+  overflow: visible !important;
 }
 
 .saidas-pizza-wrap canvas {
@@ -3239,11 +3240,48 @@ td.td-change {
 .saidas-pizza-legend {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   flex: 1;
-  max-height: 100px;
+  max-height: 85px;
   overflow-y: auto;
-  padding-right: 4px;
+  padding-right: 2px;
+}
+
+.saidas-pizza-leg-label {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.saidas-pizza-leg-val {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-left: 6px;
+}
+
+.saidas-pizza-leg-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.72rem; /* Texto menor e compacto */
+  line-height: 1.2;
+}
+
+.saidas-pizza-leg-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.saidas-pizza-leg-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .saidas-pizza-legend-item {
