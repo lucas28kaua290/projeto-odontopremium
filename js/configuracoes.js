@@ -1117,16 +1117,13 @@
         async init() {
             this.bindSave()
             this.bindDiscard()
-            this.bindNewExamButton()
 
             try {
                 const res = await Api.getParametros()
                 this.data = res.data || {}
                 // Garante estrutura mínima para evitar erros de renderização
-                if (!this.data.examDurations) this.data.examDurations = []
                 if (!this.data.whatsappMessages) this.data.whatsappMessages = []
                 if (!this.data.scheduling) this.data.scheduling = {}
-                this.renderExamDurations()
                 this.renderWAMessages()
                 this.fillSchedulingForm()
                 this.bindChangesDetection()
@@ -1136,101 +1133,6 @@
             }
         },
 
-        renderExamDurations() {
-            const grid = document.getElementById('examDurationGrid')
-            if (!grid) return
-
-            grid.innerHTML = this.data.examDurations.map(e => `
-        <div class="exam-duration-item">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-            <span class="exam-duration-item__label">${Utils.escapeHtml(e.label)}</span>
-            <div class="table-actions">
-              <button type="button" class="icon-btn icon-btn--edit" data-exam-edit-id="${Utils.escapeHtml(e.id)}" title="Editar tipo de exame" aria-label="Editar ${Utils.escapeHtml(e.label)}">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-              </button>
-              <button type="button" class="icon-btn icon-btn--delete" data-exam-delete-id="${Utils.escapeHtml(e.id)}" title="Excluir tipo de exame" aria-label="Excluir ${Utils.escapeHtml(e.label)}">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-              </button>
-            </div>
-          </div>
-          <div class="exam-duration-item__input-wrap">
-            <input
-                type="number"
-                class="exam-duration-item__input"
-                data-exam-id="${Utils.escapeHtml(e.id)}"
-                value="${e.duration}"
-                min="5"
-                max="180"
-                step="5"
-                aria-label="Duração de ${Utils.escapeHtml(e.label)} em minutos"
-                readonly
-            >
-            <span class="exam-duration-item__unit">min</span>
-          </div>
-          <div class="exam-duration-item__input-wrap" style="margin-top:6px;">
-            <span class="exam-duration-item__unit" style="border-right:none;border-left:none;padding-right:4px;">R$</span>
-            <input
-                type="number"
-                class="exam-duration-item__input exam-duration-item__value"
-                data-exam-id="${Utils.escapeHtml(e.id)}"
-                value="${e.value ?? 0}"
-                min="0"
-                step="0.01"
-                aria-label="Valor de ${Utils.escapeHtml(e.label)} em reais"
-                placeholder="0,00"
-                readonly
-            >
-          </div>
-        </div>
-      `).join('')
-
-            // Bind botão editar
-            grid.querySelectorAll('.icon-btn--edit[data-exam-edit-id]').forEach(btn => {
-                btn.addEventListener('click', () => ModalExame.open('edit', btn.dataset.examEditId))
-            })
-
-            // Bind botão excluir
-            grid.querySelectorAll('.icon-btn--delete[data-exam-delete-id]').forEach(btn => {
-                btn.addEventListener('click', () => ParametrosModule.confirmDeleteExam(btn.dataset.examDeleteId))
-            })
-        },
-
-        async confirmDeleteExam(id) {
-            const e = (this.data.examDurations || []).find(e => String(e.id) === String(id))
-            if (!e) return
-
-            const confirmed = await new Promise(resolve => {
-                const toast = document.getElementById('cfgToast')
-                const icon = document.getElementById('cfgToastIcon')
-                const msgEl = document.getElementById('cfgToastMsg')
-                if (!toast || !icon || !msgEl) { resolve(window.confirm(`Excluir "${e.label}"?`)); return }
-
-                icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`
-                msgEl.innerHTML = `<span>Excluir <strong>${Utils.escapeHtml(e.label)}</strong>?</span>
-            <span style="display:flex;gap:8px;margin-left:auto;">
-                <button id="_toastNo"  style="padding:4px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:inherit;cursor:pointer;font-size:12px;">Cancelar</button>
-                <button id="_toastYes" style="padding:4px 12px;border-radius:6px;border:none;background:rgba(194,59,50,0.85);color:#fff;cursor:pointer;font-size:12px;font-weight:600;">Excluir</button>
-            </span>`
-                toast.className = 'cfg-toast cfg-toast--warning'
-                toast.hidden = false
-
-                const cleanup = (val) => { toast.hidden = true; msgEl.innerHTML = ''; resolve(val) }
-                document.getElementById('_toastYes')?.addEventListener('click', () => cleanup(true))
-                document.getElementById('_toastNo')?.addEventListener('click', () => cleanup(false))
-            })
-
-            if (!confirmed) return
-            try {
-                await Api.deleteTipoExame(id)
-                this.data.examDurations = this.data.examDurations.filter(e => String(e.id) !== String(id))
-                this.renderExamDurations()
-                Toast.show('Tipo de exame excluído.')
-            } catch (err) {
-                console.error(err)
-                const msg = err?.body?.message || 'Erro ao excluir tipo de exame.'
-                Toast.show(msg, 'error')
-            }
-        },
 
         renderWAMessages() {
             const list = document.getElementById('waMessagesList')
@@ -1295,25 +1197,6 @@
         },
 
         collectData() {
-            const durations = {}
-            // Exclui os inputs de valor (.exam-duration-item__value) da coleta de duração
-            document.querySelectorAll('.exam-duration-item__input[data-exam-id]:not(.exam-duration-item__value)').forEach(inp => {
-                durations[inp.dataset.examId] = parseInt(inp.value, 10) || 0
-            })
-
-            // Coleta também o valor (R$) de cada exame
-            const examValues = {}
-            document.querySelectorAll('.exam-duration-item__value[data-exam-id]').forEach(inp => {
-                examValues[inp.dataset.examId] = parseFloat(inp.value) || 0
-            })
-
-            // Para exames novos (ainda não existentes no banco, id começa com 'exam-'),
-            // envia também o rótulo para o backend poder criar o registro
-            const examLabels = {}
-                ; (this.data.examDurations || []).forEach(e => {
-                    if (String(e.id).startsWith('exam-')) examLabels[e.id] = e.label
-                })
-
             const messages = []
             document.querySelectorAll('.wa-message-item[data-msg-id]').forEach(item => {
                 messages.push({
@@ -1334,7 +1217,7 @@
                 bloquearAutomatico: document.getElementById('toggleAutoBlock')?.checked,
             }
 
-            return { durations, examValues, examLabels, messages, scheduling }
+            return { messages, scheduling }
         },
 
         /** Barra sticky de salvar para a aba Parâmetros */
@@ -1367,12 +1250,6 @@
             ParametrosModule._hideBar = hideBar
         },
 
-        /** Botão "+ Novo Exame" */
-        bindNewExamButton() {
-            document.getElementById('btnNewExamType')?.addEventListener('click', () => {
-                ModalExame.open('create')
-            })
-        },
 
         /** [API] POST /parametros */
         bindSave() {
@@ -1394,10 +1271,8 @@
                 try {
                     const res = await Api.getParametros()
                     this.data = res.data || {}
-                    if (!this.data.examDurations) this.data.examDurations = []
                     if (!this.data.whatsappMessages) this.data.whatsappMessages = []
                     if (!this.data.scheduling) this.data.scheduling = {}
-                    this.renderExamDurations()
                     this.renderWAMessages()
                     this.fillSchedulingForm()
                     Toast.show('Alterações descartadas.', 'warning')
@@ -1807,110 +1682,7 @@
         },
     }
 
-    /* ---- MODAL: TIPO DE EXAME ---- */
-    const ModalExame = {
-        init() {
-            bindModalClose('modalExamBackdrop', 'modalExamClose', 'modalExamCancel')
-            document.getElementById('modalExamConfirm')?.addEventListener('click', () => this.save())
-        },
-
-        open(mode, examId = null) {
-            const titleEl = document.getElementById('modalExamTitle')
-            const subtitleEl = document.getElementById('modalExamSubtitle')
-            const confirmBtn = document.getElementById('modalExamConfirm')
-            State.modal = { type: 'exame', mode, editId: examId }
-
-            if (mode === 'create') {
-                titleEl.textContent = 'Novo Tipo de Exame'
-                subtitleEl.textContent = 'Defina nome, duração e valor'
-                this.clearForm()
-            } else {
-                const exam = (ParametrosModule.data?.examDurations || []).find(e => e.id === examId)
-                if (!exam) return
-                titleEl.textContent = `Editar — ${exam.label}`
-                subtitleEl.textContent = 'Atualize os dados do exame'
-                this.fillForm(exam)
-            }
-
-            if (confirmBtn) {
-                const textNode = Array.from(confirmBtn.childNodes).find(n => n.nodeType === Node.TEXT_NODE)
-                const label = mode === 'create' ? ' Adicionar Exame' : ' Salvar Alterações'
-                if (textNode) textNode.textContent = label
-                else confirmBtn.appendChild(document.createTextNode(label))
-            }
-
-            openModal('modalExamBackdrop')
-        },
-
-        clearForm() {
-            const idEl = document.getElementById('modalExamId'); if (idEl) idEl.value = ''
-            const labelEl = document.getElementById('examLabel'); if (labelEl) labelEl.value = ''
-            const durEl = document.getElementById('examDuration'); if (durEl) durEl.value = '30'
-            const valEl = document.getElementById('examValue'); if (valEl) valEl.value = '0'
-        },
-
-        fillForm(exam) {
-            document.getElementById('modalExamId').value = exam.id
-            document.getElementById('examLabel').value = exam.label || ''
-            document.getElementById('examDuration').value = exam.duration ?? 30
-            document.getElementById('examValue').value = exam.value ?? 0
-        },
-
-        /** Cria (ou edita) um card de exame na lista local. Persiste de fato ao clicar em "Salvar Parâmetros". */
-        /** Persiste o tipo de exame imediatamente no banco via POST /tipos-exame. */
-        async save() {
-            const label = document.getElementById('examLabel')?.value?.trim()
-            if (!label) { Toast.show('Informe o nome do exame.', 'error'); return }
-
-            const duration = parseInt(document.getElementById('examDuration')?.value, 10) || 30
-            const value = parseFloat(document.getElementById('examValue')?.value) || 0
-            const isCreate = State.modal.mode === 'create'
-            const localId = isCreate ? '' : (document.getElementById('modalExamId')?.value || '')
-
-            const confirmBtn = document.getElementById('modalExamConfirm')
-            if (confirmBtn) confirmBtn.disabled = true
-
-            try {
-                const saved = isCreate
-                    ? await Api.postTipoExame({ label, duration, value })
-                    : await Api.putTipoExame(localId, { label, duration, value })
-
-                if (!ParametrosModule.data) ParametrosModule.data = { examDurations: [] }
-                if (!ParametrosModule.data.examDurations) ParametrosModule.data.examDurations = []
-
-                if (isCreate) {
-                    ParametrosModule.data.examDurations.push({
-                        id: saved.id,
-                        label: saved.label,
-                        duration: saved.duration,
-                        value: saved.value,
-                    })
-                    Toast.show('Exame criado com sucesso.')
-                } else {
-                    const idx = ParametrosModule.data.examDurations.findIndex(e => e.id === saved.id)
-                    if (idx !== -1) {
-                        ParametrosModule.data.examDurations[idx] = {
-                            id: saved.id,
-                            label: saved.label,
-                            duration: saved.duration,
-                            value: saved.value,
-                        }
-                    }
-                    Toast.show('Exame atualizado com sucesso.')
-                }
-
-                ParametrosModule.renderExamDurations()
-                closeModal('modalExamBackdrop')
-            } catch (err) {
-                console.error(err)
-                const msg = err?.body?.message || 'Erro ao salvar exame.'
-                Toast.show(msg, 'error')
-            } finally {
-                if (confirmBtn) confirmBtn.disabled = false
-            }
-        },
-    }
-
+    
     /* ---- MODAL: USUÁRIO ---- */
     const ModalUsuario = {
         init() {
@@ -2062,7 +1834,7 @@
         ParametrosModule.init()
         ModalClinica.init()
         ModalMedico.init()
-        ModalExame.init()
+        
 
         // Popula State.radiologias com a unidade do usuário
         // para que o select do modal de clínica funcione corretamente
@@ -2317,7 +2089,7 @@
             ModalRadiologia.init()
             ModalClinica.init()
             ModalMedico.init()
-            ModalExame.init()
+            
             ModalUsuario.init()
             TabNav.switchTo('geral')
         } else {
