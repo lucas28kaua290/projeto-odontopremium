@@ -1968,16 +1968,7 @@ input:focus-visible {
   letter-spacing: -0.01em;
 }
 
-/* --- Wrapper com scroll horizontal para telas estreitas --- */
-.calendar-scroll-wrapper {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
 
-.calendar-scroll-wrapper .calendar-grid__weekdays,
-.calendar-scroll-wrapper .calendar-grid {
-  min-width: 560px;
-}
 /* --- Dias da semana (header) --- */
 .calendar-grid__weekdays {
   display: grid;
@@ -2025,13 +2016,14 @@ input:focus-visible {
   border-bottom: 1px solid var(--color-border);
   padding: 10px 10px 12px;
   min-height: 110px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 5px;
   cursor: pointer;
   position: relative;
   transition: background-color 160ms ease, box-shadow 160ms ease;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .calendar-day:nth-child(7n) {
@@ -2155,6 +2147,7 @@ input:focus-visible {
   padding: 3px 7px 3px 5px;
   border-radius: 4px;
   overflow: hidden;
+  min-width: 0;
   white-space: nowrap;
   text-overflow: ellipsis;
   line-height: 1.35;
@@ -2227,6 +2220,8 @@ input:focus-visible {
   overflow: hidden;
   text-overflow: ellipsis;
   opacity: 0.85;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .calendar-day__more {
