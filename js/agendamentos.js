@@ -3164,6 +3164,29 @@ const NewAppointmentModal = (() => {
       }
       // ----------------------------------------------------
 
+      const tipoExameIdAtual = document.getElementById('newTipoExameId').value.trim();
+      const tipoExameLabelAtual = document.getElementById('newTipoExame').value.trim();
+
+      if (!tipoExameIdAtual && tipoExameLabelAtual) {
+        try {
+          const novoExame = await Api.postTipoExame({
+            label: tipoExameLabelAtual,
+            duration: 30,
+            value: 0,
+          });
+          const novoId = novoExame?.data?.id || novoExame?.id;
+          if (!novoId) throw new Error('ID não retornado pelo servidor.');
+          
+          document.getElementById('newTipoExameId').value = novoId;
+          
+          await DataStore.loadTiposExame();
+        } catch (errExame) {
+          console.error('[NewAppointmentModal] Erro ao criar tipo de exame:', errExame);
+          showToast('Erro ao cadastrar novo tipo de exame. Tente novamente.', 'error');
+          return;
+        }
+      }
+
       const appt = buildNewAppointment();
 
       if (editingAppointment) {
