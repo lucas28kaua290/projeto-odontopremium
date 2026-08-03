@@ -2496,6 +2496,140 @@ const PatientAutocomplete = (() => {
 /* =================================================================
    NEW APPOINTMENT MODAL — v2 (fluxo em cascata)
 ================================================================= */
+
+/* =================================================================
+   EXAM AUTOCOMPLETE — busca inteligente de tipo de exame
+   Mesmo padrão do PatientAutocomplete.
+   - Selecionou sugestão → guarda ID em #newTipoExameId
+   - Não selecionou → ID fica vazio (texto livre, sem duração/ocupação do banco)
+================================================================= */
+const ExamAutocomplete = (() => {
+  let inputEl, dropdownEl, tagEl;
+  let selectedExamId = null;
+  let currentFocusIdx = -1;
+  const MIN_CHARS = 1;
+
+  function escapeHtml(str) {
+    return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function closeDropdown() {
+    if (dropdownEl) dropdownEl.hidden = true;
+    currentFocusIdx = -1;
+  }
+
+  function clearSelection() {
+    selectedExamId = null;
+    document.getElementById('newTipoExameId').value = '';
+    if (tagEl) tagEl.hidden = true;
+  }
+
+  function fillFromExam(exam) {
+    selectedExamId = exam.id;
+    document.getElementById('newTipoExameId').value = exam.id;
+    document.getElementById('newTipoExame').value = exam.label;
+    if (tagEl) tagEl.hidden = false;
+    closeDropdown();
+    // Dispara a lógica de horários (igual ao change do select antigo)
+    tryUpdateHorarios();
+  }
+
+  function renderDropdown(exams) {
+    if (!dropdownEl) return;
+    dropdownEl.innerHTML = '';
+    currentFocusIdx = -1;
+
+    if (!exams.length) {
+      dropdownEl.innerHTML = `<div class="autocomplete-empty">Nenhum exame encontrado — será salvo como texto livre.</div>`;
+      dropdownEl.hidden = false;
+      return;
+    }
+
+    exams.forEach((exam) => {
+      const item = document.createElement('div');
+      item.className = 'autocomplete-item';
+      item.setAttribute('role', 'option');
+      item.innerHTML = `
+        <div class="autocomplete-item__name">${escapeHtml(exam.label)}</div>
+        <div class="autocomplete-item__meta">Duração: ${exam.duration || 30} min</div>
+      `;
+      item.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        fillFromExam(exam);
+      });
+      dropdownEl.appendChild(item);
+    });
+
+    dropdownEl.hidden = false;
+  }
+
+  function onInput() {
+    const val = inputEl.value.trim();
+    clearSelection();
+
+    if (val.length < MIN_CHARS) {
+      closeDropdown();
+      return;
+    }
+
+    const todos = DataStore.getTiposExame();
+    const filtrados = todos.filter(t =>
+      t.label.toLowerCase().includes(val.toLowerCase())
+    );
+    renderDropdown(filtrados);
+  }
+
+  function handleKeydown(e) {
+    if (dropdownEl.hidden) return;
+    const items = dropdownEl.querySelectorAll('.autocomplete-item');
+    if (!items.length) { if (e.key === 'Escape') closeDropdown(); return; }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      currentFocusIdx = Math.min(currentFocusIdx + 1, items.length - 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      currentFocusIdx = Math.max(currentFocusIdx - 1, 0);
+    } else if (e.key === 'Enter' && currentFocusIdx >= 0) {
+      e.preventDefault();
+      items[currentFocusIdx].dispatchEvent(new MouseEvent('mousedown'));
+      return;
+    } else if (e.key === 'Escape') {
+      closeDropdown(); return;
+    } else { return; }
+
+    items.forEach((item, i) => item.classList.toggle('is-focused', i === currentFocusIdx));
+  }
+
+  function getSelectedId() { return selectedExamId; }
+
+  function reset() {
+    selectedExamId = null;
+    currentFocusIdx = -1;
+    if (tagEl) tagEl.hidden = true;
+    closeDropdown();
+  }
+
+  function init() {
+    inputEl = document.getElementById('newTipoExame');
+    dropdownEl = document.getElementById('tipoExameAutocompleteDropdown');
+    tagEl = document.getElementById('newTipoExameTag');
+    if (!inputEl || !dropdownEl) return;
+
+    inputEl.addEventListener('input', onInput);
+    inputEl.addEventListener('keydown', handleKeydown);
+    inputEl.addEventListener('blur', () => setTimeout(closeDropdown, 150));
+    inputEl.addEventListener('focus', () => {
+      if (inputEl.value.trim().length >= MIN_CHARS && !selectedExamId) onInput();
+    });
+    document.addEventListener('click', (e) => {
+      if (!inputEl.contains(e.target) && !dropdownEl.contains(e.target)) closeDropdown();
+    });
+  }
+
+  return { init, reset, getSelectedId, fillFromExam };
+})();
+
 const NewAppointmentModal = (() => {
   let overlay, closeBtn, cancelBtn, saveBtn;
   let editingAppointment = null;
@@ -2640,13 +2774,14 @@ const NewAppointmentModal = (() => {
 
   function tryUpdateHorarios() {
     const radId = document.getElementById('newRadiologia').value;
-    const tipoExame = document.getElementById('newTipoExame').value;
+    const tipoExameId = document.getElementById('newTipoExameId').value;
+    const tipoExameLabel = document.getElementById('newTipoExame').value.trim();
     const data = document.getElementById('newDate').value;
     const selTime = document.getElementById('newTimeStart');
     const hint = document.getElementById('newTimeHint');
 
     /* Só ativa quando os 3 campos estão preenchidos */
-    if (!radId || !tipoExame || !data) {
+    if (!radId || !tipoExameLabel || !data) {
       selTime.innerHTML = '<option value="">Selecione o horário...</option>';
       selTime.disabled = true;
       hint.textContent = '— preencha exame, radiologia e data';
@@ -2660,15 +2795,8 @@ const NewAppointmentModal = (() => {
 
       try {
 
-        const duracao = DURACAO_POR_EXAME[tipoExame] || 30;
-
-        const ocupados = horariosOcupados(
-          radId,
-          data,
-          tipoExame
-        );
-
-
+        const duracao = DURACAO_POR_EXAME[tipoExameId] || 30;
+        const ocupados = horariosOcupados(radId, data, tipoExameId);
 
         // Primeiro: remove horários ocupados
         let disponiveis = allSlots().filter(slot =>
@@ -2750,7 +2878,7 @@ const NewAppointmentModal = (() => {
 
   /* Quando o usuário muda manualmente o horário, recalcula hora fim */
   function onHorarioChange() {
-    const tipoExameId = document.getElementById('newTipoExame').value;
+    const tipoExameId = document.getElementById('newTipoExameId').value;
     const horario = document.getElementById('newTimeStart').value;
     const duracao = DURACAO_POR_EXAME[tipoExameId] || 30;
     document.getElementById('newTimeEnd').value = calcFim(horario, duracao);
@@ -2782,6 +2910,8 @@ const NewAppointmentModal = (() => {
     document.getElementById('newEndereco').value = '';
     document.getElementById('newRadiologia').value = '';
     document.getElementById('newTipoExame').value = '';
+    document.getElementById('newTipoExameId').value = '';
+    ExamAutocomplete.reset();
     document.getElementById('newDate').value = today;
     document.getElementById('newTimeEnd').value = '';
     document.getElementById('newStatus').value = 'agendado';
@@ -2850,7 +2980,14 @@ const NewAppointmentModal = (() => {
     _atualizarTotalPagamento();
 
     // 2. Tipo de exame (select já populado por _populateTipoExameSelect em openEdit)
-    document.getElementById('newTipoExame').value = ag.tipoExameId || ag.tipoExame || '';
+    const examLabel = ag.tipoExame || ag.tipoExameLabel || '';
+    const examId = ag.tipoExameId || '';
+    document.getElementById('newTipoExame').value = examLabel;
+    document.getElementById('newTipoExameId').value = examId;
+    if (examId) {
+      const tagEl = document.getElementById('newTipoExameTag');
+      if (tagEl) tagEl.hidden = false;
+    }
     updateValuePreview();
 
     // 3. Radiologia (select já populado por _populateRadiologiaSelect em openEdit)
@@ -2928,7 +3065,8 @@ const NewAppointmentModal = (() => {
      BUILD / SAVE
   ------------------------------------------------------------------ */
   function buildNewAppointment() {
-    const tipoExame = document.getElementById('newTipoExame').value;
+    const tipoExameId = document.getElementById('newTipoExameId').value;
+    const tipoExameLabel = document.getElementById('newTipoExame').value.trim();
     const radId = document.getElementById('newRadiologia').value;
     const data = document.getElementById('newDate').value;
     const horarioInicio = document.getElementById('newTimeStart').value;
@@ -2954,7 +3092,8 @@ const NewAppointmentModal = (() => {
         const [d, m, a] = v.split('/');
         return (a && m && d) ? `${a}-${m}-${d}` : null;
       })(),
-      tipoExameId: tipoExame,
+      tipoExame: tipoExameLabel,
+      tipoExameId: tipoExameId || tipoExameLabel,
       valor: parseFloat(document.getElementById('newPagValor1').value) || 0,
       medicoId: document.getElementById('newMedico').value.trim() || null,
       medico: document.getElementById('newMedico').options[document.getElementById('newMedico').selectedIndex]?.text || '',
@@ -3114,7 +3253,6 @@ const NewAppointmentModal = (() => {
     editingAppointment = null;
     resetForm();
     _populateRadiologiaSelect();
-    _populateTipoExameSelect();
     document.querySelector('.new-appointment-modal__title').textContent = 'Novo Agendamento';
     saveBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Salvar Agendamento`;
     overlay.hidden = false;
@@ -3128,7 +3266,6 @@ const NewAppointmentModal = (() => {
     editingAppointment = ag;
 
     _populateRadiologiaSelect();
-    _populateTipoExameSelect();
     fillFormForEdit(ag);
     document.querySelector('.new-appointment-modal__title').textContent = 'Editar Agendamento';
     saveBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Salvar Alterações`;
@@ -3213,7 +3350,7 @@ const NewAppointmentModal = (() => {
     ['newPagValor1', 'newPagValor2'].forEach(id => {
       document.getElementById(id).addEventListener('input', _atualizarTotalPagamento);
     });
-    document.getElementById('newTipoExame').addEventListener('change', () => {
+    document.getElementById('newTipoExame').addEventListener('blur', () => {
       updateValuePreview();
       tryUpdateHorarios();
     });
@@ -3256,7 +3393,8 @@ const NewAppointmentModal = (() => {
     closeBtn = document.getElementById('newModalCloseBtn');
     cancelBtn = document.getElementById('newModalCancelBtn');
     saveBtn = document.getElementById('newModalSaveBtn');
-    PatientAutocomplete.init();  // inicializa o autocomplete de paciente
+    PatientAutocomplete.init();
+    ExamAutocomplete.init();
     bindEvents();
   }
 
