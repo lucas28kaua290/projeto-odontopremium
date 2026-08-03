@@ -99,6 +99,16 @@
     }
 
     /* --- Chamadas de API --- */
+    async function apiGet(path) {
+        const res = await fetch(`${API_BASE}${path}`)
+        const json = await res.json()
+        if (!res.ok) {
+            const msg = json?.message || json?.error || 'Erro ao processar solicitação.'
+            throw Object.assign(new Error(msg), { status: res.status, body: json })
+        }
+        return json?.data !== undefined ? json.data : json
+    }
+
     async function apiPost(path, body) {
         const res = await fetch(`${API_BASE}${path}`, {
             method: 'POST',
@@ -187,7 +197,7 @@
     let _agendamentoData = null
 
     /* --- Init --- */
-    function init() {
+    async function init() {
         const token = getToken()
         if (!token) {
             showStep('stepErro')
@@ -196,67 +206,26 @@
             return
         }
 
-        setupCpfStep(token)
-        setupDadosStep(token)
+        // Carrega dados do agendamento ao abrir a página — sem pedir CPF
+        try {
+            const data = await apiGet(`/agendamentos/confirmar/dados?t=${encodeURIComponent(token)}`)
+            _agendamentoData = data
+            renderInfo(data)
+            showStep('stepDados')
+        } catch (err) {
+            showStep('stepErro')
+            const msgEl = $('msgErro')
+            if (msgEl) msgEl.textContent = err.message || 'Este link é inválido ou já expirou.'
+            return
+        }
+
+        setupConfirmarStep(token)
     }
 
-    /* --- Etapa 1: CPF --- */
-    function setupCpfStep(token) {
-        const input  = $('inputCpf')
-        const error  = $('errorCpf')
-        const btnVal = $('btnValidarCpf')
-        if (!input || !btnVal) return
-
-        // Máscara em tempo real
-        input.addEventListener('input', () => {
-            input.value = maskCpf(input.value)
-            clearFieldError(input, error)
-        })
-
-        input.addEventListener('keydown', e => {
-            if (e.key === 'Enter') btnVal.click()
-        })
-
-        btnVal.addEventListener('click', async () => {
-            const cpfRaw = input.value.replace(/\D/g, '')
-
-            if (!isValidCpf(cpfRaw)) {
-                showFieldError(input, error, 'CPF inválido. Verifique e tente novamente.')
-                input.focus()
-                return
-            }
-
-            setLoading(btnVal, true)
-            try {
-                const data = await apiPost('/agendamentos/confirmar/validar-cpf', { token, cpf: cpfRaw })
-                _agendamentoData = data
-                renderInfo(data)
-                showStep('stepDados')
-            } catch (err) {
-                const status = err?.status
-                if (status === 400 || status === 404) {
-                    showFieldError(input, error, err.message || 'CPF não confere com o agendamento.')
-                } else if (status === 410) {
-                    // token expirado ou agendamento já confirmado — erro terminal
-                    showStep('stepErro')
-                    const msgEl = $('msgErro')
-                    if (msgEl) msgEl.textContent = err.message || 'Este link expirou ou já foi utilizado.'
-                } else {
-                    showFieldError(input, error, 'Erro ao validar. Tente novamente.')
-                }
-            } finally {
-                setLoading(btnVal, false)
-            }
-        })
-    }
-
-    /* --- Etapa 2: Dados + Confirmar --- */
-    function setupDadosStep(token) {
+    /* --- Etapa Confirmar --- */
+    function setupConfirmarStep(token) {
         const btnConfirmar = $('btnConfirmar')
-        const btnVoltar    = $('btnVoltarCpf')
-        if (!btnConfirmar || !btnVoltar) return
-
-        btnVoltar.addEventListener('click', () => showStep('stepCpf'))
+        if (!btnConfirmar) return
 
         btnConfirmar.addEventListener('click', async () => {
             setLoading(btnConfirmar, true)
@@ -280,15 +249,14 @@
 
                 showStep('stepSucesso')
             } catch (err) {
-                // Se já confirmado, tratar como sucesso
-                if (err?.status === 200 || (err?.body?.status === 'confirmado')) {
+                // Backend retorna 200 com status 'confirmado' se já estava confirmado
+                if (err?.status === 200 || err?.body?.status === 'confirmado') {
                     showStep('stepSucesso')
                     return
                 }
-                // Erro terminal
                 showStep('stepErro')
                 const msgEl = $('msgErro')
-                if (msgEl) msgEl.textContent = err.message || 'Não foi possível confirmar. Tente novamente ou entre em contato com a clínica.'
+                if (msgEl) msgEl.textContent = err.message || 'Não foi possível confirmar. Entre em contato com a clínica.'
             } finally {
                 setLoading(btnConfirmar, false)
             }

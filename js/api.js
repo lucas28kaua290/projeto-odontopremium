@@ -1029,10 +1029,24 @@ const Api = (() => {
     }
 
     /**
-     * [PÚBLICO] Etapa 1 — valida CPF e retorna dados do agendamento.
-     * POST /agendamentos/confirmar/validar-cpf
+     * [PÚBLICO] Busca os dados do agendamento pelo token do link.
+     * Não exige CPF — o token já é a validação.
+     * GET /agendamentos/confirmar/dados?t=TOKEN
      * @param {string} token  JWT do link de confirmação
-     * @param {string} cpf    somente dígitos
+     */
+    async function getDadosConfirmacao(token) {
+        const res = await fetch(`${BASE_URL}/agendamentos/confirmar/dados?t=${encodeURIComponent(token)}`);
+        const json = await res.json();
+        if (!res.ok) {
+            const msg = json?.message || json?.error || 'Erro ao carregar agendamento.';
+            throw Object.assign(new Error(msg), { status: res.status, body: json });
+        }
+        return json?.data !== undefined ? json.data : json;
+    }
+
+    /**
+     * [PÚBLICO] Etapa 1 — valida CPF e retorna dados do agendamento.
+     * @deprecated Mantida por compatibilidade; não é mais usada no fluxo de confirmação público.
      */
     async function validarCpfConfirmacao(token, cpf) {
         return request('/agendamentos/confirmar/validar-cpf', {
@@ -2384,7 +2398,8 @@ const Api = (() => {
         // 17. Outros
         deleteAgendamento,
         getLinkConfirmacaoAgendamento,
-        validarCpfConfirmacao,
+        getDadosConfirmacao,
+        validarCpfConfirmacao,   // @deprecated
         confirmarAgendamento,
     };
 
