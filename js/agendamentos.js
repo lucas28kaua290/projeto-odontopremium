@@ -2915,8 +2915,8 @@ const NewAppointmentModal = (() => {
     document.getElementById('newTimeEnd').value = '';
     document.getElementById('newStatus').value = 'agendado';
     document.getElementById('newObservacoes').value = '';
-    const vp = document.getElementById('newValuePreview');
-    if (vp) vp.hidden = true;
+    const valueAmountEl = document.getElementById('newValueAmount');
+    if (valueAmountEl) valueAmountEl.textContent = 'R$ 0,00';
 
     /* Reset cascatas */
     const selCli = document.getElementById('newClinica');
@@ -3093,7 +3093,12 @@ const NewAppointmentModal = (() => {
       })(),
       tipoExame: tipoExameLabel,
       tipoExameId: tipoExameId || tipoExameLabel,
-      valor: parseFloat(document.getElementById('newPagValor1').value) || 0,
+      valor: (() => {
+        const v1 = parseFloat(document.getElementById('newPagValor1').value) || 0;
+        const v2 = parseFloat(document.getElementById('newPagValor2').value) || 0;
+        const tipo = document.getElementById('newPagTipo').value;
+        return tipo === 'dividido' ? v1 + v2 : v1;
+      })(),
       medicoId: document.getElementById('newMedico').value.trim() || null,
       medico: document.getElementById('newMedico').options[document.getElementById('newMedico').selectedIndex]?.text || '',
       clinicaId: document.getElementById('newClinica').value.trim() || null,
@@ -3176,9 +3181,9 @@ const NewAppointmentModal = (() => {
           });
           const novoId = novoExame?.data?.id || novoExame?.id;
           if (!novoId) throw new Error('ID não retornado pelo servidor.');
-          
+
           document.getElementById('newTipoExameId').value = novoId;
-          
+
           await DataStore.loadTiposExame();
         } catch (errExame) {
           console.error('[NewAppointmentModal] Erro ao criar tipo de exame:', errExame);
@@ -3312,38 +3317,20 @@ const NewAppointmentModal = (() => {
   function _atualizarTotalPagamento() {
     const v1 = parseFloat(document.getElementById('newPagValor1').value) || 0;
     const v2 = parseFloat(document.getElementById('newPagValor2').value) || 0;
-    const total = v1 + v2;
-
-    const tipoExameId = document.getElementById('newTipoExameId').value;
-    const valorExame = VALOR_POR_EXAME[tipoExameId] || 0;
+    const tipo = document.getElementById('newPagTipo').value;
+    const total = tipo === 'dividido' ? v1 + v2 : v1;
 
     const totalEl = document.getElementById('newPagTotalVal');
     const statusEl = document.getElementById('newPagValidadorStatus');
+    const valueAmountEl = document.getElementById('newValueAmount');
+
+    // Espelha o total no preview de valor do exame
+    if (valueAmountEl) {
+      valueAmountEl.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
 
     totalEl.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
-    if (!statusEl) return;
-
-    if (valorExame === 0 || (v1 === 0 && v2 === 0)) {
-      statusEl.textContent = '';
-      statusEl.className = 'pag-validador';
-      return;
-    }
-
-    const diff = Math.round((total - valorExame) * 100) / 100; // evita float noise
-
-    if (diff === 0) {
-      statusEl.textContent = '✓ Total confere com o valor do exame';
-      statusEl.className = 'pag-validador pag-validador--ok';
-    } else if (diff < 0) {
-      const falta = Math.abs(diff).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-      statusEl.textContent = `⚠ Faltam ${falta} para cobrir o valor do exame`;
-      statusEl.className = 'pag-validador pag-validador--warn';
-    } else {
-      const excede = diff.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-      statusEl.textContent = `⚠ Total excede em ${excede} o valor do exame`;
-      statusEl.className = 'pag-validador pag-validador--warn';
-    }
+    if (statusEl) { statusEl.textContent = ''; statusEl.className = 'pag-validador'; }
   }
 
   /* ------------------------------------------------------------------

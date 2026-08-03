@@ -21,17 +21,11 @@
 
   <!-- HEADER -->
   <header class="app-header">
-    <button
-      type="button"
-      class="header-icon-btn sidebar-toggle"
-      id="sidebarToggle"
-      aria-label="Abrir menu"
-      aria-expanded="false"
-      aria-controls="sidebar">
+    <button type="button" class="header-icon-btn sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu"
+      aria-expanded="false" aria-controls="sidebar">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-        <path d="M3 12h18M3 6h18M3 18h18"
-          stroke="currentColor" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round" />
       </svg>
     </button>
 
@@ -206,7 +200,7 @@
           </div>
         </article>
 
-        
+
 
         <article class="kpi-card" id="kpiHoje">
           <div class="kpi-card__header">
@@ -222,7 +216,7 @@
           </div>
         </article>
 
-        
+
 
         <article class="kpi-card" id="kpiFaturamentoPrevisto">
           <div class="kpi-card__header">
@@ -781,8 +775,8 @@
               Tipo de Exame <span class="form-field__required">*</span>
               <span id="newTipoExameTag" class="form-field__dep-hint" hidden>— exame encontrado</span>
             </label>
-            <input type="text" id="newTipoExame" class="form-field__input"
-              placeholder="Digite para buscar o exame..." required autocomplete="off">
+            <input type="text" id="newTipoExame" class="form-field__input" placeholder="Digite para buscar o exame..."
+              required autocomplete="off">
             <input type="hidden" id="newTipoExameId" value="">
             <div id="tipoExameAutocompleteDropdown" class="autocomplete-dropdown" hidden></div>
           </div>
@@ -801,7 +795,15 @@
           </div>
         </div>
 
-        
+        <!-- Valor do exame (espelho do pagamento) -->
+        <div class="form-value-preview" id="newValuePreview">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span>Valor do exame:</span>
+          <strong id="newValueAmount">R$ 0,00</strong>
+        </div>
 
         <!-- Pagamento -->
         <div class="form-row form-row--3">
@@ -813,7 +815,8 @@
                 <option value="dividido">Dividido</option>
               </select>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round" />
               </svg>
             </div>
           </div>
@@ -828,7 +831,8 @@
                 <option value="plano">Plano</option>
               </select>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round" />
               </svg>
             </div>
           </div>
@@ -852,7 +856,8 @@
                   <option value="plano">Plano</option>
                 </select>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
                 </svg>
               </div>
             </div>
@@ -915,7 +920,7 @@
             placeholder="Informações adicionais sobre o paciente ou o exame..."></textarea>
         </div>
 
-        
+
 
       </div>
 
