@@ -2915,8 +2915,7 @@ const NewAppointmentModal = (() => {
     document.getElementById('newTimeEnd').value = '';
     document.getElementById('newStatus').value = 'agendado';
     document.getElementById('newObservacoes').value = '';
-    const valueAmountEl = document.getElementById('newValueAmount');
-    if (valueAmountEl) valueAmountEl.textContent = 'R$ 0,00';
+
 
     /* Reset cascatas */
     const selCli = document.getElementById('newClinica');
@@ -3322,12 +3321,6 @@ const NewAppointmentModal = (() => {
 
     const totalEl = document.getElementById('newPagTotalVal');
     const statusEl = document.getElementById('newPagValidadorStatus');
-    const valueAmountEl = document.getElementById('newValueAmount');
-
-    // Espelha o total no preview de valor do exame
-    if (valueAmountEl) {
-      valueAmountEl.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    }
 
     totalEl.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     if (statusEl) { statusEl.textContent = ''; statusEl.className = 'pag-validador'; }
