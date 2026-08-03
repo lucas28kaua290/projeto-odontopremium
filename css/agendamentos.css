@@ -1968,6 +1968,17 @@ input:focus-visible {
   letter-spacing: -0.01em;
 }
 
+/* --- Wrapper com scroll horizontal para telas estreitas --- */
+.calendar-scroll-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.calendar-scroll-wrapper .calendar-grid__weekdays,
+.calendar-scroll-wrapper .calendar-grid {
+  min-width: 560px;
+}
+
 /* --- Dias da semana (header) --- */
 .calendar-grid__weekdays {
   display: grid;
