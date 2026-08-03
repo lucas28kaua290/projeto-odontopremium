@@ -2530,8 +2530,7 @@ const ExamAutocomplete = (() => {
     document.getElementById('newTipoExame').value = exam.label;
     if (tagEl) tagEl.hidden = false;
     closeDropdown();
-    // Dispara a lógica de horários (igual ao change do select antigo)
-    tryUpdateHorarios();
+    document.getElementById('newTipoExame').dispatchEvent(new Event('blur'));
   }
 
   function renderDropdown(exams) {
@@ -3071,7 +3070,7 @@ const NewAppointmentModal = (() => {
     const data = document.getElementById('newDate').value;
     const horarioInicio = document.getElementById('newTimeStart').value;
     const horarioFim = document.getElementById('newTimeEnd').value
-      || calcFim(horarioInicio, DURACAO_POR_EXAME[tipoExame] || 30);
+      || calcFim(horarioInicio, DURACAO_POR_EXAME[tipoExameId] || 30);
 
     return {
       pacienteId: document.getElementById('newPacienteId')?.value?.trim() || null,
@@ -3080,7 +3079,7 @@ const NewAppointmentModal = (() => {
       data,
       horarioInicio,
       horarioFim,
-      duracaoMin: DURACAO_POR_EXAME[tipoExame] || 30,
+      duracaoMin: DURACAO_POR_EXAME[tipoExameId] || 30,
       paciente: document.getElementById('newPaciente').value.trim(),  // nome só pra exibição
       pacienteCpf: document.getElementById('newCpf').value.trim(),
       pacienteTelefone: document.getElementById('newTelefone').value.trim(),
@@ -3292,8 +3291,8 @@ const NewAppointmentModal = (() => {
     const v2 = parseFloat(document.getElementById('newPagValor2').value) || 0;
     const total = v1 + v2;
 
-    const tipoExame = document.getElementById('newTipoExame').value;
-    const valorExame = VALOR_POR_EXAME[tipoExame] || 0;
+    const tipoExameId = document.getElementById('newTipoExameId').value;
+    const valorExame = VALOR_POR_EXAME[tipoExameId] || 0;
 
     const totalEl = document.getElementById('newPagTotalVal');
     const statusEl = document.getElementById('newPagValidadorStatus');
