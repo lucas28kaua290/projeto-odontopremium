@@ -2786,7 +2786,8 @@ const NewAppointmentModal = (() => {
     document.getElementById('newTimeEnd').value = '';
     document.getElementById('newStatus').value = 'agendado';
     document.getElementById('newObservacoes').value = '';
-    document.getElementById('newValuePreview').hidden = true;
+    const vp = document.getElementById('newValuePreview');
+    if (vp) vp.hidden = true;
 
     /* Reset cascatas */
     const selCli = document.getElementById('newClinica');
