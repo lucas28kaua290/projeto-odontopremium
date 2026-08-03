@@ -1238,7 +1238,7 @@ def listar_agendamentos():
                 '%H:%i'
             )                                              AS horarioFim,
             te.duracao_min     AS duracaoMin,
-            te.valor_base      AS valor,
+            (COALESCE(a.pagamento_valor_1, 0) + COALESCE(a.pagamento_valor_2, 0)) AS valor,
             a.status,
             a.observacoes,
             a.pagamento_tipo   AS pagamentoTipo,
