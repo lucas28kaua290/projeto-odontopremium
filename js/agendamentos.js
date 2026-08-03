@@ -924,50 +924,50 @@ const AppointmentModal = (() => {
 
     /* Pagamento */
     const FORMAS = { especie: 'Espécie', pix: 'PIX', cartao: 'Cartão', plano: 'Plano' };
-    const pTipo   = agendamento.pagamentoTipo;
+    const pTipo = agendamento.pagamentoTipo;
     const pForma1 = FORMAS[agendamento.pagamentoForma1] || agendamento.pagamentoForma1 || null;
-    const pVal1   = agendamento.pagamentoValor1 != null ? parseFloat(agendamento.pagamentoValor1) : null;
+    const pVal1 = agendamento.pagamentoValor1 != null ? parseFloat(agendamento.pagamentoValor1) : null;
     const pForma2 = FORMAS[agendamento.pagamentoForma2] || agendamento.pagamentoForma2 || null;
-    const pVal2   = agendamento.pagamentoValor2 != null ? parseFloat(agendamento.pagamentoValor2) : null;
+    const pVal2 = agendamento.pagamentoValor2 != null ? parseFloat(agendamento.pagamentoValor2) : null;
 
-    const fmtBRL  = (v) => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const fmtBRL = (v) => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
     const pagTipoBadge = document.getElementById('modalPagTipoBadge');
-    const formaEl      = document.getElementById('modalPagForma');
-    const v1Wrap       = document.getElementById('modalPagValor1Wrap');
-    const v1El         = document.getElementById('modalPagValor1');
-    const v1Label      = document.getElementById('modalPagValor1Label');
-    const forma2W      = document.getElementById('modalPagForma2Wrap');
-    const val2W        = document.getElementById('modalPagValor2Wrap');
+    const formaEl = document.getElementById('modalPagForma');
+    const v1Wrap = document.getElementById('modalPagValor1Wrap');
+    const v1El = document.getElementById('modalPagValor1');
+    const v1Label = document.getElementById('modalPagValor1Label');
+    const forma2W = document.getElementById('modalPagForma2Wrap');
+    const val2W = document.getElementById('modalPagValor2Wrap');
 
     if (!pTipo && !pForma1) {
       if (pagTipoBadge) pagTipoBadge.textContent = '—';
       formaEl.textContent = '—';
-      v1El.textContent    = '—';
+      v1El.textContent = '—';
       v1Label.textContent = 'Valor pago';
-      v1Wrap.hidden  = false;
+      v1Wrap.hidden = false;
       forma2W.hidden = true;
-      val2W.hidden   = true;
+      val2W.hidden = true;
     } else if (pTipo === 'dividido') {
       if (pagTipoBadge) pagTipoBadge.textContent = 'Dividido';
       formaEl.textContent = pForma1 || '—';
       v1Label.textContent = 'Valor 1ª forma';
-      v1El.textContent    = pVal1 != null && !isNaN(pVal1) ? fmtBRL(pVal1) : '—';
+      v1El.textContent = pVal1 != null && !isNaN(pVal1) ? fmtBRL(pVal1) : '—';
       v1Wrap.removeAttribute('hidden');
-      document.getElementById('modalPagForma2').textContent  = pForma2 || '—';
-      document.getElementById('modalPagValor2').textContent  = pVal2 != null && !isNaN(pVal2) ? fmtBRL(pVal2) : '—';
+      document.getElementById('modalPagForma2').textContent = pForma2 || '—';
+      document.getElementById('modalPagValor2').textContent = pVal2 != null && !isNaN(pVal2) ? fmtBRL(pVal2) : '—';
       forma2W.style.display = '';
-      val2W.style.display   = '';
+      val2W.style.display = '';
     } else {
       if (pagTipoBadge) pagTipoBadge.textContent = 'Pagamento único';
       formaEl.textContent = pForma1 || '—';
       v1Label.textContent = 'Valor pago';
-      v1El.textContent    = pVal1 != null && !isNaN(pVal1) ? fmtBRL(pVal1) : '—';
+      v1El.textContent = pVal1 != null && !isNaN(pVal1) ? fmtBRL(pVal1) : '—';
       v1Wrap.removeAttribute('hidden');
-      document.getElementById('modalPagForma2').textContent  = '—';
-      document.getElementById('modalPagValor2').textContent  = '—';
+      document.getElementById('modalPagForma2').textContent = '—';
+      document.getElementById('modalPagValor2').textContent = '—';
       forma2W.style.display = 'none';
-      val2W.style.display   = 'none';
+      val2W.style.display = 'none';
     }
 
     /* Botão WhatsApp dinâmico */
@@ -2760,16 +2760,10 @@ const NewAppointmentModal = (() => {
      PREVIEW DE VALOR
   ------------------------------------------------------------------ */
   function updateValuePreview() {
-    const tipoExameId = document.getElementById('newTipoExame').value;
+    // Preview de valor removido — campo é preenchido manualmente pelo recepcionista.
+    // Mantém o elemento oculto para não quebrar referências no DOM.
     const preview = document.getElementById('newValuePreview');
-    if (!tipoExameId) { preview.hidden = true; return; }
-    const valor = VALOR_POR_EXAME[tipoExameId] || 0;
-    const duracao = DURACAO_POR_EXAME[tipoExameId] || 30;
-    document.getElementById('newValueAmount').textContent =
-      valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    document.getElementById('newValueDuration').textContent =
-      `· duração estimada: ${duracao} min`;
-    preview.hidden = false;
+    if (preview) preview.hidden = true;
   }
 
   /* ------------------------------------------------------------------
@@ -2960,14 +2954,14 @@ const NewAppointmentModal = (() => {
         return (a && m && d) ? `${a}-${m}-${d}` : null;
       })(),
       tipoExameId: tipoExame,
-      valor: VALOR_POR_EXAME[tipoExame] || 0,
+      valor: parseFloat(document.getElementById('newPagValor1').value) || 0,
       medicoId: document.getElementById('newMedico').value.trim() || null,
       medico: document.getElementById('newMedico').options[document.getElementById('newMedico').selectedIndex]?.text || '',
       clinicaId: document.getElementById('newClinica').value.trim() || null,
       clinica: document.getElementById('newClinica').options[document.getElementById('newClinica').selectedIndex]?.text || '',
       status: document.getElementById('newStatus').value,
       observacoes: document.getElementById('newObservacoes').value.trim(),
-      pagamentoTipo:   document.getElementById('newPagTipo').value,
+      pagamentoTipo: document.getElementById('newPagTipo').value,
       pagamentoForma1: document.getElementById('newPagForma1').value || null,
       pagamentoValor1: parseFloat(document.getElementById('newPagValor1').value) || null,
       pagamentoForma2: document.getElementById('newPagTipo').value === 'dividido'
@@ -3152,9 +3146,7 @@ const NewAppointmentModal = (() => {
      PAGAMENTO — helpers
   ------------------------------------------------------------------ */
   function _preencherValorUnico() {
-    const tipoExame = document.getElementById('newTipoExame').value;
-    const valorExame = VALOR_POR_EXAME[tipoExame] || 0;
-    document.getElementById('newPagValor1').value = valorExame > 0 ? valorExame : '';
+    // Não preenche automaticamente — o recepcionista digita o valor manualmente.
   }
 
   function _atualizarTotalPagamento() {
@@ -3212,11 +3204,10 @@ const NewAppointmentModal = (() => {
     document.getElementById('newPagTipo').addEventListener('change', (e) => {
       const isDividido = e.target.value === 'dividido';
       document.getElementById('newPagDivididoWrap').hidden = !isDividido;
-      if (!isDividido) _preencherValorUnico();
+      // _preencherValorUnico() removido — valor manual
     });
-    document.getElementById('newPagForma1').addEventListener('change', () => {
-      if (document.getElementById('newPagTipo').value === 'unico') _preencherValorUnico();
-    });
+    document.getElementById('newPagForma1').addEventListener('change', _atualizarTotalPagamento);
+    // Mantém o total atualizado se o usuário já tiver digitado algo
     // Soma automática do total dividido
     ['newPagValor1', 'newPagValor2'].forEach(id => {
       document.getElementById(id).addEventListener('input', _atualizarTotalPagamento);
@@ -3224,7 +3215,6 @@ const NewAppointmentModal = (() => {
     document.getElementById('newTipoExame').addEventListener('change', () => {
       updateValuePreview();
       tryUpdateHorarios();
-      if (document.getElementById('newPagTipo').value === 'unico') _preencherValorUnico();
     });
     document.getElementById('newDate').addEventListener('change', tryUpdateHorarios);
     document.getElementById('newTimeStart').addEventListener('change', onHorarioChange);
