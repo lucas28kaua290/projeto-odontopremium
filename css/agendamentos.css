@@ -1978,7 +1978,6 @@ input:focus-visible {
 .calendar-scroll-wrapper .calendar-grid {
   min-width: 560px;
 }
-
 /* --- Dias da semana (header) --- */
 .calendar-grid__weekdays {
   display: grid;
