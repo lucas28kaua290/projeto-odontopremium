@@ -3739,14 +3739,16 @@ td.td-change {
 .chart-card--saidas-split .chart-card__body--saidas {
   display: flex;
   gap: 16px;
-  align-items: flex-start;
+  align-items: stretch;
   height: 100%;
+  flex: 1 1 auto;
 }
 
 .saidas-chart-wrap {
   flex: 1 1 55%;
   min-width: 0;
-  height: 180px;
+  min-height: 180px;
+  height: 100%;
   position: relative;
 }
 
@@ -3757,6 +3759,19 @@ td.td-change {
   flex-direction: column;
   gap: 10px;
   padding-top: 4px;
+  justify-content: space-evenly;
+}
+
+/* Saídas: card ocupa toda a altura da célula do grid */
+.chart-card--saidas-split {
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-card--saidas-split .chart-card__body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .saidas-detail-panel__total {
@@ -3844,7 +3859,8 @@ td.td-change {
   }
 
   .saidas-chart-wrap {
-    height: 160px;
+    height: 200px;
+    min-height: 160px;
     flex: none;
     width: 100%;
   }
@@ -3852,6 +3868,7 @@ td.td-change {
   .saidas-detail-panel {
     flex: none;
     width: 100%;
+    justify-content: flex-start;
   }
 }
 
