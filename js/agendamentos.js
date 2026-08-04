@@ -3036,27 +3036,7 @@ const NewAppointmentModal = (() => {
           horarioLivre(slot, duracao, ocupados)
         );
 
-        // Segundo: se a data é FUTURA, remove horários que já passaram.
-        // No dia de hoje, todos os slots são mostrados para permitir
-        // cadastrar encaixes retroativos feitos durante o dia.
-        const hoje = AppCache.toISODate(new Date());
-
-        if (data > hoje) {
-          // Dia futuro: só mostra slots a partir da hora atual
-          // (evita selecionar horários no passado para dias que ainda vão chegar —
-          //  embora raro, mantém consistência)
-          const agora = new Date();
-          const agoraMin = agora.getHours() * 60 + agora.getMinutes();
-
-          disponiveis = disponiveis.filter(slot =>
-            toMinutes(slot) >= agoraMin
-          );
-        }
-        // data === hoje  → nenhum filtro de hora: exibe todos os slots do dia
-        // data < hoje    → nenhum filtro de hora: datas passadas também exibem tudo
-        //                  (edge-case: se precisar bloquear datas passadas, fazer
-        //                   na validação do campo de data, não aqui)
-
+        
         selTime.innerHTML = '<option value="">Selecione o horário...</option>';
 
         if (!disponiveis.length) {
