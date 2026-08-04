@@ -987,7 +987,8 @@ def criar_medico():
     data = request.get_json(silent=True) or {}
 
     # Não-admin só pode criar médico em clínica da própria radiologia
-    if g.user.get("nivel") != "admin":
+    # (só valida se clinicId foi informado — médico sem clínica é permitido)
+    if g.user.get("nivel") != "admin" and data.get("clinicId"):
         rad_usuario = g.user.get("radiologia")
         clinica_ok = query(
             "SELECT 1 FROM clinica_radiologia WHERE clinica_id = %s AND radiologia_id = %s",
@@ -995,8 +996,8 @@ def criar_medico():
         )
         if not clinica_ok:
             return forbidden("Você só pode cadastrar médicos em clínicas da sua radiologia.")
-    data = request.get_json(silent=True) or {}
-    missing = validate_required(data, ["name", "clinicId"])
+
+    missing = validate_required(data, ["name"])
     if missing:
         return err("Campos obrigatórios ausentes.", 400, missing)
 
@@ -1006,7 +1007,7 @@ def criar_medico():
     new_id = insert(
         "INSERT INTO medicos (nome, especialidade, clinica_id, telefone, email, status) "
         "VALUES (%s,%s,%s,%s,%s,%s)",
-        (data["name"], data.get("specialty"), data["clinicId"],
+        (data["name"], data.get("specialty"), data.get("clinicId") or None,
          data.get("phone"), data.get("email"), data.get("status", "ativo"))
     )
 

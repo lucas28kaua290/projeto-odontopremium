@@ -3432,18 +3432,24 @@ const NewAppointmentModal = (() => {
       if (!medicoIdAtual && medicoNomeAtual) {
         try {
           const clinicaIdResolv = document.getElementById('newClinicaId').value.trim();
-          const novoMedico = await Api.postMedico({
+          const radId = document.getElementById('newRadiologia').value;
+          const payloadMedico = {
             name: medicoNomeAtual,
-            clinicId: clinicaIdResolv || null,
             status: 'ativo',
-          });
+            radiologyId: radId || undefined,
+          };
+          // clinicId só vai no payload se existir — backend rejeita clinicId: null
+          if (clinicaIdResolv) payloadMedico.clinicId = clinicaIdResolv;
+          const novoMedico = await Api.postMedico(payloadMedico);
           const novoMedicoId = novoMedico?.data?.id || novoMedico?.id;
           if (novoMedicoId) document.getElementById('newMedicoId').value = novoMedicoId;
         } catch (errMedico) {
           if (errMedico.status === 409 && errMedico.body?.id) {
             document.getElementById('newMedicoId').value = errMedico.body.id;
           } else {
-            console.warn('[NewAppointmentModal] Não criou médico:', errMedico);
+            console.error('[NewAppointmentModal] Não criou médico:', errMedico);
+            showToast('Não foi possível cadastrar o médico automaticamente. Tente novamente.', 'error');
+            return;
           }
         }
       }
