@@ -862,22 +862,67 @@ def listar_medicos():
     busca         = request.args.get("busca", "")
     status        = request.args.get("status", "")
 
-    if clinica_id and not busca and not status:
+    # Branch leve: sem busca e sem status → retorna lista simples (sem JOIN de agendamentos)
+    # Inclui o caso com busca+clinicaId para o autocomplete também usar a query leve
+    if not busca and not status:
         sql = """
             SELECT m.id, m.nome AS name, m.especialidade AS specialty,
                    m.clinica_id AS clinicId, m.telefone AS phone, m.email, m.status,
                    c.nome AS clinicaNome
             FROM medicos m
             JOIN clinicas c ON c.id = m.clinica_id
-            WHERE m.clinica_id = %s AND m.status = 'ativo'
+            LEFT JOIN medico_radiologia mr ON mr.medico_id = m.id
+            WHERE m.status = 'ativo'
         """
-        params = [clinica_id]
+        params = []
 
-        if radiologia_id and radiologia_id != "all":
-            sql += " AND EXISTS (SELECT 1 FROM medico_radiologia mr WHERE mr.medico_id = m.id AND mr.radiologia_id = %s)"
-            params.append(radiologia_id)
+        if clinica_id:
+            sql += " AND m.clinica_id = %s"
+            params.append(clinica_id)
+
+        rad_nivel   = g.user.get("nivel", "")
+        rad_usuario = g.user.get("radiologia", "todas")
+        rad_filtro  = rad_usuario if rad_nivel != "admin" else radiologia_id
+        if rad_filtro and rad_filtro not in ("all", "todas", ""):
+            sql += " AND mr.radiologia_id = %s"
+            params.append(rad_filtro)
 
         sql += " ORDER BY m.nome"
+        rows = query(sql, params)
+        return ok(rows)
+
+    # Branch leve para autocomplete: tem busca mas não precisa de métricas de agendamento
+    if busca:
+        sql = """
+            SELECT m.id, m.nome AS name, m.especialidade AS specialty,
+                   m.clinica_id AS clinicId, m.telefone AS phone, m.email, m.status,
+                   c.nome AS clinicaNome
+            FROM medicos m
+            JOIN clinicas c ON c.id = m.clinica_id
+            LEFT JOIN medico_radiologia mr ON mr.medico_id = m.id
+            WHERE 1=1
+        """
+        params = []
+
+        like = f"%{busca}%"
+        sql += " AND (m.nome LIKE %s OR m.especialidade LIKE %s)"
+        params += [like, like]
+
+        if clinica_id:
+            sql += " AND m.clinica_id = %s"
+            params.append(clinica_id)
+        if status:
+            sql += " AND m.status = %s"
+            params.append(status)
+
+        rad_nivel   = g.user.get("nivel", "")
+        rad_usuario = g.user.get("radiologia", "todas")
+        rad_filtro  = rad_usuario if rad_nivel != "admin" else radiologia_id
+        if rad_filtro and rad_filtro not in ("all", "todas", ""):
+            sql += " AND mr.radiologia_id = %s"
+            params.append(rad_filtro)
+
+        sql += " ORDER BY m.nome LIMIT 15"
         rows = query(sql, params)
         return ok(rows)
 
@@ -909,19 +954,15 @@ def listar_medicos():
     """
     params = [di, df, di, df]
 
-    # Escopo por radiologia: não-admin só vê médicos da própria unidade
-    rad_param   = request.args.get("radiologiaId", "")
+    # Escopo por radiologia: não-admin usa radiologia do token; admin usa o param
     nivel       = g.user.get("nivel", "")
     rad_usuario = g.user.get("radiologia", "todas")
-    rad_filtro  = rad_usuario if nivel != "admin" else rad_param
+    rad_filtro  = rad_usuario if nivel != "admin" else radiologia_id
 
     if rad_filtro and rad_filtro not in ("all", "todas", ""):
         sql += " AND mr.radiologia_id = %s"
         params.append(rad_filtro)
-        
-    if radiologia_id and radiologia_id != "all":
-        sql += " AND mr.radiologia_id = %s"
-        params.append(radiologia_id)
+    # (removida a segunda aplicação duplicada de radiologia_id)
     if clinica_id:
         sql += " AND m.clinica_id = %s"
         params.append(clinica_id)

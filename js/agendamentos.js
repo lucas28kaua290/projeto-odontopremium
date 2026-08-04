@@ -2629,6 +2629,240 @@ const ExamAutocomplete = (() => {
   return { init, reset, getSelectedId, fillFromExam };
 })();
 
+/* =================================================================
+   CLINICA AUTOCOMPLETE — busca inteligente de clínica referenciadora
+   - Filtra pela radiologia atualmente selecionada no modal
+   - Sem match → texto livre, auto-criação no save
+================================================================= */
+const ClinicaAutocomplete = (() => {
+  let inputEl, dropdownEl, tagEl;
+  let selectedClinicaId = null;
+  let currentFocusIdx = -1;
+  let debounceTimer = null;
+  const MIN_CHARS = 1;
+  const DEBOUNCE_MS = 350;
+
+  function escapeHtml(str) {
+    return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function closeDropdown() {
+    if (dropdownEl) dropdownEl.hidden = true;
+    currentFocusIdx = -1;
+  }
+  function clearSelection() {
+    selectedClinicaId = null;
+    document.getElementById('newClinicaId').value = '';
+    if (tagEl) tagEl.hidden = true;
+    // Ao trocar clínica, reseta o médico também
+    MedicoAutocomplete.reset();
+    document.getElementById('newMedico').value = '';
+  }
+  function fillFromClinica(c) {
+    selectedClinicaId = c.id;
+    document.getElementById('newClinicaId').value = c.id;
+    document.getElementById('newClinica').value = c.nome || c.name || '';
+    if (tagEl) tagEl.hidden = false;
+    closeDropdown();
+    // Foca no campo médico para agilizar o fluxo
+    document.getElementById('newMedico').focus();
+  }
+  function renderDropdown(clinicas) {
+    if (!dropdownEl) return;
+    dropdownEl.innerHTML = '';
+    currentFocusIdx = -1;
+    if (!clinicas.length) {
+      dropdownEl.innerHTML = `<div class="autocomplete-empty">Nenhuma clínica encontrada — será cadastrada automaticamente ao salvar.</div>`;
+      dropdownEl.hidden = false;
+      return;
+    }
+    clinicas.forEach(c => {
+      const item = document.createElement('div');
+      item.className = 'autocomplete-item';
+      item.setAttribute('role', 'option');
+      item.innerHTML = `
+        <div class="autocomplete-item__name">${escapeHtml(c.nome || c.name)}</div>
+        <div class="autocomplete-item__meta">${escapeHtml(c.city || c.cidade || '')}${c.phone || c.telefone ? ' · ' + (c.phone || c.telefone) : ''}</div>
+      `;
+      item.addEventListener('mousedown', e => { e.preventDefault(); fillFromClinica(c); });
+      dropdownEl.appendChild(item);
+    });
+    dropdownEl.hidden = false;
+  }
+  function showLoading() {
+    if (!dropdownEl) return;
+    dropdownEl.innerHTML = `<div class="autocomplete-loading"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="animation:spin 1s linear infinite"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" stroke-dasharray="28 56" stroke-linecap="round"/></svg> Buscando...</div>`;
+    dropdownEl.hidden = false;
+  }
+  function handleKeydown(e) {
+    if (dropdownEl.hidden) return;
+    const items = dropdownEl.querySelectorAll('.autocomplete-item');
+    if (!items.length) { if (e.key === 'Escape') closeDropdown(); return; }
+    if (e.key === 'ArrowDown') { e.preventDefault(); currentFocusIdx = Math.min(currentFocusIdx + 1, items.length - 1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); currentFocusIdx = Math.max(currentFocusIdx - 1, 0); }
+    else if (e.key === 'Enter' && currentFocusIdx >= 0) { e.preventDefault(); items[currentFocusIdx].dispatchEvent(new MouseEvent('mousedown')); return; }
+    else if (e.key === 'Escape') { closeDropdown(); return; }
+    else return;
+    items.forEach((item, i) => item.classList.toggle('is-focused', i === currentFocusIdx));
+  }
+  async function onInput() {
+    const val = inputEl.value.trim();
+    clearSelection();
+    if (val.length < MIN_CHARS) { closeDropdown(); return; }
+    clearTimeout(debounceTimer);
+    showLoading();
+    debounceTimer = setTimeout(async () => {
+      try {
+        const radId = document.getElementById('newRadiologia').value || 'all';
+        const res = await Api.getClinicas({ busca: val, radiologiaId: radId });
+        renderDropdown(res.data || []);
+      } catch (err) {
+        console.error('[ClinicaAutocomplete] Erro:', err);
+        closeDropdown();
+      }
+    }, DEBOUNCE_MS);
+  }
+  function getSelectedId() { return selectedClinicaId; }
+  function reset() {
+    clearTimeout(debounceTimer);
+    selectedClinicaId = null;
+    currentFocusIdx = -1;
+    document.getElementById('newClinicaId').value = '';
+    if (tagEl) tagEl.hidden = true;
+    closeDropdown();
+  }
+  function init() {
+    inputEl = document.getElementById('newClinica');
+    dropdownEl = document.getElementById('clinicaAutocompleteDropdown');
+    tagEl = document.getElementById('newClinicaTag');
+    if (!inputEl || !dropdownEl) return;
+    inputEl.addEventListener('input', onInput);
+    inputEl.addEventListener('keydown', handleKeydown);
+    inputEl.addEventListener('blur', () => setTimeout(closeDropdown, 150));
+    inputEl.addEventListener('focus', () => {
+      if (inputEl.value.trim().length >= MIN_CHARS && !selectedClinicaId) onInput();
+    });
+    document.addEventListener('click', e => {
+      if (!inputEl.contains(e.target) && !dropdownEl.contains(e.target)) closeDropdown();
+    });
+  }
+  return { init, reset, getSelectedId, fillFromClinica };
+})();
+
+/* =================================================================
+   MEDICO AUTOCOMPLETE — busca inteligente de médico referenciador
+   - Filtra por clinicaId se houver seleção, senão por radiologiaId
+   - Sem match → texto livre, auto-criação no save
+================================================================= */
+const MedicoAutocomplete = (() => {
+  let inputEl, dropdownEl, tagEl;
+  let selectedMedicoId = null;
+  let currentFocusIdx = -1;
+  let debounceTimer = null;
+  const MIN_CHARS = 1;
+  const DEBOUNCE_MS = 350;
+
+  function escapeHtml(str) {
+    return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function closeDropdown() {
+    if (dropdownEl) dropdownEl.hidden = true;
+    currentFocusIdx = -1;
+  }
+  function clearSelection() {
+    selectedMedicoId = null;
+    document.getElementById('newMedicoId').value = '';
+    if (tagEl) tagEl.hidden = true;
+  }
+  function fillFromMedico(m) {
+    selectedMedicoId = m.id;
+    document.getElementById('newMedicoId').value = m.id;
+    document.getElementById('newMedico').value = m.nome || m.name || '';
+    if (tagEl) tagEl.hidden = false;
+    closeDropdown();
+  }
+  function renderDropdown(medicos) {
+    if (!dropdownEl) return;
+    dropdownEl.innerHTML = '';
+    currentFocusIdx = -1;
+    if (!medicos.length) {
+      dropdownEl.innerHTML = `<div class="autocomplete-empty">Nenhum médico encontrado — será cadastrado automaticamente ao salvar.</div>`;
+      dropdownEl.hidden = false;
+      return;
+    }
+    medicos.forEach(m => {
+      const item = document.createElement('div');
+      item.className = 'autocomplete-item';
+      item.setAttribute('role', 'option');
+      item.innerHTML = `
+        <div class="autocomplete-item__name">${escapeHtml(m.nome || m.name)}</div>
+        <div class="autocomplete-item__meta">${escapeHtml(m.specialty || m.especialidade || '')}${m.clinicaNome ? ' · ' + m.clinicaNome : ''}</div>
+      `;
+      item.addEventListener('mousedown', e => { e.preventDefault(); fillFromMedico(m); });
+      dropdownEl.appendChild(item);
+    });
+    dropdownEl.hidden = false;
+  }
+  function showLoading() {
+    if (!dropdownEl) return;
+    dropdownEl.innerHTML = `<div class="autocomplete-loading"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="animation:spin 1s linear infinite"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" stroke-dasharray="28 56" stroke-linecap="round"/></svg> Buscando...</div>`;
+    dropdownEl.hidden = false;
+  }
+  function handleKeydown(e) {
+    if (dropdownEl.hidden) return;
+    const items = dropdownEl.querySelectorAll('.autocomplete-item');
+    if (!items.length) { if (e.key === 'Escape') closeDropdown(); return; }
+    if (e.key === 'ArrowDown') { e.preventDefault(); currentFocusIdx = Math.min(currentFocusIdx + 1, items.length - 1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); currentFocusIdx = Math.max(currentFocusIdx - 1, 0); }
+    else if (e.key === 'Enter' && currentFocusIdx >= 0) { e.preventDefault(); items[currentFocusIdx].dispatchEvent(new MouseEvent('mousedown')); return; }
+    else if (e.key === 'Escape') { closeDropdown(); return; }
+    else return;
+    items.forEach((item, i) => item.classList.toggle('is-focused', i === currentFocusIdx));
+  }
+  async function onInput() {
+    const val = inputEl.value.trim();
+    clearSelection();
+    if (val.length < MIN_CHARS) { closeDropdown(); return; }
+    clearTimeout(debounceTimer);
+    showLoading();
+    debounceTimer = setTimeout(async () => {
+      try {
+        const clinicaId = document.getElementById('newClinicaId').value || undefined;
+        const radId = document.getElementById('newRadiologia').value || undefined;
+        const res = await Api.getMedicos({ busca: val, clinicaId, radiologiaId: radId, semPeriodo: true });
+        renderDropdown(res.data || []);
+      } catch (err) {
+        console.error('[MedicoAutocomplete] Erro:', err);
+        closeDropdown();
+      }
+    }, DEBOUNCE_MS);
+  }
+  function getSelectedId() { return selectedMedicoId; }
+  function reset() {
+    clearTimeout(debounceTimer);
+    selectedMedicoId = null;
+    currentFocusIdx = -1;
+    document.getElementById('newMedicoId').value = '';
+    if (tagEl) tagEl.hidden = true;
+    closeDropdown();
+  }
+  function init() {
+    inputEl = document.getElementById('newMedico');
+    dropdownEl = document.getElementById('medicoAutocompleteDropdown');
+    tagEl = document.getElementById('newMedicoTag');
+    if (!inputEl || !dropdownEl) return;
+    inputEl.addEventListener('input', onInput);
+    inputEl.addEventListener('keydown', handleKeydown);
+    inputEl.addEventListener('blur', () => setTimeout(closeDropdown, 150));
+    inputEl.addEventListener('focus', () => {
+      if (inputEl.value.trim().length >= MIN_CHARS && !selectedMedicoId) onInput();
+    });
+    document.addEventListener('click', e => {
+      if (!inputEl.contains(e.target) && !dropdownEl.contains(e.target)) closeDropdown();
+    });
+  }
+  return { init, reset, getSelectedId, fillFromMedico };
+})();
+
 const NewAppointmentModal = (() => {
   let overlay, closeBtn, cancelBtn, saveBtn;
   let editingAppointment = null;
@@ -2924,16 +3158,11 @@ const NewAppointmentModal = (() => {
     document.getElementById('newObservacoes').value = '';
 
 
-    /* Reset cascatas */
-    const selCli = document.getElementById('newClinica');
-    selCli.innerHTML = '<option value="">Selecione a clínica...</option>';
-    selCli.disabled = true;
-    document.getElementById('newClinicaHint').textContent = '— selecione uma radiologia primeiro';
-
-    const selMed = document.getElementById('newMedico');
-    selMed.innerHTML = '<option value="">Selecione o médico...</option>';
-    selMed.disabled = true;
-    document.getElementById('newMedicoHint').textContent = '— selecione uma clínica primeiro';
+    /* Reset autocompletes de clínica e médico */
+    document.getElementById('newClinica').value = '';
+    document.getElementById('newMedico').value = '';
+    ClinicaAutocomplete.reset();
+    MedicoAutocomplete.reset();
 
     const selTime = document.getElementById('newTimeStart');
     selTime.innerHTML = '<option value="">Selecione o horário...</option>';
@@ -2995,27 +3224,23 @@ const NewAppointmentModal = (() => {
     }
     updateValuePreview();
 
-    // 3. Radiologia (select já populado por _populateRadiologiaSelect em openEdit)
-    //    Setamos o valor e depois disparamos a cascata ASSINCRONAMENTE,
-    //    esperando onRadiologiaChange() popular o select de clínicas antes
-    //    de tentar selecionar a clínica do agendamento.
+    // 3. Radiologia
     const selRad = document.getElementById('newRadiologia');
     selRad.value = ag.radiologiaId || '';
 
-    // 4. Cascata Radiologia → Clínica → Médico
-    //    onRadiologiaChange() é async — aguardamos ela terminar para setar clínica/médico
-    onRadiologiaChange().then(() => {
-      if (ag.clinicaId) {
-        const selCli = document.getElementById('newClinica');
-        selCli.value = String(ag.clinicaId);
-        // Dispara cascata Clínica → Médico e aguarda para setar o médico
-        onClinicaChange().then(() => {
-          if (ag.medicoId) {
-            document.getElementById('newMedico').value = String(ag.medicoId);
-          }
-        });
-      }
-    });
+    // 4. Clínica e Médico — preenche diretamente nos autocompletes (sem cascata)
+    if (ag.clinicaId || ag.clinica) {
+      ClinicaAutocomplete.fillFromClinica({
+        id: ag.clinicaId || '',
+        nome: ag.clinica || ag.clinicaNome || '',
+      });
+    }
+    if (ag.medicoId || ag.medico) {
+      MedicoAutocomplete.fillFromMedico({
+        id: ag.medicoId || '',
+        nome: ag.medico || ag.medicoNome || '',
+      });
+    }
 
     // 5. Horários: dispara o cálculo e, após o debounce (850ms) + margem,
     //    injeta o horário atual do agendamento como opção selecionada.
@@ -3105,10 +3330,10 @@ const NewAppointmentModal = (() => {
         const tipo = document.getElementById('newPagTipo').value;
         return tipo === 'dividido' ? v1 + v2 : v1;
       })(),
-      medicoId: document.getElementById('newMedico').value.trim() || null,
-      medico: document.getElementById('newMedico').options[document.getElementById('newMedico').selectedIndex]?.text || '',
-      clinicaId: document.getElementById('newClinica').value.trim() || null,
-      clinica: document.getElementById('newClinica').options[document.getElementById('newClinica').selectedIndex]?.text || '',
+      clinicaId: document.getElementById('newClinicaId').value.trim() || null,
+      clinica: document.getElementById('newClinica').value.trim() || '',
+      medicoId: document.getElementById('newMedicoId').value.trim() || null,
+      medico: document.getElementById('newMedico').value.trim() || '',
       status: document.getElementById('newStatus').value,
       observacoes: document.getElementById('newObservacoes').value.trim(),
       pagamentoTipo: document.getElementById('newPagTipo').value,
@@ -3174,6 +3399,52 @@ const NewAppointmentModal = (() => {
         document.getElementById('newPacienteId').value = pacienteId;
       }
       // ----------------------------------------------------
+
+      // --- Resolve clinicaId (auto-cria se não encontrado) ---
+      const clinicaIdAtual = document.getElementById('newClinicaId').value.trim();
+      const clinicaNomeAtual = document.getElementById('newClinica').value.trim();
+      if (!clinicaIdAtual && clinicaNomeAtual) {
+        try {
+          const radId = document.getElementById('newRadiologia').value;
+          const novaClinica = await Api.postClinica({
+            name: clinicaNomeAtual,
+            radiologyId: radId,
+            status: 'ativo',
+          });
+          const novoId = novaClinica?.data?.id || novaClinica?.id;
+          if (novoId) document.getElementById('newClinicaId').value = novoId;
+        } catch (errClinica) {
+          // 409 = já existe — tenta capturar o id retornado
+          if (errClinica.status === 409 && errClinica.body?.id) {
+            document.getElementById('newClinicaId').value = errClinica.body.id;
+          } else {
+            console.warn('[NewAppointmentModal] Não criou clínica:', errClinica);
+            // Não bloqueia o save — segue sem id
+          }
+        }
+      }
+
+      // --- Resolve medicoId (auto-cria se não encontrado) ---
+      const medicoIdAtual = document.getElementById('newMedicoId').value.trim();
+      const medicoNomeAtual = document.getElementById('newMedico').value.trim();
+      if (!medicoIdAtual && medicoNomeAtual) {
+        try {
+          const clinicaIdResolv = document.getElementById('newClinicaId').value.trim();
+          const novoMedico = await Api.postMedico({
+            name: medicoNomeAtual,
+            clinicId: clinicaIdResolv || null,
+            status: 'ativo',
+          });
+          const novoId = novoMedico?.data?.id || novoMedico?.id;
+          if (novoId) document.getElementById('newMedicoId').value = novoId;
+        } catch (errMedico) {
+          if (errMedico.status === 409 && errMedico.body?.id) {
+            document.getElementById('newMedicoId').value = errMedico.body.id;
+          } else {
+            console.warn('[NewAppointmentModal] Não criou médico:', errMedico);
+          }
+        }
+      }
 
       const tipoExameIdAtual = document.getElementById('newTipoExameId').value.trim();
       const tipoExameLabelAtual = document.getElementById('newTipoExame').value.trim();
@@ -3344,8 +3615,14 @@ const NewAppointmentModal = (() => {
     overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !overlay.hidden) close(); });
 
-    document.getElementById('newRadiologia').addEventListener('change', onRadiologiaChange);
-    document.getElementById('newClinica').addEventListener('change', onClinicaChange);
+    document.getElementById('newRadiologia').addEventListener('change', () => {
+      // Ao trocar radiologia, reseta clínica e médico para forçar nova busca contextualizada
+      ClinicaAutocomplete.reset();
+      MedicoAutocomplete.reset();
+      document.getElementById('newClinica').value = '';
+      document.getElementById('newMedico').value = '';
+      tryUpdateHorarios();
+    });
 
     // Pagamento: toggle único vs dividido
     document.getElementById('newPagTipo').addEventListener('change', (e) => {
@@ -3404,6 +3681,8 @@ const NewAppointmentModal = (() => {
     saveBtn = document.getElementById('newModalSaveBtn');
     PatientAutocomplete.init();
     ExamAutocomplete.init();
+    ClinicaAutocomplete.init();
+    MedicoAutocomplete.init();
     bindEvents();
   }
 
