@@ -3036,7 +3036,7 @@ const NewAppointmentModal = (() => {
           horarioLivre(slot, duracao, ocupados)
         );
 
-        
+
         selTime.innerHTML = '<option value="">Selecione o horário...</option>';
 
         if (!disponiveis.length) {
@@ -3409,6 +3409,7 @@ const NewAppointmentModal = (() => {
       const medicoNomeAtual = document.getElementById('newMedico').value.trim();
       if (!medicoIdAtual && medicoNomeAtual) {
         try {
+          // Lê APÓS o bloco de clínica ter eventualmente setado o newClinicaId
           const clinicaIdResolv = document.getElementById('newClinicaId').value.trim();
           const novoMedico = await Api.postMedico({
             name: medicoNomeAtual,
@@ -3446,6 +3447,51 @@ const NewAppointmentModal = (() => {
           console.error('[NewAppointmentModal] Erro ao criar tipo de exame:', errExame);
           showToast('Erro ao cadastrar novo tipo de exame. Tente novamente.', 'error');
           return;
+        }
+      }
+
+      // --- Resolve clinicaId (auto-cria se digitou clínica nova) ---
+      const clinicaIdAtual = document.getElementById('newClinicaId').value.trim();
+      const clinicaNomeAtual = document.getElementById('newClinica').value.trim();
+      if (!clinicaIdAtual && clinicaNomeAtual) {
+        try {
+          const radId = document.getElementById('newRadiologia').value;
+          const novaClinica = await Api.postClinica({
+            name: clinicaNomeAtual,
+            radiologyId: radId,
+            status: 'ativo',
+          });
+          const novoClinicaId = novaClinica?.data?.id || novaClinica?.id;
+          if (novoClinicaId) document.getElementById('newClinicaId').value = novoClinicaId;
+        } catch (errClinica) {
+          if (errClinica.status === 409 && errClinica.body?.id) {
+            document.getElementById('newClinicaId').value = errClinica.body.id;
+          } else {
+            console.warn('[NewAppointmentModal] Não criou clínica:', errClinica);
+          }
+        }
+      }
+
+      // --- Resolve medicoId (auto-cria se digitou médico novo) ---
+      // Lê clinicaId APÓS o bloco acima ter eventualmente setado o valor
+      const medicoIdAtual = document.getElementById('newMedicoId').value.trim();
+      const medicoNomeAtual = document.getElementById('newMedico').value.trim();
+      if (!medicoIdAtual && medicoNomeAtual) {
+        try {
+          const clinicaIdResolv = document.getElementById('newClinicaId').value.trim();
+          const novoMedico = await Api.postMedico({
+            name: medicoNomeAtual,
+            clinicId: clinicaIdResolv || null,
+            status: 'ativo',
+          });
+          const novoMedicoId = novoMedico?.data?.id || novoMedico?.id;
+          if (novoMedicoId) document.getElementById('newMedicoId').value = novoMedicoId;
+        } catch (errMedico) {
+          if (errMedico.status === 409 && errMedico.body?.id) {
+            document.getElementById('newMedicoId').value = errMedico.body.id;
+          } else {
+            console.warn('[NewAppointmentModal] Não criou médico:', errMedico);
+          }
         }
       }
 
