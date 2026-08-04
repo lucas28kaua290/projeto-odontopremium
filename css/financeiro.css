@@ -3808,9 +3808,9 @@ td.td-change {
 .saidas-detail-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   font-size: 0.75rem;
-  gap: 8px;
+  gap: 6px;
 }
 
 .saidas-detail-row__label {
@@ -3821,6 +3821,7 @@ td.td-change {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1 1 auto;       /* empurra valor+pct para junto da label */
 }
 
 .saidas-detail-row__dot {
@@ -3836,13 +3837,15 @@ td.td-change {
   color: var(--color-text);
   font-size: 0.75rem;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .saidas-detail-row__pct {
   font-size: 0.6875rem;
   color: var(--color-text-subtle);
-  min-width: 32px;
+  min-width: 28px;
   text-align: right;
+  flex-shrink: 0;
 }
 
 .saidas-empty {
