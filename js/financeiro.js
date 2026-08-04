@@ -1188,13 +1188,55 @@
       const kpiNet = document.getElementById('kpiNetRevenue');
       if (kpiNet) {
         setField(kpiNet, '[data-field="value"]', H.currency(fl.value ?? 0));
-        setField(kpiNet, '[data-field="context"]', fl.context ?? '');
+        setField(kpiNet, '[data-field="context"]', fl.context ?? 'Após saídas do período');
+
+        // Detalhamento por forma de pagamento das saídas
+        const formas = fl.porFormaPagamento || [];
+        let breakdownEl = kpiNet.querySelector('.kpi-saidas-breakdown');
+        if (!breakdownEl) {
+          breakdownEl = document.createElement('div');
+          breakdownEl.className = 'kpi-saidas-breakdown';
+          const footer = kpiNet.querySelector('.fin-kpi-card__footer');
+          if (footer) footer.after(breakdownEl);
+          else kpiNet.appendChild(breakdownEl);
+        }
+        const FORMA_COLORS = {
+          pix: CFG.colors.primary,
+          dinheiro: CFG.colors.positive,
+          cartao: '#7B68EE',
+          transferencia: '#F5A623',
+          boleto: CFG.colors.textSubtle,
+        };
+        const FORMA_LABELS = {
+          pix: 'PIX', dinheiro: 'Dinheiro', cartao: 'Cartão',
+          transferencia: 'Transferência', boleto: 'Boleto',
+        };
+        if (formas.length > 0) {
+          breakdownEl.innerHTML = formas.map(f => `
+            <div class="kpi-saidas-breakdown__item">
+              <span class="kpi-saidas-breakdown__label">
+                <span class="kpi-saidas-breakdown__dot"
+                  style="background:${FORMA_COLORS[f.forma] || CFG.colors.textSubtle}"></span>
+                ${FORMA_LABELS[f.forma] || f.forma}
+              </span>
+              <span class="kpi-saidas-breakdown__value">${H.currency(f.valor)}</span>
+            </div>`).join('');
+        } else {
+          breakdownEl.innerHTML = '';
+        }
       }
 
       const mg = kpi.margemLucro || {};
       const kpiMar = document.getElementById('kpiMargin');
       if (kpiMar) {
-        setField(kpiMar, '[data-field="value"]', H.percent(mg.value ?? 0));
+        // Recalcula localmente com os dados recém-chegados para garantir consistência
+        const fatBruto = kpi.faturamentoTotal?.value ?? 0;
+        const totalSaidas = kpi.faturamentoLiquido?.totalSaidas ?? 0;
+        const margemCalc = fatBruto > 0
+          ? Math.round(((fatBruto - totalSaidas) / fatBruto) * 1000) / 10
+          : 0;
+        const margemExibir = mg.value !== undefined ? mg.value : margemCalc;
+        setField(kpiMar, '[data-field="value"]', H.percent(margemExibir));
         setFieldHTML(kpiMar, '[data-field="change"]', H.changeBadge(mg.changeMonth ?? 0));
       }
 
@@ -1464,35 +1506,117 @@
       );
     }
 
-    /* ----- Gráfico 6: Ticket Médio por Radiologia ----- */
-    function renderAvgTicketChart(ticketMedio) {
-      const ctx = document.getElementById('avgTicketChart');
-      if (!ctx) return;
+    /* ----- Seção de Saídas: gráfico de barras + detalhamento ----- */
+    function renderSaidasSection(saidasData) {
+      const ctx = document.getElementById('saidasBarChart');
+      const panel = document.getElementById('saidasDetailPanel');
+      const titleEl = document.getElementById('saidasChartTitle');
+      const subtitleEl = document.getElementById('saidasChartSubtitle');
 
-      ChartFactory.bar(ctx, ticketMedio.labels, [
-        {
-          label: 'Mês Atual',
-          data: ticketMedio.atual,
-          backgroundColor: CFG.colors.primary + 'CC',
-          borderColor: CFG.colors.primary,
-          borderWidth: 1.5, borderRadius: 5, borderSkipped: false,
-        },
-        {
-          label: 'Mês Anterior',
-          data: ticketMedio.anterior,
-          backgroundColor: CFG.colors.border,
-          borderColor: CFG.colors.textSubtle,
-          borderWidth: 1.5, borderRadius: 5, borderSkipped: false,
-        },
-      ], {
-        yTicks: { callback: v => 'R$ ' + H.number(v, 0) },
-        extra: {
-          plugins: {
-            legend: { display: true, position: 'top', labels: { font: { size: 11 }, boxWidth: 10, boxHeight: 10 } },
-            tooltip: { enabled: false, external: ChartFactory.externalTooltip },
-          },
-        },
-      });
+      if (!saidasData) {
+        if (panel) panel.innerHTML = `<div class="saidas-empty">Sem dados de saídas no período.</div>`;
+        if (ctx) H.destroyChart(ctx.id);
+        return;
+      }
+
+      const total = saidasData.total || 0;
+      const isAll = State.radiologia === 'all';
+
+      // Escolhe série para o gráfico:
+      // - admin/all → por radiologia; uma radiologia → por categoria
+      const serie = isAll
+        ? (saidasData.porRadiologia || [])
+        : (saidasData.porCategoria || []);
+
+      const CATEGORIA_LABELS = {
+        material: 'Material', manutencao: 'Manutenção', limpeza: 'Limpeza',
+        marketing: 'Marketing', transporte: 'Transporte', pessoal: 'Pessoal', outros: 'Outros',
+      };
+
+      const labels = isAll
+        ? serie.map(s => s.radiologiaNome || s.radiologia || '—')
+        : serie.map(s => CATEGORIA_LABELS[s.categoria] || s.categoria || '—');
+
+      const values = serie.map(s => s.valor || 0);
+      const colors = serie.map((_, i) => H.seriesColor(i, 0.82));
+
+      if (titleEl) titleEl.textContent = 'Saídas do Período';
+      if (subtitleEl) {
+        subtitleEl.textContent = isAll
+          ? 'Por radiologia — clique para selecionar'
+          : 'Por categoria de despesa';
+      }
+
+      if (ctx) {
+        if (labels.length > 0) {
+          ChartFactory.bar(ctx, labels, [{
+            label: 'Saídas',
+            data: values,
+            backgroundColor: colors,
+            borderColor: colors.map((_, i) => H.seriesColor(i)),
+            borderWidth: 1.5, borderRadius: 5, borderSkipped: false,
+          }], {
+            yTicks: { callback: v => 'R$ ' + H.number(v / 1000, 1) + 'k' },
+          });
+        } else {
+          H.destroyChart(ctx.id);
+        }
+      }
+
+      // Detalhamento textual
+      if (!panel) return;
+
+      const FORMA_LABELS = {
+        pix: 'PIX', dinheiro: 'Dinheiro', cartao: 'Cartão',
+        transferencia: 'Transferência', boleto: 'Boleto',
+      };
+      const FORMA_COLORS = {
+        pix: CFG.colors.primary, dinheiro: CFG.colors.positive,
+        cartao: '#7B68EE', transferencia: '#F5A623', boleto: CFG.colors.textSubtle,
+      };
+
+      const formas = saidasData.porFormaPagamento || [];
+      const categorias = saidasData.porCategoria || [];
+
+      const formasHtml = formas.length > 0
+        ? formas.map(f => `
+          <div class="saidas-detail-row">
+            <span class="saidas-detail-row__label">
+              <span class="saidas-detail-row__dot"
+                style="background:${FORMA_COLORS[f.forma] || CFG.colors.textSubtle}"></span>
+              ${FORMA_LABELS[f.forma] || f.forma}
+            </span>
+            <span class="saidas-detail-row__value">${H.currency(f.valor)}</span>
+            <span class="saidas-detail-row__pct">${H.percent(f.percentual, 0)}</span>
+          </div>`).join('')
+        : '<div class="saidas-detail-row" style="color:var(--color-text-subtle);font-size:0.75rem">Sem dados</div>';
+
+      const categoriasHtml = categorias.length > 0
+        ? categorias.map((c, i) => `
+          <div class="saidas-detail-row">
+            <span class="saidas-detail-row__label">
+              <span class="saidas-detail-row__dot"
+                style="background:${H.seriesColor(i, 0.85)}"></span>
+              ${CATEGORIA_LABELS[c.categoria] || c.categoria || '—'}
+            </span>
+            <span class="saidas-detail-row__value">${H.currency(c.valor)}</span>
+            <span class="saidas-detail-row__pct">${H.percent(c.percentual, 0)}</span>
+          </div>`).join('')
+        : '<div class="saidas-detail-row" style="color:var(--color-text-subtle);font-size:0.75rem">Sem dados</div>';
+
+      panel.innerHTML = `
+        <div class="saidas-detail-panel__total">
+          Total de Saídas
+          <span class="saidas-detail-panel__total-value">${H.currency(total)}</span>
+        </div>
+        <div class="saidas-detail-group">
+          <div class="saidas-detail-group__title">Por Forma de Pagamento</div>
+          ${formasHtml}
+        </div>
+        <div class="saidas-detail-group">
+          <div class="saidas-detail-group__title">Por Categoria</div>
+          ${categoriasHtml}
+        </div>`;
     }
 
     /* ----- Tabela: Resumo por Radiologia ----- */
@@ -1874,12 +1998,11 @@
       }
 
       try {
-        const [snapshotRes, evolucaoRes, porRadiologiaRes, tiposExameRes, ticketMedioRes, hierarquiaRes] = await Promise.all([
+        const [snapshotRes, evolucaoRes, porRadiologiaRes, tiposExameRes, hierarquiaRes] = await Promise.all([
           Api.getFinanceiroSnapshot(filtros),
           Api.getFinanceiroEvolucao(filtros),
           Api.getFinanceiroPorRadiologia(filtros),
           Api.getFinanceiroTiposExame(filtros),
-          Api.getFinanceiroTicketMedioPorRadiologia(filtros),
           Api.getFinanceiroHierarquia(filtros),
         ]);
 
@@ -1888,7 +2011,8 @@
         const evolucao = evolucaoRes.data;
         const porRadiologiaRaw = porRadiologiaRes.data || [];
         const tiposExame = tiposExameRes.data || [];
-        const ticketMedio = ticketMedioRes.data;
+        // Saídas vêm embutidas no snapshot (evita fetch extra)
+        const saidasData = snapshot.saidas || null;
         const hierarquiaRaw = hierarquiaRes.data || [];
 
         // Normaliza porRadiologia: backend retorna { radiologiaId, radiologiaNome, faturamentoAtual, examesAtual, variacao }
@@ -1939,7 +2063,7 @@
         renderDistribuicaoChart(porRadiologia, snapshot.topClinicas || []);
         renderHighlightsPanel(snapshot.topClinicas || [], snapshot.topMedicos || []);
         renderExamTypesChart(tiposExame);
-        renderAvgTicketChart(ticketMedio);
+        renderSaidasSection(saidasData);
         renderResumoTable(porRadiologia);
         renderHierTable(hierarquia);
       } catch (err) {

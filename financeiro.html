@@ -386,16 +386,23 @@
               </div>
             </article>
 
-            <!-- Tabela: Resumo comparativo por radiologia -->
-            <article class="chart-card">
+            <!-- Saídas do Período: gráfico + detalhamento -->
+            <article class="chart-card chart-card--saidas-split">
               <div class="chart-card__header">
                 <div>
-                  <h3 class="chart-card__title">Ticket Médio por Radiologia</h3>
-                  <p class="chart-card__subtitle">Evolução e comparativo</p>
+                  <h3 class="chart-card__title" id="saidasChartTitle">Saídas do Período</h3>
+                  <p class="chart-card__subtitle" id="saidasChartSubtitle">Por forma de pagamento</p>
                 </div>
               </div>
-              <div class="chart-card__body">
-                <canvas id="avgTicketChart" role="img" aria-label="Comparativo de ticket médio por radiologia"></canvas>
+              <div class="chart-card__body chart-card__body--saidas">
+                <!-- Gráfico de barras de saídas -->
+                <div class="saidas-chart-wrap">
+                  <canvas id="saidasBarChart" role="img" aria-label="Gráfico de barras de saídas do período"></canvas>
+                </div>
+                <!-- Detalhamento textual -->
+                <div class="saidas-detail-panel" id="saidasDetailPanel">
+                  <!-- Gerado pelo JS -->
+                </div>
               </div>
             </article>
           </div>

@@ -3695,6 +3695,167 @@ td.td-change {
 }
 
 /* =============================================================
+   SEÇÃO DE SAÍDAS — KPI detalhamento + gráfico split
+============================================================= */
+
+/* Detalhamento por forma de pagamento no KPI Faturamento Líquido */
+.kpi-saidas-breakdown {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kpi-saidas-breakdown__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.kpi-saidas-breakdown__label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.kpi-saidas-breakdown__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.kpi-saidas-breakdown__value {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 500;
+  color: var(--color-text);
+  font-size: 0.75rem;
+}
+
+/* Card de saídas split (gráfico + detalhamento) */
+.chart-card--saidas-split .chart-card__body--saidas {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  height: 100%;
+}
+
+.saidas-chart-wrap {
+  flex: 1 1 55%;
+  min-width: 0;
+  height: 180px;
+  position: relative;
+}
+
+.saidas-detail-panel {
+  flex: 1 1 45%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.saidas-detail-panel__total {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-text);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.saidas-detail-panel__total-value {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1rem;
+  color: var(--color-negative, #C23B32);
+  display: block;
+  margin-top: 2px;
+}
+
+.saidas-detail-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.saidas-detail-group__title {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-subtle);
+  margin-bottom: 2px;
+}
+
+.saidas-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  gap: 8px;
+}
+
+.saidas-detail-row__label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.saidas-detail-row__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.saidas-detail-row__value {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 500;
+  color: var(--color-text);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.saidas-detail-row__pct {
+  font-size: 0.6875rem;
+  color: var(--color-text-subtle);
+  min-width: 32px;
+  text-align: right;
+}
+
+.saidas-empty {
+  font-size: 0.8rem;
+  color: var(--color-text-subtle);
+  text-align: center;
+  padding: 24px 0;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .chart-card--saidas-split .chart-card__body--saidas {
+    flex-direction: column;
+  }
+
+  .saidas-chart-wrap {
+    height: 160px;
+    flex: none;
+    width: 100%;
+  }
+
+  .saidas-detail-panel {
+    flex: none;
+    width: 100%;
+  }
+}
+
+/* =============================================================
    16. RESPONSIVO
 ============================================================= */
 @media (max-width: 1024px) {

@@ -2624,6 +2624,77 @@ def financeiro_snapshot():
         [di, df] + rad_params_a
     )
 
+    # ── Saídas do período (para faturamentoLiquido e margemLucro) ──────────
+    rad_sql_s, rad_params_s = _filtro_radiologia_sql(radiologia_id, alias="s")
+
+    total_saidas_row = query(
+        f"SELECT COALESCE(SUM(s.valor), 0) AS total "
+        f"FROM saidas s "
+        f"WHERE s.data_saida BETWEEN %s AND %s {rad_sql_s}",
+        [di, df] + rad_params_s, fetch="one"
+    )
+    total_saidas = to_decimal(total_saidas_row.get("total", 0)) if total_saidas_row else 0.0
+
+    # Breakdown por forma de pagamento (para detalhamento no KPI)
+    forma_rows = query(
+        f"SELECT s.forma_pagamento, COALESCE(SUM(s.valor), 0) AS total "
+        f"FROM saidas s "
+        f"WHERE s.data_saida BETWEEN %s AND %s {rad_sql_s} "
+        f"GROUP BY s.forma_pagamento ORDER BY total DESC",
+        [di, df] + rad_params_s
+    )
+    saidas_por_forma = []
+    for row in (forma_rows or []):
+        val = to_decimal(row["total"])
+        pct = round(val / total_saidas * 100, 1) if total_saidas else 0.0
+        saidas_por_forma.append({
+            "forma":      row["forma_pagamento"],
+            "valor":      val,
+            "percentual": pct,
+        })
+
+    # Breakdown por categoria (para seção de gráfico de saídas)
+    cat_rows = query(
+        f"SELECT s.categoria, COALESCE(SUM(s.valor), 0) AS total "
+        f"FROM saidas s "
+        f"WHERE s.data_saida BETWEEN %s AND %s {rad_sql_s} "
+        f"GROUP BY s.categoria ORDER BY total DESC",
+        [di, df] + rad_params_s
+    )
+    saidas_por_categoria = []
+    for row in (cat_rows or []):
+        val = to_decimal(row["total"])
+        pct = round(val / total_saidas * 100, 1) if total_saidas else 0.0
+        saidas_por_categoria.append({
+            "categoria":  row["categoria"],
+            "valor":      val,
+            "percentual": pct,
+        })
+
+    # Breakdown por radiologia (para gráfico de saídas quando radiologiaId='all')
+    rad_sql_sr, rad_params_sr = _filtro_radiologia_sql(radiologia_id, alias="sr")
+    saidas_por_radiologia = []
+    if radiologia_id == "all":
+        rad_rows = query(
+            f"SELECT r.nome AS radiologiaNome, COALESCE(SUM(sr.valor), 0) AS total "
+            f"FROM saidas sr "
+            f"JOIN radiologias r ON r.id = sr.radiologia_id "
+            f"WHERE sr.data_saida BETWEEN %s AND %s {rad_sql_sr} "
+            f"GROUP BY r.id, r.nome ORDER BY total DESC",
+            [di, df] + rad_params_sr
+        )
+        for row in (rad_rows or []):
+            val = to_decimal(row["total"])
+            pct = round(val / total_saidas * 100, 1) if total_saidas else 0.0
+            saidas_por_radiologia.append({
+                "radiologiaNome": row["radiologiaNome"],
+                "valor":          val,
+                "percentual":     pct,
+            })
+
+    fat_liquido = fat - total_saidas
+    margem = round(fat_liquido / fat * 100, 1) if fat else 0.0
+
     var = variacao_percentual(fat, fat_ant)
     insights = []
     if var > 10:
@@ -2636,17 +2707,31 @@ def financeiro_snapshot():
     if exm > 0:
         insights.append({"type": "info", "text": f"{exm} exames realizados no período."})
 
+    if total_saidas > 0:
+        insights.append({"type": "info", "text": f"Total de saídas no período: R$ {total_saidas:,.2f}."})
+
     return ok({
         "kpis": {
-            "faturamentoTotal":   {"value": fat,   "changeMonth": var, "changeYoY": var},
-            "faturamentoLiquido": {"value": round(fat * 0.92, 2), "context": "Após impostos estimados"},
-            "margemLucro":        {"value": round((fat * 0.92) / max(fat, 1) * 100, 1), "changeMonth": 0},
-            "totalExames":        {"value": exm,   "changeMonth": variacao_percentual(exm, exm_ant)},
+            "faturamentoTotal":   {"value": fat,        "changeMonth": var, "changeYoY": var},
+            "faturamentoLiquido": {
+                "value":          round(fat_liquido, 2),
+                "context":        "Após saídas do período",
+                "totalSaidas":    round(total_saidas, 2),
+                "porFormaPagamento": saidas_por_forma,
+            },
+            "margemLucro":        {"value": margem, "changeMonth": 0},
+            "totalExames":        {"value": exm,        "changeMonth": variacao_percentual(exm, exm_ant)},
             "previsao30d":        {"value": round(previsao, 2), "forecast60d": round(previsao * 1.05, 2)},
         },
-        "topClinicas": top_cli,
-        "topMedicos":  top_med,
-        "insights":    insights,
+        "topClinicas":          top_cli,
+        "topMedicos":           top_med,
+        "insights":             insights,
+        "saidas": {
+            "total":            round(total_saidas, 2),
+            "porFormaPagamento": saidas_por_forma,
+            "porCategoria":     saidas_por_categoria,
+            "porRadiologia":    saidas_por_radiologia,
+        },
     })
 
 
