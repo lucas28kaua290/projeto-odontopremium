@@ -2451,6 +2451,20 @@ const PatientAutocomplete = (() => {
     }, DEBOUNCE_MS);
   }
 
+  // Busca inicial ao focar no campo (sem debounce, sem clearSelection)
+  async function onFocus() {
+    if (selectedPatientId) return; // já tem seleção, não reabre
+    if (!dropdownEl.hidden) return; // dropdown já visível
+    try {
+      showLoading();
+      const resultados = await Api.searchPacientes(inputEl.value.trim());
+      renderDropdown(resultados);
+    } catch (err) {
+      console.error('[PatientAutocomplete] Erro na busca inicial:', err);
+      closeDropdown();
+    }
+  }
+
   /* ------------------------------------------------------------------
      API pública
   ------------------------------------------------------------------ */
@@ -2476,11 +2490,7 @@ const PatientAutocomplete = (() => {
     inputEl.addEventListener('input', onInput);
     inputEl.addEventListener('keydown', handleKeydown);
     inputEl.addEventListener('blur', () => setTimeout(closeDropdown, 150));
-    inputEl.addEventListener('focus', () => {
-      if (inputEl.value.trim().length >= MIN_CHARS && !selectedPatientId) {
-        onInput();
-      }
-    });
+    inputEl.addEventListener('focus', onFocus);
 
     // Fecha ao clicar fora
     document.addEventListener('click', (e) => {
@@ -2579,12 +2589,13 @@ const ExamAutocomplete = (() => {
     const val = inputEl.value.trim();
     clearSelection();
 
+    const todos = DataStore.getTiposExame();
     if (val.length < MIN_CHARS) {
-      closeDropdown();
+      // Campo vazio: mostra todos os exames disponíveis
+      renderDropdown(todos);
       return;
     }
 
-    const todos = DataStore.getTiposExame();
     const filtrados = todos.filter(t =>
       t.label.toLowerCase().includes(val.toLowerCase())
     );
@@ -2632,7 +2643,7 @@ const ExamAutocomplete = (() => {
     inputEl.addEventListener('keydown', handleKeydown);
     inputEl.addEventListener('blur', () => setTimeout(closeDropdown, 150));
     inputEl.addEventListener('focus', () => {
-      if (inputEl.value.trim().length >= MIN_CHARS && !selectedExamId) onInput();
+      if (!selectedExamId && dropdownEl.hidden) onInput();
     });
     document.addEventListener('click', (e) => {
       if (!inputEl.contains(e.target) && !dropdownEl.contains(e.target)) closeDropdown();
@@ -2734,6 +2745,21 @@ const ClinicaAutocomplete = (() => {
       }
     }, DEBOUNCE_MS);
   }
+
+  // Busca inicial ao focar (sem debounce, sem clearSelection)
+  async function onFocus() {
+    if (selectedClinicaId) return;
+    if (!dropdownEl.hidden) return;
+    try {
+      showLoading();
+      const radId = document.getElementById('newRadiologia').value || 'all';
+      const res = await Api.getClinicas({ busca: inputEl.value.trim(), radiologiaId: radId });
+      renderDropdown(res.data || []);
+    } catch (err) {
+      console.error('[ClinicaAutocomplete] Erro na busca inicial:', err);
+      closeDropdown();
+    }
+  }
   function getSelectedId() { return selectedClinicaId; }
   function reset() {
     clearTimeout(debounceTimer);
@@ -2751,9 +2777,7 @@ const ClinicaAutocomplete = (() => {
     inputEl.addEventListener('input', onInput);
     inputEl.addEventListener('keydown', handleKeydown);
     inputEl.addEventListener('blur', () => setTimeout(closeDropdown, 150));
-    inputEl.addEventListener('focus', () => {
-      if (inputEl.value.trim().length >= MIN_CHARS && !selectedClinicaId) onInput();
-    });
+    inputEl.addEventListener('focus', onFocus);
     document.addEventListener('click', e => {
       if (!inputEl.contains(e.target) && !dropdownEl.contains(e.target)) closeDropdown();
     });
@@ -2849,6 +2873,22 @@ const MedicoAutocomplete = (() => {
       }
     }, DEBOUNCE_MS);
   }
+
+  // Busca inicial ao focar (sem debounce, sem clearSelection)
+  async function onFocus() {
+    if (selectedMedicoId) return;
+    if (!dropdownEl.hidden) return;
+    try {
+      showLoading();
+      const clinicaId = document.getElementById('newClinicaId').value || undefined;
+      const radId = document.getElementById('newRadiologia').value || undefined;
+      const res = await Api.getMedicos({ busca: inputEl.value.trim(), clinicaId, radiologiaId: radId, semPeriodo: true });
+      renderDropdown(res.data || []);
+    } catch (err) {
+      console.error('[MedicoAutocomplete] Erro na busca inicial:', err);
+      closeDropdown();
+    }
+  }
   function getSelectedId() { return selectedMedicoId; }
   function reset() {
     clearTimeout(debounceTimer);
@@ -2866,9 +2906,7 @@ const MedicoAutocomplete = (() => {
     inputEl.addEventListener('input', onInput);
     inputEl.addEventListener('keydown', handleKeydown);
     inputEl.addEventListener('blur', () => setTimeout(closeDropdown, 150));
-    inputEl.addEventListener('focus', () => {
-      if (inputEl.value.trim().length >= MIN_CHARS && !selectedMedicoId) onInput();
-    });
+    inputEl.addEventListener('focus', onFocus);
     document.addEventListener('click', e => {
       if (!inputEl.contains(e.target) && !dropdownEl.contains(e.target)) closeDropdown();
     });
