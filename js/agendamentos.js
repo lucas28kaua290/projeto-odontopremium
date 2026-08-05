@@ -2522,6 +2522,11 @@ const ExamAutocomplete = (() => {
     selectedExamId = null;
     document.getElementById('newTipoExameId').value = '';
     if (tagEl) tagEl.hidden = true;
+    // Limpa duração e remove hint "preenchido pelo exame"
+    const duracaoEl = document.getElementById('newDuracaoMin');
+    const duracaoHint = document.getElementById('newDuracaoHint');
+    if (duracaoEl) { duracaoEl.value = ''; duracaoEl.readOnly = false; }
+    if (duracaoHint) duracaoHint.hidden = true;
   }
 
   function fillFromExam(exam) {
@@ -2529,6 +2534,14 @@ const ExamAutocomplete = (() => {
     document.getElementById('newTipoExameId').value = exam.id;
     document.getElementById('newTipoExame').value = exam.label;
     if (tagEl) tagEl.hidden = false;
+    // Preenche duração automaticamente com o valor salvo no banco
+    const duracaoEl = document.getElementById('newDuracaoMin');
+    const duracaoHint = document.getElementById('newDuracaoHint');
+    if (duracaoEl) {
+      duracaoEl.value = exam.duration || 30;
+      duracaoEl.readOnly = false; // editável: recepcionista pode ajustar
+    }
+    if (duracaoHint) duracaoHint.hidden = false;
     closeDropdown();
     document.getElementById('newTipoExame').dispatchEvent(new Event('blur'));
   }
@@ -3028,7 +3041,10 @@ const NewAppointmentModal = (() => {
 
       try {
 
-        const duracao = DURACAO_POR_EXAME[tipoExameId] || 30;
+        const duracaoCampo = parseInt(document.getElementById('newDuracaoMin')?.value, 10);
+        const duracao = (duracaoCampo > 0 ? duracaoCampo : null)
+          || DURACAO_POR_EXAME[tipoExameId]
+          || 30;
         const ocupados = horariosOcupados(radId, data, tipoExameId);
 
         // Primeiro: remove horários ocupados
@@ -3100,7 +3116,10 @@ const NewAppointmentModal = (() => {
   function onHorarioChange() {
     const tipoExameId = document.getElementById('newTipoExameId').value;
     const horario = document.getElementById('newTimeStart').value;
-    const duracao = DURACAO_POR_EXAME[tipoExameId] || 30;
+    const duracaoCampo = parseInt(document.getElementById('newDuracaoMin')?.value, 10);
+    const duracao = (duracaoCampo > 0 ? duracaoCampo : null)
+      || DURACAO_POR_EXAME[tipoExameId]
+      || 30;
     document.getElementById('newTimeEnd').value = calcFim(horario, duracao);
   }
 
@@ -3131,6 +3150,9 @@ const NewAppointmentModal = (() => {
     document.getElementById('newRadiologia').value = '';
     document.getElementById('newTipoExame').value = '';
     document.getElementById('newTipoExameId').value = '';
+    document.getElementById('newDuracaoMin').value = '';
+    const _duracaoHint = document.getElementById('newDuracaoHint');
+    if (_duracaoHint) _duracaoHint.hidden = true;
     ExamAutocomplete.reset();
     document.getElementById('newDate').value = today;
     document.getElementById('newTimeEnd').value = '';
@@ -3201,6 +3223,17 @@ const NewAppointmentModal = (() => {
     if (examId) {
       const tagEl = document.getElementById('newTipoExameTag');
       if (tagEl) tagEl.hidden = false;
+    }
+    // Preenche campo de duração com o valor do agendamento (ou do cadastro do exame)
+    const duracaoEditEl = document.getElementById('newDuracaoMin');
+    const duracaoEditHint = document.getElementById('newDuracaoHint');
+    if (duracaoEditEl) {
+      const dur = ag.duracaoMin
+        || DURACAO_POR_EXAME[examId]
+        || DURACAO_POR_EXAME[examLabel]
+        || 30;
+      duracaoEditEl.value = dur;
+      if (duracaoEditHint && examId) duracaoEditHint.hidden = false;
     }
     updateValuePreview();
 
@@ -3280,8 +3313,12 @@ const NewAppointmentModal = (() => {
     const radId = document.getElementById('newRadiologia').value;
     const data = document.getElementById('newDate').value;
     const horarioInicio = document.getElementById('newTimeStart').value;
+    const duracaoCampo = parseInt(document.getElementById('newDuracaoMin')?.value, 10);
+    const duracaoMin = (duracaoCampo > 0 ? duracaoCampo : null)
+      || DURACAO_POR_EXAME[tipoExameId]
+      || 30;
     const horarioFim = document.getElementById('newTimeEnd').value
-      || calcFim(horarioInicio, DURACAO_POR_EXAME[tipoExameId] || 30);
+      || calcFim(horarioInicio, duracaoMin);
 
     return {
       pacienteId: document.getElementById('newPacienteId')?.value?.trim() || null,
@@ -3290,7 +3327,7 @@ const NewAppointmentModal = (() => {
       data,
       horarioInicio,
       horarioFim,
-      duracaoMin: DURACAO_POR_EXAME[tipoExameId] || 30,
+      duracaoMin,
       paciente: document.getElementById('newPaciente').value.trim(),  // nome só pra exibição
       pacienteCpf: document.getElementById('newCpf').value.trim(),
       pacienteTelefone: document.getElementById('newTelefone').value.trim(),
@@ -3383,23 +3420,46 @@ const NewAppointmentModal = (() => {
       const tipoExameIdAtual = document.getElementById('newTipoExameId').value.trim();
       const tipoExameLabelAtual = document.getElementById('newTipoExame').value.trim();
 
+      const duracaoCampoSave = parseInt(document.getElementById('newDuracaoMin')?.value, 10) || 30;
+
       if (!tipoExameIdAtual && tipoExameLabelAtual) {
+        // Exame novo: cria com o tempo digitado pelo recepcionista
         try {
           const novoExame = await Api.postTipoExame({
             label: tipoExameLabelAtual,
-            duration: 30,
+            duration: duracaoCampoSave,
             value: 0,
           });
           const novoId = novoExame?.data?.id || novoExame?.id;
           if (!novoId) throw new Error('ID não retornado pelo servidor.');
 
           document.getElementById('newTipoExameId').value = novoId;
+          DURACAO_POR_EXAME[novoId] = duracaoCampoSave;
+          DURACAO_POR_EXAME[tipoExameLabelAtual] = duracaoCampoSave;
 
           await DataStore.loadTiposExame();
         } catch (errExame) {
           console.error('[NewAppointmentModal] Erro ao criar tipo de exame:', errExame);
           showToast('Erro ao cadastrar novo tipo de exame. Tente novamente.', 'error');
           return;
+        }
+      } else if (tipoExameIdAtual) {
+        // Exame existente: se o tempo foi alterado em relação ao salvo, atualiza no banco
+        const duracaoSalva = DURACAO_POR_EXAME[tipoExameIdAtual] || 30;
+        if (duracaoCampoSave !== duracaoSalva) {
+          try {
+            await Api.putTipoExame(tipoExameIdAtual, {
+              label: tipoExameLabelAtual,
+              duration: duracaoCampoSave,
+              value: 0,
+            });
+            DURACAO_POR_EXAME[tipoExameIdAtual] = duracaoCampoSave;
+            DURACAO_POR_EXAME[tipoExameLabelAtual] = duracaoCampoSave;
+            await DataStore.loadTiposExame();
+          } catch (errDuracao) {
+            // Não bloqueia o salvamento — apenas avisa
+            console.warn('[NewAppointmentModal] Não atualizou duração do exame:', errDuracao);
+          }
         }
       }
 
@@ -3627,6 +3687,10 @@ const NewAppointmentModal = (() => {
     });
     document.getElementById('newDate').addEventListener('change', tryUpdateHorarios);
     document.getElementById('newTimeStart').addEventListener('change', onHorarioChange);
+    // Alteração manual no tempo estimado recalcula os slots disponíveis e o horário fim
+    document.getElementById('newDuracaoMin').addEventListener('change', () => {
+      tryUpdateHorarios();
+    });
 
     /* CPF: máscara simples */
     document.getElementById('newCpf').addEventListener('input', (e) => {
