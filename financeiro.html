@@ -312,6 +312,41 @@
           <!-- Gerado pelo JS -->
         </div>
 
+        <!-- ═══════════════════════════════════════════════════════
+             CONFERÊNCIA DE CAIXA  (full-width, gerado pelo JS)
+        ════════════════════════════════════════════════════════ -->
+        <section class="caixa-section" id="conferenciaCaixa" aria-label="Conferência de Caixa">
+          <div class="caixa-section__header">
+            <div>
+              <h2 class="caixa-section__title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/>
+                  <path d="M2 10h20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                Conferência de Caixa
+              </h2>
+              <p class="caixa-section__subtitle" id="caixaSubtitle">
+                Entradas por forma de pagamento — agendamentos realizados no período
+              </p>
+            </div>
+            <div class="caixa-section__total-wrap">
+              <span class="caixa-section__total-label">Total recebido</span>
+              <span class="caixa-section__total-value" id="caixaTotalGeral">R$ —</span>
+            </div>
+          </div>
+
+          <div class="caixa-section__body">
+            <!-- Esquerda: pizza -->
+            <div class="caixa-chart-wrap">
+              <canvas id="caixaPizzaChart" aria-label="Distribuição por forma de pagamento"></canvas>
+            </div>
+            <!-- Direita: cards por forma -->
+            <div class="caixa-cards-grid" id="caixaCardsGrid">
+              <!-- Gerado pelo JS -->
+            </div>
+          </div>
+        </section>
+
         <!-- Gráficos principais -->
         <div class="charts-section">
           <div class="charts-section__toolbar">
@@ -411,39 +446,7 @@
         <!-- Tabelas de detalhamento -->
         <div class="detail-tables-solo">
 
-          <!-- Tabela 1: Resumo comparativo por radiologia (full width) -->
-          <div class="table-card">
-            <div class="table-card__header">
-              <div>
-                <h3 class="table-card__title">Resumo Comparativo por Radiologia</h3>
-                <span class="table-card__hint">Variação mensal incluída</span>
-              </div>
-              <button type="button" class="btn btn--ghost btn--sm" id="btnExportResumo">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor"
-                    stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-                Exportar
-              </button>
-            </div>
-            <div class="table-card__scroll">
-              <table class="data-table" id="resumoRadiologiaTable">
-                <thead>
-                  <tr>
-                    <th class="resumo-col--radiologia">Radiologia</th>
-                    <th class="resumo-col--faturamento data-table__num">Faturamento</th>
-                    <th class="resumo-col--exames data-table__num">Exames</th>
-                    <th class="resumo-col--participacao data-table__num">% do Total</th>
-                  </tr>
-                </thead>
-                <tbody id="resumoRadiologiaBody">
-                  <!-- Gerado pelo JS -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- Tabela 2: Hierarquia Radiologia → Clínica → Médico (full width) -->
+          <!-- Tabela: Hierarquia Radiologia → Clínica → Médico (full width) -->
           <div class="table-card">
             <div class="table-card__header">
               <div>

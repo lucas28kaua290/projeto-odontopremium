@@ -1476,7 +1476,22 @@ const Api = (() => {
         return { data };
     }
 
-
+    /**
+     * GET /financeiro/conferencia-caixa
+     * Retorna totais por forma de pagamento dos agendamentos realizados.
+     * Resposta: { totalGeral, formas: [{ forma, label, valor, percentual }] }
+     */
+    async function getConferenciaCaixa(filtros = {}) {
+        const qs = buildQuery({
+            radiologiaId: filtros.radiologiaId || 'all',
+            periodo: filtros.periodo || 'mes_atual',
+            dataInicio: filtros.dataInicio,
+            dataFim: filtros.dataFim,
+        });
+        const data = await request(`/financeiro/conferencia-caixa${qs}`);
+        return { data };
+    }
+    
     /* ===========================================================================
        13. METAS
        =========================================================================== */
@@ -2338,6 +2353,7 @@ const Api = (() => {
         getFinanceiroTicketMedioPorRadiologia,
         getFinanceiroInsights,
         getFinanceiroHierarquia,
+        getConferenciaCaixa,
 
         // 13. Metas
         getMetas,

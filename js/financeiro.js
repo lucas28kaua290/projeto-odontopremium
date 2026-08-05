@@ -1631,43 +1631,95 @@
         </div>`;
     }
 
-    /* ----- Tabela: Resumo por Radiologia ----- */
-    function renderResumoTable(porRadiologia) {
 
-      const dados = IORDPermissions.isAdmin()
-        ? porRadiologia
-        : porRadiologia.filter(r => r.id === IORDPermissions.getRadiologiaId());
+    /* ----- Conferência de Caixa ----- */
+    // Mapa de cores por forma (consistente com o restante do financeiro)
+    const CAIXA_COLORS = {
+      pix:           '#2563EB',   // azul primário
+      especie:       '#16A34A',   // verde
+      dinheiro:      '#16A34A',   // alias espécie
+      cartao:        '#7B68EE',   // roxo
+      credito:       '#7B68EE',
+      debito:        '#38BDF8',   // azul claro
+      boleto:        '#94A3B8',   // cinza
+      transferencia: '#F59E0B',   // âmbar
+      cheque:        '#F97316',   // laranja
+    };
 
-      const tbody = document.getElementById('resumoRadiologiaBody');
-      if (!tbody) return;
-      const isQtd = State.viewMode === 'quantidade';
-      const data = State.radiologia === 'all'
-        ? dados
-        : dados.filter(r => r.id === State.radiologia);
+    let _caixaChartInst = null;
 
-      if (!data.length) {
-        tbody.innerHTML = `<tr><td colspan="4" class="empty-state">Nenhum dado para o filtro selecionado.</td></tr>`;
+    function renderConferenciaCaixa(data) {
+      const totalEl  = document.getElementById('caixaTotalGeral');
+      const cardsEl  = document.getElementById('caixaCardsGrid');
+      const canvas   = document.getElementById('caixaPizzaChart');
+
+      if (!totalEl || !cardsEl || !canvas) return;
+
+      if (!data || !data.formas || data.formas.length === 0) {
+        totalEl.textContent = H.currency(0);
+        cardsEl.innerHTML   = '<div class="caixa-empty">Nenhum pagamento registrado no período.</div>';
+        if (_caixaChartInst) { _caixaChartInst.destroy(); _caixaChartInst = null; }
         return;
       }
 
+      const { totalGeral, formas } = data;
+      totalEl.textContent = H.currency(totalGeral);
 
-      tbody.innerHTML = data.map(r => `
-    <tr>
-      <td><span class="data-table__name-primary">${r.label}</span></td>
-      <td class="data-table__num-faturamento" style="white-space:nowrap">
-        ${isQtd ? H.number(r.exames) : H.currency(r.faturamento)}
-        ${H.changeBadge(r.variacao)}
-      </td>
-      <td class="data-table__num">${H.number(r.exames)}</td>
-      <td>
-        <div class="participation-cell">
-          <span class="participation-cell__value">${H.percent(r.participacao)}</span>
-          <div class="participation-bar">
-            <div class="participation-bar__fill" style="width:${r.participacao}%"></div>
-          </div>
-        </div>
-      </td>
-    </tr>`).join('');
+      // ── Cards por forma ──────────────────────────────────────────
+      cardsEl.innerHTML = formas.map(f => {
+        const cor = CAIXA_COLORS[f.forma] || '#94A3B8';
+        return `
+          <div class="caixa-forma-card">
+            <span class="caixa-forma-card__badge" style="background:${cor}">
+              ${f.label}
+            </span>
+            <div class="caixa-forma-card__value">${H.currency(f.valor)}</div>
+            <div class="caixa-forma-card__pct">${H.percent(f.percentual, 1)} do total</div>
+            <div class="caixa-forma-card__bar-wrap">
+              <div class="caixa-forma-card__bar-fill"
+                   style="width:${f.percentual}%;background:${cor}"></div>
+            </div>
+          </div>`;
+      }).join('');
+
+      // ── Gráfico de pizza ────────────────────────────────────────
+      const labels = formas.map(f => f.label);
+      const values = formas.map(f => f.valor);
+      const colors = formas.map(f => CAIXA_COLORS[f.forma] || '#94A3B8');
+
+      if (_caixaChartInst) _caixaChartInst.destroy();
+
+      _caixaChartInst = new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+          labels,
+          datasets: [{
+            data:            values,
+            backgroundColor: colors,
+            borderColor:     'var(--color-surface, #fff)',
+            borderWidth:     3,
+            hoverOffset:     6,
+          }],
+        },
+        options: {
+          responsive:          true,
+          maintainAspectRatio: true,
+          cutout:              '62%',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  const v   = ctx.parsed;
+                  const tot = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                  const pct = tot > 0 ? ((v / tot) * 100).toFixed(1) : '0.0';
+                  return ` ${H.currency(v)} (${pct}%)`;
+                },
+              },
+            },
+          },
+        },
+      });
     }
 
     /* ----- Mock de tipos de exame por estrutura (para as tags) ----- */
@@ -2010,12 +2062,13 @@
       }
 
       try {
-        const [snapshotRes, evolucaoRes, porRadiologiaRes, tiposExameRes, hierarquiaRes] = await Promise.all([
+        const [snapshotRes, evolucaoRes, porRadiologiaRes, tiposExameRes, hierarquiaRes, caixaRes] = await Promise.all([
           Api.getFinanceiroSnapshot(filtros),
           Api.getFinanceiroEvolucao(filtros),
           Api.getFinanceiroPorRadiologia(filtros),
           Api.getFinanceiroTiposExame(filtros),
           Api.getFinanceiroHierarquia(filtros),
+          Api.getConferenciaCaixa(filtros),          // ← NOVO
         ]);
 
         // Desembrulha .data (padrão único da API)
@@ -2026,6 +2079,7 @@
         // Saídas vêm embutidas no snapshot (evita fetch extra)
         const saidasData = snapshot.saidas || null;
         const hierarquiaRaw = hierarquiaRes.data || [];
+        const caixaData = caixaRes.data || null;       // ← NOVO
 
         // Normaliza porRadiologia: backend retorna { radiologiaId, radiologiaNome, faturamentoAtual, examesAtual, variacao }
         // Frontend espera: { id, label, faturamento, exames, variacao, participacao }
@@ -2070,13 +2124,13 @@
 
         renderKPIs(snapshot.kpis);
         renderInsights(snapshot.insights || []);
+        renderConferenciaCaixa(caixaData);            // ← NOVO (logo após insights, antes dos gráficos)
         renderEvolutionChart(evolucao);
         renderByRadiologyChart(porRadiologia, snapshot.topClinicas || []);
         renderDistribuicaoChart(porRadiologia, snapshot.topClinicas || []);
         renderHighlightsPanel(snapshot.topClinicas || [], snapshot.topMedicos || []);
         renderExamTypesChart(tiposExame);
         renderSaidasSection(saidasData);
-        renderResumoTable(porRadiologia);
         renderHierTable(hierarquia);
       } catch (err) {
         console.error('[VisaoGeral] Erro ao carregar dados:', err);

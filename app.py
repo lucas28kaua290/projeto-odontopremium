@@ -2616,6 +2616,100 @@ def financeiro_kpis():
     })
 
 
+# ── NOVO ──────────────────────────────────────────────────────────────────────
+@app.route("/v1/financeiro/conferencia-caixa", methods=["GET"])
+@require_auth
+def financeiro_conferencia_caixa():
+    """
+    [API] GET /financeiro/conferencia-caixa
+
+    Agrega o total recebido por forma de pagamento, usando apenas
+    agendamentos com status='realizado' — mesma regra do faturamento.
+
+    Campos lidos de cada agendamento:
+      pagamento_tipo   : 'unico' | 'dividido'
+      pagamento_forma_1 / pagamento_valor_1
+      pagamento_forma_2 / pagamento_valor_2  (só quando dividido)
+
+    Resposta:
+    {
+      "totalGeral": 1234.56,
+      "formas": [
+        { "forma": "pix",      "label": "PIX",          "valor": 700.00, "percentual": 56.7 },
+        { "forma": "especie",  "label": "Espécie",      "valor": 300.00, "percentual": 24.3 },
+        { "forma": "cartao",   "label": "Cartão",       "valor": 200.00, "percentual": 16.2 },
+        { "forma": "boleto",   "label": "Boleto",       "valor": 34.56,  "percentual": 2.8  }
+      ]
+    }
+    """
+    radiologia_id = request.args.get("radiologiaId", "all")
+    periodo       = request.args.get("periodo", "mes_atual")
+    data_inicio   = request.args.get("dataInicio")
+    data_fim      = request.args.get("dataFim")
+    di, df, _, _  = periodo_para_datas(periodo, data_inicio, data_fim)
+
+    rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id, alias="a")
+
+    # Busca todos os agendamentos realizados no período
+    rows = query(
+        f"SELECT a.pagamento_tipo, "
+        f"       a.pagamento_forma_1, a.pagamento_valor_1, "
+        f"       a.pagamento_forma_2, a.pagamento_valor_2 "
+        f"FROM agendamentos a "
+        f"WHERE a.status = 'realizado' "
+        f"  AND a.data_agendamento BETWEEN %s AND %s"
+        f"  {rad_sql}",
+        [di, df] + rad_params
+    )
+
+    LABELS = {
+        "pix":           "PIX",
+        "especie":       "Espécie",
+        "dinheiro":      "Espécie",   # alias comum no banco
+        "cartao":        "Cartão",
+        "credito":       "Cartão Crédito",
+        "debito":        "Cartão Débito",
+        "boleto":        "Boleto",
+        "transferencia": "Transferência",
+        "cheque":        "Cheque",
+    }
+
+    totais: dict[str, float] = {}
+
+    for row in (rows or []):
+        tipo = (row.get("pagamento_tipo") or "unico").lower()
+
+        # Parte 1 — sempre somada (pagamento único ou primeira parcela)
+        forma1 = (row.get("pagamento_forma_1") or "").strip().lower()
+        val1   = to_decimal(row.get("pagamento_valor_1"))
+        if forma1 and val1 > 0:
+            totais[forma1] = totais.get(forma1, 0.0) + val1
+
+        # Parte 2 — só quando dividido
+        if tipo == "dividido":
+            forma2 = (row.get("pagamento_forma_2") or "").strip().lower()
+            val2   = to_decimal(row.get("pagamento_valor_2"))
+            if forma2 and val2 > 0:
+                totais[forma2] = totais.get(forma2, 0.0) + val2
+
+    total_geral = sum(totais.values())
+
+    formas = []
+    for forma, valor in sorted(totais.items(), key=lambda x: -x[1]):
+        pct = round(valor / total_geral * 100, 1) if total_geral else 0.0
+        formas.append({
+            "forma":      forma,
+            "label":      LABELS.get(forma, forma.capitalize()),
+            "valor":      round(valor, 2),
+            "percentual": pct,
+        })
+
+    return ok({
+        "totalGeral": round(total_geral, 2),
+        "formas":     formas,
+    })
+
+
 @app.route("/v1/financeiro/snapshot", methods=["GET"])
 @require_auth
 def financeiro_snapshot():
