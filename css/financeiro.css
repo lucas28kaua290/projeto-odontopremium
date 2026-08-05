@@ -3873,42 +3873,32 @@ td.td-change {
 
 /* ============================================================
    CONFERÊNCIA DE CAIXA
+   Usa chart-card--split (mesma base de "Distribuição e Destaques").
+   Apenas os deltas em relação ao chart-card--split genérico ficam
+   aqui; toda estrutura, bordas, sombra e header vêm do chart-card.
 ============================================================ */
 
-.caixa-section {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5) var(--space-6);
-  margin-bottom: var(--space-5);
-}
-
-.caixa-section__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+/* Grid full-width que envolve o card (igual aos outros charts-grid) */
+.charts-grid--caixa {
+  display: grid;
+  grid-template-columns: 1fr;
   gap: var(--space-4);
-  margin-bottom: var(--space-5);
-  flex-wrap: wrap;
 }
 
-.caixa-section__title {
-  display: flex;
-  align-items: center;
+/* O painel de highlights da caixa: uma coluna só (lista vertical),
+   diferente do split-panel--highlights que usa 2 colunas */
+.split-panel--highlights-caixa {
+  grid-template-columns: 1fr;
   gap: var(--space-2);
-  font-size: var(--fs-base);
-  font-weight: 700;
-  color: var(--color-text);
-  margin: 0 0 4px;
+  padding-left: var(--space-6);
+  border-left: 1px solid var(--color-border);
+  align-content: start;
+  overflow-y: auto;
+  max-height: 380px;
 }
 
-.caixa-section__subtitle {
-  font-size: var(--fs-sm);
-  color: var(--color-text-subtle);
-  margin: 0;
-}
-
-.caixa-section__total-wrap {
+/* Badge de total no header do card (canto direito) */
+.caixa-total-badge {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -3916,120 +3906,125 @@ td.td-change {
   flex-shrink: 0;
 }
 
-.caixa-section__total-label {
+.caixa-total-badge__label {
   font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
-.caixa-section__total-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--color-text);
+.caixa-total-badge__value {
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
+  font-family: var(--font-mono);
+  color: var(--color-primary-dark);
   font-variant-numeric: tabular-nums;
 }
 
-/* Layout: pizza à esquerda, cards à direita */
-.caixa-section__body {
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  gap: var(--space-6);
-  align-items: center;
+/* Linha de forma de pagamento: reusa .highlight-row mas adiciona
+   a barra de participação embaixo */
+.caixa-forma-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-3) var(--space-3);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-muted);
+  transition: background-color var(--transition-fast);
 }
 
-.caixa-chart-wrap {
+.caixa-forma-row:hover {
+  background-color: var(--color-primary-50);
+}
+
+.caixa-forma-row__top {
   display: flex;
   align-items: center;
-  justify-content: center;
-  min-height: 240px;
-}
-
-.caixa-chart-wrap canvas {
-  max-width: 240px;
-  max-height: 240px;
-  width: 100% !important;
-  aspect-ratio: 1 / 1;
-}
-
-/* Grid de cards por forma */
-.caixa-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: var(--space-3);
 }
 
-.caixa-forma-card {
-  background: var(--color-surface-muted, #F8F9FA);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
+.caixa-forma-row__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.caixa-forma-row__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.caixa-forma-row__label {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text);
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: var(--space-2);
-  transition: box-shadow 0.15s ease;
 }
 
-.caixa-forma-card:hover {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-}
-
-.caixa-forma-card__badge {
+/* Pill de forma (PIX, Cartão…) — idêntico ao .status-badge do tema */
+.caixa-forma-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: var(--fs-xs);
-  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: var(--fw-semibold);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 3px 10px;
-  border-radius: 999px;
-  width: fit-content;
-  color: #fff;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: var(--color-bg);          /* texto branco sobre fundo colorido */
 }
 
-.caixa-forma-card__value {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--color-text);
-  font-variant-numeric: tabular-nums;
-  line-height: 1.2;
-}
-
-.caixa-forma-card__pct {
-  font-size: var(--fs-sm);
+.caixa-forma-row__pct {
+  font-size: var(--fs-xs);
   color: var(--color-text-subtle);
+  white-space: nowrap;
 }
 
-.caixa-forma-card__bar-wrap {
-  height: 4px;
-  background: var(--color-border);
+.caixa-forma-row__value {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--color-primary-dark);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Barra de participação — reusa as classes do tema */
+.caixa-forma-row__bar {
+  height: 3px;
   border-radius: 999px;
+  background-color: var(--color-border);
   overflow: hidden;
 }
 
-.caixa-forma-card__bar-fill {
+.caixa-forma-row__bar-fill {
   height: 100%;
   border-radius: 999px;
-  transition: width 0.4s ease;
+  transition: width 0.45s var(--transition-base, ease);
 }
 
-/* Estado vazio */
+/* Empty state — mesmo padrão do saidas-empty */
 .caixa-empty {
-  grid-column: 1 / -1;
+  padding: var(--space-6) var(--space-4);
   text-align: center;
-  padding: var(--space-6);
-  color: var(--color-text-muted);
+  color: var(--color-text-subtle);
   font-size: var(--fs-sm);
 }
 
-/* Responsivo */
-@media (max-width: 900px) {
-  .caixa-section__body {
-    grid-template-columns: 1fr;
-  }
-  .caixa-chart-wrap {
-    min-height: 200px;
+/* Responsivo: empilha pizza/lista em telas < 1100px,
+   igual ao break do chart-card--split genérico */
+@media (max-width: 1100px) {
+  .split-panel--highlights-caixa {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid var(--color-border);
+    padding-top: var(--space-4);
+    max-height: none;
   }
 }
 

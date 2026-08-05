@@ -312,40 +312,37 @@
           <!-- Gerado pelo JS -->
         </div>
 
-        <!-- ═══════════════════════════════════════════════════════
-             CONFERÊNCIA DE CAIXA  (full-width, gerado pelo JS)
-        ════════════════════════════════════════════════════════ -->
-        <section class="caixa-section" id="conferenciaCaixa" aria-label="Conferência de Caixa">
-          <div class="caixa-section__header">
-            <div>
-              <h2 class="caixa-section__title">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/>
-                  <path d="M2 10h20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                </svg>
-                Conferência de Caixa
-              </h2>
-              <p class="caixa-section__subtitle" id="caixaSubtitle">
-                Entradas por forma de pagamento — agendamentos realizados no período
-              </p>
+        <!-- Conferência de Caixa — full-width, mesmo padrão chart-card--split -->
+        <div class="charts-grid charts-grid--caixa">
+          <article class="chart-card chart-card--split chart-card--caixa" id="conferenciaCaixa">
+            <div class="chart-card__header">
+              <div>
+                <h3 class="chart-card__title">Conferência de Caixa</h3>
+                <p class="chart-card__subtitle" id="caixaSubtitle">
+                  Entradas por forma de pagamento — agendamentos realizados no período
+                </p>
+              </div>
+              <!-- Total geral (topo direito, no header) -->
+              <div class="caixa-total-badge" id="caixaTotalBadge">
+                <span class="caixa-total-badge__label">Total recebido</span>
+                <span class="caixa-total-badge__value" id="caixaTotalGeral">R$ —</span>
+              </div>
             </div>
-            <div class="caixa-section__total-wrap">
-              <span class="caixa-section__total-label">Total recebido</span>
-              <span class="caixa-section__total-value" id="caixaTotalGeral">R$ —</span>
-            </div>
-          </div>
 
-          <div class="caixa-section__body">
-            <!-- Esquerda: pizza -->
-            <div class="caixa-chart-wrap">
-              <canvas id="caixaPizzaChart" aria-label="Distribuição por forma de pagamento"></canvas>
+            <div class="chart-card__body chart-card__body--split">
+              <!-- Esquerda: pizza usando o mesmo painel split dos outros cards -->
+              <div class="split-panel split-panel--chart">
+                <canvas id="caixaPizzaChart"
+                  role="img"
+                  aria-label="Distribuição de entradas por forma de pagamento"></canvas>
+              </div>
+              <!-- Direita: lista de formas usando highlight-list (mesmo padrão do highlights panel) -->
+              <div class="split-panel split-panel--highlights split-panel--highlights-caixa" id="caixaFormasPanel">
+                <!-- Gerado pelo JS -->
+              </div>
             </div>
-            <!-- Direita: cards por forma -->
-            <div class="caixa-cards-grid" id="caixaCardsGrid">
-              <!-- Gerado pelo JS -->
-            </div>
-          </div>
-        </section>
+          </article>
+        </div>
 
         <!-- Gráficos principais -->
         <div class="charts-section">
