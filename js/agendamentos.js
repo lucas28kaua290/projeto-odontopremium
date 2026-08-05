@@ -101,8 +101,8 @@ const DataStore = (() => {
     DURACAO_POR_EXAME = {};
     list.forEach(e => {
       const valorBase = e.value || e.valor_base || 0;
-      VALOR_POR_EXAME[e.id]    = valorBase;
-      DURACAO_POR_EXAME[e.id]  = e.duration || 30;
+      VALOR_POR_EXAME[e.id] = valorBase;
+      DURACAO_POR_EXAME[e.id] = e.duration || 30;
       VALOR_POR_EXAME[e.label] = valorBase;
       DURACAO_POR_EXAME[e.label] = e.duration || 30;
     });
@@ -2990,80 +2990,17 @@ const NewAppointmentModal = (() => {
   /* ------------------------------------------------------------------
      CASCATA: Radiologia → Clínica
   ------------------------------------------------------------------ */
-  async function onRadiologiaChange() {
-    const radId = document.getElementById('newRadiologia').value;
-    const selCli = document.getElementById('newClinica');
-    const hintCli = document.getElementById('newClinicaHint');
-
-    selCli.innerHTML = '<option value="">Carregando clínicas...</option>';
-    selCli.disabled = true;
-    hintCli.textContent = '';
-
-    // Reset médico sem aguardar (não precisa de await aqui)
+  function onRadiologiaChange() {
+    ClinicaAutocomplete.reset();
     onClinicaChange();
-
-    if (!radId) {
-      selCli.innerHTML = '<option value="">Selecione a clínica...</option>';
-      hintCli.textContent = '— selecione uma radiologia primeiro';
-      return; // Promise<void> resolvida com selCli vazio
-    }
-
-    try {
-      const clinicas = await Api.getClinicasPorRadiologia(radId);
-      selCli.innerHTML = '<option value="">Selecione a clínica...</option>';
-      (clinicas.data || []).forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c.id ?? c.nome;
-        opt.textContent = c.nome;
-        selCli.appendChild(opt);
-      });
-      selCli.disabled = false;
-    } catch (err) {
-      console.error('[NewAppointmentModal] Erro ao buscar clínicas:', err);
-      selCli.innerHTML = '<option value="">Erro ao carregar</option>';
-      hintCli.textContent = 'Erro ao carregar clínicas.';
-    }
-
     tryUpdateHorarios();
-    // A Promise retornada por esta função async resolve aqui,
-    // depois que as clínicas estão no DOM — o .then() em fillFormForEdit
-    // só executa a partir deste ponto.
   }
 
   /* ------------------------------------------------------------------
      CASCATA: Clínica → Médico
   ------------------------------------------------------------------ */
-  async function onClinicaChange() {
-    const clinicaId = document.getElementById('newClinica').value;
-    const radId = document.getElementById('newRadiologia').value;
-    const selMed = document.getElementById('newMedico');
-    const hintMed = document.getElementById('newMedicoHint');
-
-    selMed.innerHTML = '<option value="">Selecione o médico...</option>';
-    selMed.disabled = true;
-    hintMed.textContent = '— selecione uma clínica primeiro';
-
-    if (!clinicaId) return; // Promise<void> resolvida com selMed vazio
-
-    selMed.innerHTML = '<option value="">Carregando médicos...</option>';
-
-    try {
-      const medicos = await Api.getMedicos({ clinicaId, radiologiaId: radId, semPeriodo: true });
-      selMed.innerHTML = '<option value="">Selecione o médico...</option>';
-      (medicos.data || []).forEach(m => {
-        const opt = document.createElement('option');
-        opt.value = m.id ?? m.name;
-        opt.textContent = m.name || m.nome;
-        selMed.appendChild(opt);
-      });
-      selMed.disabled = false;
-      hintMed.textContent = '';
-    } catch (err) {
-      console.error('[NewAppointmentModal] Erro ao buscar médicos:', err);
-      selMed.innerHTML = '<option value="">Erro ao carregar</option>';
-      hintMed.textContent = 'Erro ao carregar médicos.';
-    }
-    // A Promise resolve aqui — médicos já estão no DOM quando .then() executa
+  function onClinicaChange() {
+    MedicoAutocomplete.reset();
   }
 
   /* ------------------------------------------------------------------
@@ -3509,8 +3446,8 @@ const NewAppointmentModal = (() => {
       } else if (tipoExameIdAtual) {
         // Exame existente: atualiza se duração ou valor mudaram
         const duracaoSalva = DURACAO_POR_EXAME[tipoExameIdAtual] || 30;
-        const valorSalvo   = VALOR_POR_EXAME[tipoExameIdAtual] || 0;
-        const valorMudou   = valorTotalSave > 0 && valorTotalSave !== valorSalvo;
+        const valorSalvo = VALOR_POR_EXAME[tipoExameIdAtual] || 0;
+        const valorMudou = valorTotalSave > 0 && valorTotalSave !== valorSalvo;
         if (duracaoCampoSave !== duracaoSalva || valorMudou) {
           try {
             await Api.putTipoExame(tipoExameIdAtual, {
@@ -3518,10 +3455,10 @@ const NewAppointmentModal = (() => {
               duration: duracaoCampoSave,
               value: valorMudou ? valorTotalSave : valorSalvo,
             });
-            DURACAO_POR_EXAME[tipoExameIdAtual]    = duracaoCampoSave;
+            DURACAO_POR_EXAME[tipoExameIdAtual] = duracaoCampoSave;
             DURACAO_POR_EXAME[tipoExameLabelAtual] = duracaoCampoSave;
             if (valorMudou) {
-              VALOR_POR_EXAME[tipoExameIdAtual]    = valorTotalSave;
+              VALOR_POR_EXAME[tipoExameIdAtual] = valorTotalSave;
               VALOR_POR_EXAME[tipoExameLabelAtual] = valorTotalSave;
             }
             await DataStore.loadTiposExame();
