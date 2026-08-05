@@ -100,9 +100,10 @@ const DataStore = (() => {
     VALOR_POR_EXAME = {};
     DURACAO_POR_EXAME = {};
     list.forEach(e => {
-      VALOR_POR_EXAME[e.id] = e.value || 0;
-      DURACAO_POR_EXAME[e.id] = e.duration || 30;
-      VALOR_POR_EXAME[e.label] = e.valor_base || 0;
+      const valorBase = e.value || e.valor_base || 0;
+      VALOR_POR_EXAME[e.id]    = valorBase;
+      DURACAO_POR_EXAME[e.id]  = e.duration || 30;
+      VALOR_POR_EXAME[e.label] = valorBase;
       DURACAO_POR_EXAME[e.label] = e.duration || 30;
     });
   }
@@ -2537,6 +2538,12 @@ const ExamAutocomplete = (() => {
     const duracaoHint = document.getElementById('newDuracaoHint');
     if (duracaoEl) { duracaoEl.value = ''; duracaoEl.readOnly = false; }
     if (duracaoHint) duracaoHint.hidden = true;
+    // Limpa valor pago apenas se estava preenchido pelo autoselect
+    const valorEl = document.getElementById('newPagValor1');
+    if (valorEl && valorEl.dataset.fromExam === 'true') {
+      valorEl.value = '';
+      delete valorEl.dataset.fromExam;
+    }
   }
 
   function fillFromExam(exam) {
@@ -2552,6 +2559,13 @@ const ExamAutocomplete = (() => {
       duracaoEl.readOnly = false; // editável: recepcionista pode ajustar
     }
     if (duracaoHint) duracaoHint.hidden = false;
+    // Preenche valor pago com o último valor associado ao exame (se houver)
+    const valorBase = VALOR_POR_EXAME[exam.id] || 0;
+    const valorEl = document.getElementById('newPagValor1');
+    if (valorEl && valorBase > 0) {
+      valorEl.value = valorBase;
+      valorEl.dataset.fromExam = 'true'; // marca para clearSelection saber que foi autopreenchido
+    }
     closeDropdown();
     document.getElementById('newTipoExame').dispatchEvent(new Event('blur'));
   }
@@ -2571,9 +2585,10 @@ const ExamAutocomplete = (() => {
       const item = document.createElement('div');
       item.className = 'autocomplete-item';
       item.setAttribute('role', 'option');
+      const valorItem = VALOR_POR_EXAME[exam.id] || 0;
       item.innerHTML = `
         <div class="autocomplete-item__name">${escapeHtml(exam.label)}</div>
-        <div class="autocomplete-item__meta">Duração: ${exam.duration || 30} min</div>
+        <div class="autocomplete-item__meta">Duração: ${exam.duration || 30} min${valorItem > 0 ? ' · R$ ' + valorItem.toFixed(2).replace('.', ',') : ''}</div>
       `;
       item.addEventListener('mousedown', (e) => {
         e.preventDefault();
@@ -3460,13 +3475,19 @@ const NewAppointmentModal = (() => {
 
       const duracaoCampoSave = parseInt(document.getElementById('newDuracaoMin')?.value, 10) || 30;
 
+      // Calcula o valor total informado no formulário (unico ou dividido)
+      const pagTipoSave = document.getElementById('newPagTipo').value;
+      const pagVal1Save = parseFloat(document.getElementById('newPagValor1').value) || 0;
+      const pagVal2Save = parseFloat(document.getElementById('newPagValor2').value) || 0;
+      const valorTotalSave = pagTipoSave === 'dividido' ? pagVal1Save + pagVal2Save : pagVal1Save;
+
       if (!tipoExameIdAtual && tipoExameLabelAtual) {
-        // Exame novo: cria com o tempo digitado pelo recepcionista
+        // Exame novo: cria com o tempo e valor digitados pelo recepcionista
         try {
           const novoExame = await Api.postTipoExame({
             label: tipoExameLabelAtual,
             duration: duracaoCampoSave,
-            value: 0,
+            value: valorTotalSave,  // 0 se não informado — aceitável
           });
           const novoId = novoExame?.data?.id || novoExame?.id;
           if (!novoId) throw new Error('ID não retornado pelo servidor.');
@@ -3474,6 +3495,10 @@ const NewAppointmentModal = (() => {
           document.getElementById('newTipoExameId').value = novoId;
           DURACAO_POR_EXAME[novoId] = duracaoCampoSave;
           DURACAO_POR_EXAME[tipoExameLabelAtual] = duracaoCampoSave;
+          if (valorTotalSave > 0) {
+            VALOR_POR_EXAME[novoId] = valorTotalSave;
+            VALOR_POR_EXAME[tipoExameLabelAtual] = valorTotalSave;
+          }
 
           await DataStore.loadTiposExame();
         } catch (errExame) {
@@ -3482,21 +3507,27 @@ const NewAppointmentModal = (() => {
           return;
         }
       } else if (tipoExameIdAtual) {
-        // Exame existente: se o tempo foi alterado em relação ao salvo, atualiza no banco
+        // Exame existente: atualiza se duração ou valor mudaram
         const duracaoSalva = DURACAO_POR_EXAME[tipoExameIdAtual] || 30;
-        if (duracaoCampoSave !== duracaoSalva) {
+        const valorSalvo   = VALOR_POR_EXAME[tipoExameIdAtual] || 0;
+        const valorMudou   = valorTotalSave > 0 && valorTotalSave !== valorSalvo;
+        if (duracaoCampoSave !== duracaoSalva || valorMudou) {
           try {
             await Api.putTipoExame(tipoExameIdAtual, {
               label: tipoExameLabelAtual,
               duration: duracaoCampoSave,
-              value: 0,
+              value: valorMudou ? valorTotalSave : valorSalvo,
             });
-            DURACAO_POR_EXAME[tipoExameIdAtual] = duracaoCampoSave;
+            DURACAO_POR_EXAME[tipoExameIdAtual]    = duracaoCampoSave;
             DURACAO_POR_EXAME[tipoExameLabelAtual] = duracaoCampoSave;
+            if (valorMudou) {
+              VALOR_POR_EXAME[tipoExameIdAtual]    = valorTotalSave;
+              VALOR_POR_EXAME[tipoExameLabelAtual] = valorTotalSave;
+            }
             await DataStore.loadTiposExame();
           } catch (errDuracao) {
             // Não bloqueia o salvamento — apenas avisa
-            console.warn('[NewAppointmentModal] Não atualizou duração do exame:', errDuracao);
+            console.warn('[NewAppointmentModal] Não atualizou exame no banco:', errDuracao);
           }
         }
       }
