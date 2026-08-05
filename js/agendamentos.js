@@ -2692,9 +2692,13 @@ const ClinicaAutocomplete = (() => {
     selectedClinicaId = null;
     document.getElementById('newClinicaId').value = '';
     if (tagEl) tagEl.hidden = true;
-    // Ao trocar clínica, reseta o médico também
-    MedicoAutocomplete.reset();
-    document.getElementById('newMedico').value = '';
+    // Só reseta médico se o médico atual estava vinculado a uma clínica.
+    // Médico sem clínica (clinicId vazio) é independente — não perde ao trocar clínica.
+    const medicoClinicaId = document.getElementById('newMedicoClinicaId')?.value;
+    if (medicoClinicaId) {
+      MedicoAutocomplete.reset();
+      document.getElementById('newMedico').value = '';
+    }
   }
   function fillFromClinica(c) {
     selectedClinicaId = c.id;
@@ -2829,6 +2833,10 @@ const MedicoAutocomplete = (() => {
     selectedMedicoId = m.id;
     document.getElementById('newMedicoId').value = m.id;
     document.getElementById('newMedico').value = m.nome || m.name || '';
+    // Guarda clinicaId do médico para que ClinicaAutocomplete.clearSelection
+    // saiba se deve ou não resetar o médico ao trocar de clínica.
+    const medicoClinicaIdEl = document.getElementById('newMedicoClinicaId');
+    if (medicoClinicaIdEl) medicoClinicaIdEl.value = m.clinicaId || m.clinicId || '';
     if (tagEl) tagEl.hidden = false;
     closeDropdown();
   }
@@ -2910,6 +2918,8 @@ const MedicoAutocomplete = (() => {
     selectedMedicoId = null;
     currentFocusIdx = -1;
     document.getElementById('newMedicoId').value = '';
+    const medicoClinicaIdEl = document.getElementById('newMedicoClinicaId');
+    if (medicoClinicaIdEl) medicoClinicaIdEl.value = '';
     if (tagEl) tagEl.hidden = true;
     closeDropdown();
   }
@@ -3000,7 +3010,10 @@ const NewAppointmentModal = (() => {
      CASCATA: Clínica → Médico
   ------------------------------------------------------------------ */
   function onClinicaChange() {
-    MedicoAutocomplete.reset();
+    // Só reseta médico se o médico atual estava vinculado a uma clínica.
+    // Médico sem clínica não perde ao mudar clínica.
+    const medicoClinicaId = document.getElementById('newMedicoClinicaId')?.value;
+    if (medicoClinicaId) MedicoAutocomplete.reset();
   }
 
   /* ------------------------------------------------------------------
@@ -3517,6 +3530,26 @@ const NewAppointmentModal = (() => {
             showToast('Não foi possível cadastrar o médico automaticamente. Tente novamente.', 'error');
             return;
           }
+        }
+      }
+
+      const medicoIdFinal = document.getElementById('newMedicoId').value.trim();
+      const clinicaIdFinal = document.getElementById('newClinicaId').value.trim();
+      const medicoClinicaAtual = document.getElementById('newMedicoClinicaId')?.value?.trim();
+      if (medicoIdFinal && clinicaIdFinal && !medicoClinicaAtual) {
+        // Médico existe (tem id), sem clínica vinculada, e agora foi informada uma clínica
+        try {
+          const medicoNomeAtual = document.getElementById('newMedico').value.trim();
+          await Api.updateMedico(medicoIdFinal, {
+            name: medicoNomeAtual,
+            clinicId: clinicaIdFinal,
+          });
+          // Atualiza hidden para refletir novo estado
+          const medicoClinicaIdEl = document.getElementById('newMedicoClinicaId');
+          if (medicoClinicaIdEl) medicoClinicaIdEl.value = clinicaIdFinal;
+        } catch (errVinculo) {
+          // Não bloqueia o save — o agendamento ainda é criado normalmente
+          console.warn('[NewAppointmentModal] Não vinculou clínica ao médico:', errVinculo);
         }
       }
 

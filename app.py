@@ -868,16 +868,16 @@ def listar_medicos():
         sql = """
             SELECT m.id, m.nome AS name, m.especialidade AS specialty,
                    m.clinica_id AS clinicId, m.telefone AS phone, m.email, m.status,
-                   c.nome AS clinicaNome
+                   IFNULL(c.nome, '') AS clinicaNome
             FROM medicos m
-            JOIN clinicas c ON c.id = m.clinica_id
+            LEFT JOIN clinicas c ON c.id = m.clinica_id
             LEFT JOIN medico_radiologia mr ON mr.medico_id = m.id
             WHERE m.status = 'ativo'
         """
         params = []
 
         if clinica_id:
-            sql += " AND m.clinica_id = %s"
+            sql += " AND (m.clinica_id = %s OR m.clinica_id IS NULL)"
             params.append(clinica_id)
 
         rad_nivel   = g.user.get("nivel", "")
@@ -896,9 +896,9 @@ def listar_medicos():
         sql = """
             SELECT m.id, m.nome AS name, m.especialidade AS specialty,
                    m.clinica_id AS clinicId, m.telefone AS phone, m.email, m.status,
-                   c.nome AS clinicaNome
+                   IFNULL(c.nome, '') AS clinicaNome
             FROM medicos m
-            JOIN clinicas c ON c.id = m.clinica_id
+            LEFT JOIN clinicas c ON c.id = m.clinica_id
             LEFT JOIN medico_radiologia mr ON mr.medico_id = m.id
             WHERE 1=1
         """
@@ -909,7 +909,7 @@ def listar_medicos():
         params += [like, like]
 
         if clinica_id:
-            sql += " AND m.clinica_id = %s"
+            sql += " AND (m.clinica_id = %s OR m.clinica_id IS NULL)"
             params.append(clinica_id)
         if status:
             sql += " AND m.status = %s"
@@ -934,7 +934,7 @@ def listar_medicos():
     sql = """
         SELECT m.id, m.nome AS name, m.especialidade AS specialty,
                m.clinica_id AS clinicId, m.telefone AS phone, m.email, m.status,
-               c.nome AS clinicaNome,
+               IFNULL(c.nome, '') AS clinicaNome,
                mr.radiologia_id AS radiologiaId, r.nome AS radiologiaNome,
                COALESCE(SUM(CASE WHEN a.status='realizado'
                                   AND a.data_agendamento BETWEEN %s AND %s
@@ -945,7 +945,7 @@ def listar_medicos():
                0 AS pendente,
                0 AS comissao
         FROM medicos m
-        JOIN clinicas c ON c.id = m.clinica_id
+        LEFT JOIN clinicas c ON c.id = m.clinica_id
         LEFT JOIN medico_radiologia mr ON mr.medico_id = m.id
         LEFT JOIN radiologias r ON r.id = mr.radiologia_id
         LEFT JOIN agendamentos a ON a.medico_id = m.id
