@@ -1674,64 +1674,89 @@
 
 
     /* ----- Conferência de Caixa ----- */
-    // Paleta consistente com SERIES_COLORS + cores semânticas da tela
+    // Paleta alinhada com CFG.colors + SERIES_COLORS existentes
     const CAIXA_COLORS = {
-      pix: CFG.colors.primary,          // #018093
-      especie: CFG.colors.positive,         // #0E8F63
-      dinheiro: CFG.colors.positive,         // alias espécie
-      cartao: '#7B68EE',                   // mesmo do SERIES_COLORS[3]
-      credito: '#7B68EE',
-      debito: CFG.colors.primaryLight,     // #01C6BF
-      boleto: CFG.colors.textSubtle,       // #8B9C9F
-      transferencia: '#F5A623',                   // mesmo do SERIES_COLORS[2]
-      cheque: '#E05C5C',                   // mesmo do SERIES_COLORS[4]
+      pix:           CFG.colors.primary,       // #018093
+      especie:       CFG.colors.positive,      // #0E8F63
+      dinheiro:      CFG.colors.positive,      // alias espécie
+      cartao:        '#7B68EE',                // SERIES_COLORS[3]
+      credito:       '#7B68EE',
+      debito:        CFG.colors.primaryLight,  // #01C6BF
+      boleto:        CFG.colors.textSubtle,    // #8B9C9F
+      transferencia: '#F5A623',               // SERIES_COLORS[2]
+      cheque:        '#E05C5C',               // SERIES_COLORS[4]
     };
+
+    // Formata "2025-07-18" → "18/07" (compacto para a mini-lista)
+    function _fmtDataCurta(iso) {
+      if (!iso) return '—';
+      const [, m, d] = iso.split('-');
+      return `${d}/${m}`;
+    }
 
     function renderConferenciaCaixa(data) {
       const totalEl = document.getElementById('caixaTotalGeral');
-      const panel = document.getElementById('caixaFormasPanel');
-      const canvas = document.getElementById('caixaPizzaChart');
+      const panel   = document.getElementById('caixaFormasPanel');
+      const canvas  = document.getElementById('caixaPizzaChart');
 
       if (!totalEl || !panel || !canvas) return;
 
-      // ── Estado vazio ─────────────────────────────────────────────
+      // ── Estado vazio ────────────────────────────────────────────
       if (!data || !data.formas || data.formas.length === 0) {
         totalEl.textContent = H.currency(0);
-        panel.innerHTML = '<div class="caixa-empty">Nenhum pagamento registrado no período.</div>';
-        H.destroyChart('caixaPizzaChart');   // integrado ao State.charts
+        panel.innerHTML     = '<div class="caixa-empty">Nenhum pagamento registrado no período.</div>';
+        H.destroyChart('caixaPizzaChart');
         return;
       }
 
       const { totalGeral, formas } = data;
 
-      // ── Total no header ──────────────────────────────────────────
+      // ── Total no header ─────────────────────────────────────────
       totalEl.textContent = H.currency(totalGeral);
 
-      // ── Painel de formas: reutiliza .caixa-forma-row
-      //    (mesma hierarquia visual do .highlight-row) ───────────────
+      // ── Grid de cards ────────────────────────────────────────────
       panel.innerHTML = formas.map(f => {
-        const cor = CAIXA_COLORS[f.forma] || CFG.colors.textSubtle;
+        const cor    = CAIXA_COLORS[f.forma] || CFG.colors.textSubtle;
+        const itens  = f.itens || [];
+
+        // Mini-lista: itens individuais (scroll interno)
+        const listaHtml = itens.length > 0
+          ? itens.map(it => `
+              <div class="caixa-item-row">
+                <span class="caixa-item-row__date">${_fmtDataCurta(it.data)}</span>
+                <div class="caixa-item-row__info">
+                  <span class="caixa-item-row__paciente">${it.paciente}</span>
+                  <span class="caixa-item-row__exame">${it.exame}</span>
+                </div>
+                <span class="caixa-item-row__valor">${H.currency(it.valor)}</span>
+              </div>`).join('')
+          : '<div class="caixa-item-empty">Sem itens</div>';
+
         return `
-          <div class="caixa-forma-row">
-            <div class="caixa-forma-row__top">
-              <span class="caixa-forma-row__dot" style="background:${cor}"></span>
-              <div class="caixa-forma-row__info">
-                <span class="caixa-forma-row__label">
-                  <span class="caixa-forma-pill" style="background:${cor}">${f.label}</span>
-                </span>
+          <div class="caixa-forma-card">
+            <!-- Header fixo: pill + total + % + barra -->
+            <div class="caixa-forma-card__header">
+              <div class="caixa-forma-card__top">
+                <span class="caixa-forma-pill" style="background:${cor}">${f.label}</span>
+                <span class="caixa-forma-card__pct">${H.percent(f.percentual, 1)}</span>
               </div>
-              <span class="caixa-forma-row__pct">${H.percent(f.percentual, 1)}</span>
-              <span class="caixa-forma-row__value">${H.currency(f.valor)}</span>
+              <div class="caixa-forma-card__meta">
+                <span class="caixa-forma-card__value">${H.currency(f.valor)}</span>
+                <span class="caixa-forma-card__pct">${itens.length} ${itens.length === 1 ? 'pagamento' : 'pagamentos'}</span>
+              </div>
+              <div class="caixa-forma-card__bar">
+                <div class="caixa-forma-card__bar-fill"
+                     style="width:${f.percentual}%;background:${cor}"></div>
+              </div>
             </div>
-            <div class="caixa-forma-row__bar">
-              <div class="caixa-forma-row__bar-fill"
-                   style="width:${f.percentual}%;background:${cor}"></div>
+            <!-- Body scrollável: mini-lista de itens -->
+            <div class="caixa-forma-card__body">
+              ${listaHtml}
             </div>
           </div>`;
       }).join('');
 
-      // ── Pizza: via ChartFactory.doughnut (State.charts + externalTooltip) ──
-      //    Registra o ID no State._caixaData para o tooltip acessar
+      // ── Pizza via ChartFactory (State.charts + externalTooltip) ─
       State._caixaData = { formas, totalGeral };
 
       ChartFactory.doughnut(
@@ -1739,7 +1764,7 @@
         formas.map(f => f.label),
         formas.map(f => f.valor),
         formas.map(f => CAIXA_COLORS[f.forma] || CFG.colors.textSubtle),
-        { legendPosition: 'bottom' }   // legenda embaixo — pizza à esquerda fica com mais altura
+        { legendPosition: 'bottom' }
       );
     }
 

@@ -2651,11 +2651,18 @@ def financeiro_conferencia_caixa():
     rad_sql, rad_params = _filtro_radiologia_sql(radiologia_id, alias="a")
 
     # Busca todos os agendamentos realizados no período
+    # Busca todos os agendamentos realizados no período, com dados do paciente e exame
     rows = query(
-        f"SELECT a.pagamento_tipo, "
+        f"SELECT a.id, "
+        f"       DATE_FORMAT(a.data_agendamento, '%Y-%m-%d') AS data, "
+        f"       p.nome  AS paciente, "
+        f"       te.label AS exame, "
+        f"       a.pagamento_tipo, "
         f"       a.pagamento_forma_1, a.pagamento_valor_1, "
         f"       a.pagamento_forma_2, a.pagamento_valor_2 "
         f"FROM agendamentos a "
+        f"JOIN pacientes   p  ON p.id  = a.paciente_id "
+        f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
         f"WHERE a.status = 'realizado' "
         f"  AND a.data_agendamento BETWEEN %s AND %s"
         f"  {rad_sql}",
@@ -2665,7 +2672,7 @@ def financeiro_conferencia_caixa():
     LABELS = {
         "pix":           "PIX",
         "especie":       "Espécie",
-        "dinheiro":      "Espécie",   # alias comum no banco
+        "dinheiro":      "Espécie",
         "cartao":        "Cartão",
         "credito":       "Cartão Crédito",
         "debito":        "Cartão Débito",
@@ -2675,15 +2682,25 @@ def financeiro_conferencia_caixa():
     }
 
     totais: dict[str, float] = {}
+    itens:  dict[str, list]  = {}   # ← NOVO: itens individuais por forma
 
     for row in (rows or []):
-        tipo = (row.get("pagamento_tipo") or "unico").lower()
+        tipo   = (row.get("pagamento_tipo") or "unico").lower()
+        data   = row.get("data")         or ""
+        pac    = row.get("paciente")     or "—"
+        exame  = row.get("exame")        or "—"
 
-        # Parte 1 — sempre somada (pagamento único ou primeira parcela)
+        # Parte 1
         forma1 = (row.get("pagamento_forma_1") or "").strip().lower()
         val1   = to_decimal(row.get("pagamento_valor_1"))
         if forma1 and val1 > 0:
             totais[forma1] = totais.get(forma1, 0.0) + val1
+            itens.setdefault(forma1, []).append({
+                "data":    data,
+                "paciente": pac,
+                "exame":   exame,
+                "valor":   round(val1, 2),
+            })
 
         # Parte 2 — só quando dividido
         if tipo == "dividido":
@@ -2691,17 +2708,26 @@ def financeiro_conferencia_caixa():
             val2   = to_decimal(row.get("pagamento_valor_2"))
             if forma2 and val2 > 0:
                 totais[forma2] = totais.get(forma2, 0.0) + val2
+                itens.setdefault(forma2, []).append({
+                    "data":    data,
+                    "paciente": pac,
+                    "exame":   exame,
+                    "valor":   round(val2, 2),
+                })
 
     total_geral = sum(totais.values())
 
     formas = []
     for forma, valor in sorted(totais.items(), key=lambda x: -x[1]):
         pct = round(valor / total_geral * 100, 1) if total_geral else 0.0
+        # Ordena itens do mais recente para o mais antigo
+        forma_itens = sorted(itens.get(forma, []), key=lambda i: i["data"], reverse=True)
         formas.append({
             "forma":      forma,
             "label":      LABELS.get(forma, forma.capitalize()),
             "valor":      round(valor, 2),
             "percentual": pct,
+            "itens":      forma_itens,   # ← NOVO
         })
 
     return ok({

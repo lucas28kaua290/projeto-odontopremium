@@ -3873,31 +3873,20 @@ td.td-change {
 
 /* ============================================================
    CONFERÊNCIA DE CAIXA
-   Usa chart-card--split (mesma base de "Distribuição e Destaques").
-   Apenas os deltas em relação ao chart-card--split genérico ficam
-   aqui; toda estrutura, bordas, sombra e header vêm do chart-card.
+   Layout: pizza à esquerda (split-panel--chart existente) +
+   grid de cards à direita.
+   Cards: header fixo (pill + valor + % + barra) +
+          mini-lista scrollável de itens individuais.
 ============================================================ */
 
-/* Grid full-width que envolve o card (igual aos outros charts-grid) */
+/* Wrapper full-width — igual ao charts-grid dos outros blocos */
 .charts-grid--caixa {
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--space-4);
 }
 
-/* O painel de highlights da caixa: uma coluna só (lista vertical),
-   diferente do split-panel--highlights que usa 2 colunas */
-.split-panel--highlights-caixa {
-  grid-template-columns: 1fr;
-  gap: var(--space-2);
-  padding-left: var(--space-6);
-  border-left: 1px solid var(--color-border);
-  align-content: start;
-  overflow-y: auto;
-  max-height: 380px;
-}
-
-/* Badge de total no header do card (canto direito) */
+/* Badge de total no canto direito do chart-card__header */
 .caixa-total-badge {
   display: flex;
   flex-direction: column;
@@ -3922,93 +3911,182 @@ td.td-change {
   font-variant-numeric: tabular-nums;
 }
 
-/* Linha de forma de pagamento: reusa .highlight-row mas adiciona
-   a barra de participação embaixo */
-.caixa-forma-row {
+/* Painel direito: substitui split-panel--highlights padrão.
+   Grid de cards de forma, não lista vertical. */
+.split-panel--highlights-caixa {
+  /* Sobrescreve o grid 1fr 1fr do split-panel--highlights genérico */
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-3);
+  align-content: start;
+  padding-left: var(--space-5);
+  border-left: 1px solid var(--color-border);
+  /* Permite scroll vertical se os cards ultrapassarem a altura da pizza */
+  overflow-y: auto;
+  max-height: 420px;
+}
+
+/* ── Card de forma de pagamento ─────────────────────────── */
+.caixa-forma-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: var(--space-3) var(--space-3);
-  border-radius: var(--radius-md);
-  background-color: var(--color-surface-muted);
-  transition: background-color var(--transition-fast);
+  overflow: hidden;                       /* garante que o scroll interno não vaze */
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
 
-.caixa-forma-row:hover {
-  background-color: var(--color-primary-50);
+.caixa-forma-card:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--color-primary-100);
 }
 
-.caixa-forma-row__top {
+/* Header fixo do card (pill + valor + % + barra) */
+.caixa-forma-card__header {
+  padding: var(--space-3) var(--space-3) var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;                         /* não encolhe quando o body cresce */
+}
+
+.caixa-forma-card__top {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-}
-
-.caixa-forma-row__dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.caixa-forma-row__info {
-  flex: 1;
-  min-width: 0;
-}
-
-.caixa-forma-row__label {
-  font-size: var(--fs-sm);
-  font-weight: var(--fw-semibold);
-  color: var(--color-text);
-  display: flex;
-  align-items: center;
+  justify-content: space-between;
   gap: var(--space-2);
 }
 
-/* Pill de forma (PIX, Cartão…) — idêntico ao .status-badge do tema */
+/* Pill da forma (PIX, Cartão…) — herda .status-badge visualmente */
 .caixa-forma-pill {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
+  padding: 2px 9px;
   border-radius: 999px;
   font-size: 10px;
-  font-weight: var(--fw-semibold);
+  font-weight: var(--fw-bold);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   white-space: nowrap;
-  color: var(--color-bg);          /* texto branco sobre fundo colorido */
+  color: #fff;
+  flex-shrink: 0;
 }
 
-.caixa-forma-row__pct {
+.caixa-forma-card__meta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.caixa-forma-card__value {
+  font-size: var(--fs-md);
+  font-weight: var(--fw-bold);
+  font-family: var(--font-mono);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.caixa-forma-card__pct {
   font-size: var(--fs-xs);
+  color: var(--color-text-subtle);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+
+/* Barra de participação — mesma altura da .participation-bar do tema */
+.caixa-forma-card__bar {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.caixa-forma-card__bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Mini-lista de itens dentro do card ─────────────────── */
+.caixa-forma-card__body {
+  overflow-y: auto;
+  /* Limita a ~5 itens (cada item tem ~36px) antes de rolar */
+  max-height: 180px;
+  flex: 1 1 auto;
+}
+
+/* Cada item: data + paciente/exame + valor */
+.caixa-item-row {
+  display: grid;
+  /* data (fixo) | paciente+exame (cresce) | valor (fixo) */
+  grid-template-columns: 52px 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 7px var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  transition: background var(--transition-fast);
+}
+
+.caixa-item-row:last-child {
+  border-bottom: none;
+}
+
+.caixa-item-row:hover {
+  background: var(--color-surface-muted);
+}
+
+.caixa-item-row__date {
+  font-size: 11px;
+  font-family: var(--font-mono);
   color: var(--color-text-subtle);
   white-space: nowrap;
 }
 
-.caixa-forma-row__value {
-  font-family: var(--font-mono);
-  font-size: var(--fs-sm);
+.caixa-item-row__info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.caixa-item-row__paciente {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.caixa-item-row__exame {
+  font-size: 11px;
+  color: var(--color-text-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.caixa-item-row__valor {
+  font-size: var(--fs-xs);
   font-weight: var(--fw-semibold);
+  font-family: var(--font-mono);
   color: var(--color-primary-dark);
-  flex-shrink: 0;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
-/* Barra de participação — reusa as classes do tema */
-.caixa-forma-row__bar {
-  height: 3px;
-  border-radius: 999px;
-  background-color: var(--color-border);
-  overflow: hidden;
+/* Estado vazio da lista */
+.caixa-item-empty {
+  padding: var(--space-3) var(--space-3);
+  font-size: var(--fs-xs);
+  color: var(--color-text-subtle);
+  text-align: center;
 }
 
-.caixa-forma-row__bar-fill {
-  height: 100%;
-  border-radius: 999px;
-  transition: width 0.45s var(--transition-base, ease);
-}
-
-/* Empty state — mesmo padrão do saidas-empty */
+/* Estado vazio geral (sem formas) */
 .caixa-empty {
   padding: var(--space-6) var(--space-4);
   text-align: center;
@@ -4016,8 +4094,7 @@ td.td-change {
   font-size: var(--fs-sm);
 }
 
-/* Responsivo: empilha pizza/lista em telas < 1100px,
-   igual ao break do chart-card--split genérico */
+/* Responsivo: empilha pizza + cards em < 1100px */
 @media (max-width: 1100px) {
   .split-panel--highlights-caixa {
     border-left: none;
@@ -4025,6 +4102,12 @@ td.td-change {
     border-top: 1px solid var(--color-border);
     padding-top: var(--space-4);
     max-height: none;
+    overflow-y: visible;
+  }
+
+  /* Cards ficam menores em coluna única */
+  .caixa-forma-card__body {
+    max-height: 140px;
   }
 }
 
