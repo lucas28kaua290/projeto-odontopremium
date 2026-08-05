@@ -1051,11 +1051,17 @@ def atualizar_medico(medico_id):
     if data.get("email") and not validate_email(data["email"]):
         return err("E-mail inválido.", 400)
 
+    clinica_id_update = data["clinicId"] if "clinicId" in data else None
+    set_clinica = "clinica_id=%s, " if "clinicId" in data else ""
+    params_update = [data.get("name"), data.get("specialty")]
+    if "clinicId" in data:
+        params_update.append(data.get("clinicId") or None)
+    params_update += [data.get("phone"), data.get("email"), data.get("status", "ativo"), medico_id]
+
     query(
-        "UPDATE medicos SET nome=%s, especialidade=%s, clinica_id=%s, "
+        f"UPDATE medicos SET nome=%s, especialidade=%s, {set_clinica}"
         "telefone=%s, email=%s, status=%s WHERE id = %s",
-        (data.get("name"), data.get("specialty"), data.get("clinicId"),
-         data.get("phone"), data.get("email"), data.get("status", "ativo"), medico_id),
+        tuple(params_update),
         fetch="none"
     )
     updated = query(
