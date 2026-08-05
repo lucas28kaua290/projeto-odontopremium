@@ -1440,21 +1440,33 @@
         : emptyRow;
 
       const medicosHtml = topMedicos && topMedicos.length > 0
-        ? topMedicos.slice(0, 5).map((m, i) => `
-    <div class="highlight-row">
-      <span class="highlight-row__rank">${i + 1}</span>
-      <div class="highlight-row__info">
-        <span class="highlight-row__name">${m.nome}</span>
-        <span class="highlight-row__meta">${m.clinica} · ${H.number(m.exames)} exames</span>
-      </div>
-      <span class="highlight-row__value">${H.currency(m.faturamento)}</span>
-      <div class="highlight-row__tooltip">
-        <strong>${m.nome}</strong><br>
-        Clínica: ${m.clinica}<br>
-        Exames: ${H.number(m.exames)}<br>
-        Faturamento gerado: ${H.currency(m.faturamento)}
-      </div>
-    </div>`).join('')
+        ? topMedicos.slice(0, 5).map((m, i) => {
+          const clinicaLabel = m.clinica && m.clinica !== '—' ? m.clinica : null;
+          const avulsoTag = m.avulso
+            ? `<span class="badge-avulso" title="Médico sem vínculo com clínica">Avulso</span>`
+            : '';
+          const metaLine = clinicaLabel
+            ? `${clinicaLabel} · ${H.number(m.exames)} exames`
+            : `Sem clínica · ${H.number(m.exames)} exames`;
+          const tooltipClinica = clinicaLabel
+            ? `Clínica: ${clinicaLabel}<br>`
+            : `<em>Médico avulso (sem clínica)</em><br>`;
+          return `
+          <div class="highlight-row">
+            <span class="highlight-row__rank">${i + 1}</span>
+            <div class="highlight-row__info">
+              <span class="highlight-row__name">${m.nome} ${avulsoTag}</span>
+              <span class="highlight-row__meta">${metaLine}</span>
+            </div>
+            <span class="highlight-row__value">${H.currency(m.faturamento)}</span>
+            <div class="highlight-row__tooltip">
+              <strong>${m.nome}</strong><br>
+              ${tooltipClinica}
+              Exames: ${H.number(m.exames)}<br>
+              Faturamento gerado: ${H.currency(m.faturamento)}
+            </div>
+          </div>`;
+        }).join('')
         : emptyRow;
 
       panel.innerHTML = `

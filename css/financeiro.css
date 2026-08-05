@@ -732,6 +732,21 @@
   transition: .25s;
 }
 
+/* Badge: médico avulso */
+.badge-avulso {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--color-warning-bg, #FCF3E1);
+  color: var(--color-warning, #B27A0E);
+  vertical-align: middle;
+  margin-left: 4px;
+  letter-spacing: 0.02em;
+}
+
 .highlight-row:hover {
   transform: translateX(4px);
   background: var(--color-primary-50);

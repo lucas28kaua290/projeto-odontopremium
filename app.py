@@ -1100,9 +1100,10 @@ def medico_exames(medico_id):
     di, df, _, _ = periodo_para_datas(periodo, data_inicio, data_fim)
 
     medico = query(
-        "SELECT m.id, m.nome AS medicoNome, c.nome AS clinicaNome, r.nome AS radiologiaNome "
+        "SELECT m.id, m.nome AS medicoNome, "
+        "       COALESCE(c.nome, '—') AS clinicaNome, r.nome AS radiologiaNome "
         "FROM medicos m "
-        "JOIN clinicas c ON c.id = m.clinica_id "
+        "LEFT JOIN clinicas c ON c.id = m.clinica_id "          # ← LEFT JOIN
         "LEFT JOIN medico_radiologia mr ON mr.medico_id = m.id "
         "LEFT JOIN radiologias r ON r.id = mr.radiologia_id "
         "WHERE m.id = %s LIMIT 1", (medico_id,), fetch="one"
@@ -1151,7 +1152,8 @@ def medicos_spotlight():
 
     sql = """
         SELECT m.id AS medicoId, m.nome AS medicoNome,
-               c.nome AS clinicaNome,
+           COALESCE(c.nome, '—') AS clinicaNome,
+           CASE WHEN m.clinica_id IS NULL THEN 1 ELSE 0 END AS avulso,
                (SELECT r2.nome FROM radiologias r2
                 JOIN agendamentos a2 ON a2.radiologia_id = r2.id
                 WHERE a2.medico_id = m.id AND a2.status='realizado'
@@ -1160,10 +1162,10 @@ def medicos_spotlight():
                COUNT(a.id) AS totalExames,
                COALESCE(SUM(te.valor_base), 0) AS faturamento
         FROM medicos m
-        JOIN clinicas c ON c.id = m.clinica_id
+        LEFT JOIN clinicas c ON c.id = m.clinica_id    -- ← LEFT JOIN
         LEFT JOIN agendamentos a ON a.medico_id = m.id
-               AND a.status='realizado'
-               AND a.data_agendamento BETWEEN %s AND %s
+            AND a.status='realizado'
+            AND a.data_agendamento BETWEEN %s AND %s
         LEFT JOIN tipos_exame te ON te.id = a.tipo_exame_id
         WHERE 1=1
     """
@@ -2188,11 +2190,13 @@ def exames_ranking_medicos():
     rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
 
     rows = query(
-        f"SELECT m.id AS medicoId, m.nome AS medicoNome, c.nome AS clinicaNome, "
+        f"SELECT m.id AS medicoId, m.nome AS medicoNome, "
+        f"       COALESCE(c.nome, '—') AS clinicaNome, "
+        f"       CASE WHEN m.clinica_id IS NULL THEN 1 ELSE 0 END AS avulso, "
         f"       r.nome AS radiologiaNome, COUNT(a.id) AS totalExames, "
         f"       COALESCE(SUM(te.valor_base),0) AS faturamento "
         f"FROM medicos m "
-        f"JOIN clinicas c ON c.id = m.clinica_id "
+        f"LEFT JOIN clinicas c ON c.id = m.clinica_id "          # ← LEFT JOIN
         f"JOIN agendamentos a ON a.medico_id = m.id "
         f"JOIN radiologias r ON r.id = a.radiologia_id "
         f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
@@ -2215,10 +2219,12 @@ def exames_destaques():
     rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
 
     med_dest = query(
-        f"SELECT m.nome AS nome, COUNT(a.id) AS totalExames, c.nome AS clinicaNome "
+        f"SELECT m.nome AS nome, COUNT(a.id) AS totalExames, "
+        f"       COALESCE(c.nome, '—') AS clinicaNome, "
+        f"       CASE WHEN m.clinica_id IS NULL THEN 1 ELSE 0 END AS avulso "
         f"FROM agendamentos a "
         f"JOIN medicos m ON m.id = a.medico_id "
-        f"JOIN clinicas c ON c.id = m.clinica_id "
+        f"LEFT JOIN clinicas c ON c.id = m.clinica_id "          # ← LEFT JOIN
         f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a} "
         f"GROUP BY m.id, m.nome, c.nome ORDER BY totalExames DESC LIMIT 1",
         [di, df] + rad_params_a, fetch="one"
@@ -2421,13 +2427,15 @@ def comissoes_por_medico():
         cli_sql = " AND m.clinica_id = %s"; cli_params = [clinica_id]
 
     rows = query(
-        f"SELECT m.id AS medicoId, m.nome AS medicoNome, c.nome AS clinicaNome, "
+        f"SELECT m.id AS medicoId, m.nome AS medicoNome, "
+        f"       COALESCE(c.nome, '—') AS clinicaNome, "
+        f"       CASE WHEN m.clinica_id IS NULL THEN 1 ELSE 0 END AS avulso, "
         f"       r.nome AS radiologiaNome, COALESCE(SUM(e.valor),0) AS faturamento, "
         f"       COALESCE(SUM(co.valor_comissao),0) AS comissaoDevida, "
         f"       COALESCE(SUM(CASE WHEN co.status='paga' THEN co.valor_comissao ELSE 0 END),0) AS comissaoPaga, "
         f"       COALESCE(SUM(CASE WHEN co.status='pendente' THEN co.valor_comissao ELSE 0 END),0) AS comissaoPendente "
         f"FROM medicos m "
-        f"JOIN clinicas c ON c.id = m.clinica_id "
+        f"LEFT JOIN clinicas c ON c.id = m.clinica_id "          # ← LEFT JOIN
         f"JOIN exames e ON e.medico_id = m.id "
         f"JOIN radiologias r ON r.id = e.radiologia_id "
         f"LEFT JOIN comissoes co ON co.exame_id = e.id "
@@ -2661,10 +2669,13 @@ def financeiro_snapshot():
         })
 
     top_med = query(
-        f"SELECT m.nome, c.nome AS clinica, COUNT(a.id) AS exames, "
+        f"SELECT m.nome, "
+        f"       COALESCE(c.nome, '—') AS clinica, "
+        f"       CASE WHEN m.clinica_id IS NULL THEN 1 ELSE 0 END AS avulso, "
+        f"       COUNT(a.id) AS exames, "
         f"       COALESCE(SUM(te.valor_base),0) AS faturamento "
         f"FROM medicos m "
-        f"JOIN clinicas c ON c.id = m.clinica_id "
+        f"LEFT JOIN clinicas c ON c.id = m.clinica_id "          # ← LEFT JOIN
         f"JOIN agendamentos a ON a.medico_id = m.id "
         f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
         f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a} "
@@ -3023,10 +3034,13 @@ def financeiro_top_medicos():
     rad_sql_a, rad_params_a = _filtro_radiologia_sql(radiologia_id, alias="a")
 
     rows = query(
-        f"SELECT m.nome, c.nome AS clinica, COUNT(a.id) AS exames, "
+        f"SELECT m.nome, "
+        f"       COALESCE(c.nome, '—') AS clinica, "
+        f"       CASE WHEN m.clinica_id IS NULL THEN 1 ELSE 0 END AS avulso, "
+        f"       COUNT(a.id) AS exames, "
         f"       COALESCE(SUM(te.valor_base),0) AS faturamento "
         f"FROM medicos m "
-        f"JOIN clinicas c ON c.id = m.clinica_id "
+        f"LEFT JOIN clinicas c ON c.id = m.clinica_id "          # ← LEFT JOIN
         f"JOIN agendamentos a ON a.medico_id = m.id "
         f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
         f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a} "
@@ -3243,6 +3257,21 @@ def financeiro_hierarquia():
                 ],
             })
 
+        # ── Médicos avulsos (sem clínica vinculada) ──────────────────────────────
+        avulsos_rows = query(
+            "SELECT m.id AS medicoId, m.nome AS medicoNome, "
+            "       COUNT(a.id) AS totalExames, "
+            "       COALESCE(SUM(te.valor_base), 0) AS faturamento "
+            "FROM medicos m "
+            "JOIN agendamentos a ON a.medico_id = m.id "
+            "       AND a.radiologia_id = %s AND a.status='realizado' "
+            "       AND a.data_agendamento BETWEEN %s AND %s "
+            "JOIN tipos_exame te ON te.id = a.tipo_exame_id "
+            "WHERE m.clinica_id IS NULL "
+            "GROUP BY m.id, m.nome ORDER BY faturamento DESC",
+            (radiologia_id, di, df)
+        ) or []
+
         # Principais tipos de exame desta radiologia
         tags_rad_rows = query(
             "SELECT te.label "
@@ -3263,6 +3292,7 @@ def financeiro_hierarquia():
             "variacao":       variacao_percentual(fat_v, fat_a_v),
             "tags":           rad_tags,
             "clinicas":       clinicas,
+            "avulsos":      avulsos_rows,
         })
 
     return ok(resultado)
