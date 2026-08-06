@@ -218,9 +218,8 @@
 
 .fin-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-4);
-  justify-content: center;
 }
 
 .fin-kpi-card {
@@ -4076,6 +4075,16 @@ td.td-change {
   color: var(--color-primary-dark);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+
+/* Subtítulo fixo abaixo do footer de um KPI — sem badge de variação */
+.fin-kpi-card__subtitle-fixed {
+  font-size: 0.6875rem;
+  color: var(--color-text-subtle);
+  line-height: 1.4;
+  margin: 0;
+  position: relative;
+  z-index: 1;
 }
 
 /* Estado vazio da lista */

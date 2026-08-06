@@ -56,6 +56,7 @@
       monoFamily: "'IBM Plex Mono', monospace",
     },
     periods: {
+      dia: 'Hoje',
       mes_atual: 'Mês Atual',
       ultimos_30: 'Últimos 30 Dias',
       trimestre: 'Trimestre',
@@ -109,10 +110,10 @@
      4. HELPERS
   =========================================================== */
   const H = {
-    /** Formata número como moeda BRL */
+    /** Formata número como moeda BRL — sempre com centavos */
     currency(val) {
       if (val === null || val === undefined) return 'R$ --';
-      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val);
+      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
     },
 
     /** Formata número com casas decimais */
@@ -1109,16 +1110,32 @@
       const customWrap = document.getElementById('customRangeInputs');
       if (!sel) return;
 
+      // Sincroniza State com o valor inicial do select (evita dessincronismo no primeiro render)
+      State.periodo = sel.value;
+      if (customWrap) customWrap.hidden = sel.value !== 'custom';
+
       sel.addEventListener('change', () => {
         State.periodo = sel.value;
         if (customWrap) customWrap.hidden = sel.value !== 'custom';
+        // Limpa datas customizadas ao sair do modo custom
+        if (sel.value !== 'custom') {
+          State.customStart = null;
+          State.customEnd = null;
+        }
         onFiltersChange();
       });
 
       const startEl = document.getElementById('customDateStart');
       const endEl = document.getElementById('customDateEnd');
-      if (startEl) startEl.addEventListener('change', () => { State.customStart = startEl.value; onFiltersChange(); });
-      if (endEl) endEl.addEventListener('change', () => { State.customEnd = endEl.value; onFiltersChange(); });
+      if (startEl) startEl.addEventListener('change', () => {
+        State.customStart = startEl.value;
+        // Só dispara se ambas as datas estiverem preenchidas
+        if (State.customEnd) onFiltersChange();
+      });
+      if (endEl) endEl.addEventListener('change', () => {
+        State.customEnd = endEl.value;
+        if (State.customStart) onFiltersChange();
+      });
     }
 
     function onFiltersChange() {
@@ -1221,8 +1238,7 @@
       if (kpiRev) {
         setField(kpiRev, '[data-field="value"]', H.currency(ft.value ?? 0));
         setFieldHTML(kpiRev, '[data-field="change"]', H.changeBadge(ft.changeMonth ?? 0));
-        const yoy = ft.changeYoY ?? 0;
-        setField(kpiRev, '[data-field="yoy"]', `${yoy > 0 ? '+' : ''}${yoy}% vs. mesmo mês ano passado`);
+        // yoy removido — subtítulo fixo no HTML substitui essa linha
       }
 
       const fl = kpi.faturamentoLiquido || {};
@@ -1288,13 +1304,7 @@
         setFieldHTML(kpiEx, '[data-field="change"]', H.changeBadge(te.changeMonth ?? 0));
       }
 
-      const pv = kpi.previsao30d || {};
-      const kpiFc = document.getElementById('kpiForecast');
-      if (kpiFc) {
-        setField(kpiFc, '[data-field="value"]', H.currency(pv.value ?? 0));
-        setField(kpiFc, '[data-field="context30"]', `${H.currency(pv.value ?? 0)} próximos 30 dias`);
-        setField(kpiFc, '[data-field="forecast60"]', `${H.currency(pv.forecast60d ?? 0)} próximos 60 dias`);
-      }
+      
     }
 
     /* ----- Insights ----- */
