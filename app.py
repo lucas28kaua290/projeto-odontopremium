@@ -2749,9 +2749,10 @@ def financeiro_snapshot():
 
     def _fat(d1, d2):
         r = query(
-            f"SELECT COALESCE(SUM(te.valor_base),0) AS t, COUNT(a.id) AS c "
+            f"SELECT COALESCE(SUM("
+            f"    COALESCE(a.pagamento_valor_1, 0) + COALESCE(a.pagamento_valor_2, 0)"
+            f"), 0) AS t, COUNT(a.id) AS c "
             f"FROM agendamentos a "
-            f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
             f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a}",
             [d1, d2] + rad_params_a, fetch="one"
         )
