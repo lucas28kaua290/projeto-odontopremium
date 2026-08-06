@@ -2670,15 +2670,16 @@ def financeiro_conferencia_caixa():
     )
 
     LABELS = {
-        "pix":           "PIX",
-        "especie":       "Espécie",
-        "dinheiro":      "Espécie",
-        "cartao":        "Cartão",
-        "credito":       "Cartão Crédito",
-        "debito":        "Cartão Débito",
-        "boleto":        "Boleto",
-        "transferencia": "Transferência",
-        "cheque":        "Cheque",
+        "pix":            "PIX",
+        "especie":        "Espécie",
+        "dinheiro":       "Espécie",
+        "cartao":         "Cartão",
+        "credito":        "Cartão Crédito",
+        "debito":         "Cartão Débito",
+        "boleto":         "Boleto",
+        "transferencia":  "Transferência",
+        "cheque":         "Cheque",
+        "odonto_premium": "Odonto Premium",
     }
 
     totais: dict[str, float] = {}
