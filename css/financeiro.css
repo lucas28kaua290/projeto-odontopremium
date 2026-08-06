@@ -3910,16 +3910,16 @@ td.td-change {
   font-variant-numeric: tabular-nums;
 }
 
-/* Painel direito: substitui split-panel--highlights padrão.
-   Grid de cards de forma, não lista vertical. */
 .split-panel--highlights-caixa {
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--space-3);
   align-content: start;
+  align-self: start;
   padding-left: var(--space-5);
   border-left: 1px solid var(--color-border);
-  overflow-y: auto;
-  max-height: 500px;   /* era 420px — dá espaço para 2 linhas de cards com 5 formas */
+  overflow-y: visible;
+  max-height: none;
 }
 
 /* ── Card de forma de pagamento ─────────────────────────── */
