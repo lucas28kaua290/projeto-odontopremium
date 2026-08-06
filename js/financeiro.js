@@ -557,15 +557,15 @@
       // GRÁFICO: Conferência de Caixa (doughnut de formas de pagamento)
       // ------------------------------------------------------------------
       else if (canvasId === 'caixaPizzaChart') {
-        const p      = tooltip.dataPoints[0];
-        const val    = p.raw;
-        const color  = p.dataset.backgroundColor instanceof Array
+        const p = tooltip.dataPoints[0];
+        const val = p.raw;
+        const color = p.dataset.backgroundColor instanceof Array
           ? p.dataset.backgroundColor[p.dataIndex]
           : p.dataset.backgroundColor;
-        const cd     = State._caixaData || {};
-        const total  = cd.totalGeral || cd.formas?.reduce((s, f) => s + f.valor, 0) || 0;
-        const pct    = total > 0 ? (val / total * 100) : 0;
-        const forma  = cd.formas?.[p.dataIndex] || {};
+        const cd = State._caixaData || {};
+        const total = cd.totalGeral || cd.formas?.reduce((s, f) => s + f.valor, 0) || 0;
+        const pct = total > 0 ? (val / total * 100) : 0;
+        const forma = cd.formas?.[p.dataIndex] || {};
 
         html = `
             <div class="cjs-tooltip__eyebrow">Conferência de Caixa</div>
@@ -1127,15 +1127,26 @@
 
       const startEl = document.getElementById('customDateStart');
       const endEl = document.getElementById('customDateEnd');
-      if (startEl) startEl.addEventListener('change', () => {
-        State.customStart = startEl.value;
-        // Só dispara se ambas as datas estiverem preenchidas
-        if (State.customEnd) onFiltersChange();
-      });
-      if (endEl) endEl.addEventListener('change', () => {
-        State.customEnd = endEl.value;
-        if (State.customStart) onFiltersChange();
-      });
+
+      function applyCustomRange() {
+        const start = startEl?.value;
+        const end = endEl?.value;
+        if (!start || !end) return;          // aguarda as duas datas
+        if (start > end) return;             // intervalo inválido — ignora silenciosamente
+        State.customStart = start;
+        State.customEnd = end;
+        onFiltersChange();
+      }
+
+      // 'change' cobre teclado e picker nativo; 'blur' garante o "clicou fora"
+      if (startEl) {
+        startEl.addEventListener('change', applyCustomRange);
+        startEl.addEventListener('blur', applyCustomRange);
+      }
+      if (endEl) {
+        endEl.addEventListener('change', applyCustomRange);
+        endEl.addEventListener('blur', applyCustomRange);
+      }
     }
 
     function onFiltersChange() {
@@ -1304,7 +1315,7 @@
         setFieldHTML(kpiEx, '[data-field="change"]', H.changeBadge(te.changeMonth ?? 0));
       }
 
-      
+
     }
 
     /* ----- Insights ----- */
@@ -1686,15 +1697,15 @@
     /* ----- Conferência de Caixa ----- */
     // Paleta alinhada com CFG.colors + SERIES_COLORS existentes
     const CAIXA_COLORS = {
-      pix:           CFG.colors.primary,       // #018093
-      especie:       CFG.colors.positive,      // #0E8F63
-      dinheiro:      CFG.colors.positive,      // alias espécie
-      cartao:        '#7B68EE',                // SERIES_COLORS[3]
-      credito:       '#7B68EE',
-      debito:        CFG.colors.primaryLight,  // #01C6BF
-      boleto:        CFG.colors.textSubtle,    // #8B9C9F
+      pix: CFG.colors.primary,       // #018093
+      especie: CFG.colors.positive,      // #0E8F63
+      dinheiro: CFG.colors.positive,      // alias espécie
+      cartao: '#7B68EE',                // SERIES_COLORS[3]
+      credito: '#7B68EE',
+      debito: CFG.colors.primaryLight,  // #01C6BF
+      boleto: CFG.colors.textSubtle,    // #8B9C9F
       transferencia: '#F5A623',               // SERIES_COLORS[2]
-      cheque:        '#E05C5C',               // SERIES_COLORS[4]
+      cheque: '#E05C5C',               // SERIES_COLORS[4]
     };
 
     // Formata "2025-07-18" → "18/07" (compacto para a mini-lista)
@@ -1706,15 +1717,15 @@
 
     function renderConferenciaCaixa(data) {
       const totalEl = document.getElementById('caixaTotalGeral');
-      const panel   = document.getElementById('caixaFormasPanel');
-      const canvas  = document.getElementById('caixaPizzaChart');
+      const panel = document.getElementById('caixaFormasPanel');
+      const canvas = document.getElementById('caixaPizzaChart');
 
       if (!totalEl || !panel || !canvas) return;
 
       // ── Estado vazio ────────────────────────────────────────────
       if (!data || !data.formas || data.formas.length === 0) {
         totalEl.textContent = H.currency(0);
-        panel.innerHTML     = '<div class="caixa-empty">Nenhum pagamento registrado no período.</div>';
+        panel.innerHTML = '<div class="caixa-empty">Nenhum pagamento registrado no período.</div>';
         H.destroyChart('caixaPizzaChart');
         return;
       }
@@ -1726,8 +1737,8 @@
 
       // ── Grid de cards ────────────────────────────────────────────
       panel.innerHTML = formas.map(f => {
-        const cor    = CAIXA_COLORS[f.forma] || CFG.colors.textSubtle;
-        const itens  = f.itens || [];
+        const cor = CAIXA_COLORS[f.forma] || CFG.colors.textSubtle;
+        const itens = f.itens || [];
 
         // Mini-lista: itens individuais (scroll interno)
         const listaHtml = itens.length > 0
