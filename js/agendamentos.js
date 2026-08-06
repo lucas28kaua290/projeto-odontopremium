@@ -408,11 +408,6 @@ const Kpis = (() => {
     kpiHoje.querySelector('[data-field="context"]').textContent =
       `${confirmadosHoje} confirmados · ${pendentesHoje} pendentes`;
 
-    const faturamentoPrevisto = agendamentos
-      .filter(a => a.status === 'confirmado' || a.status === 'realizado')
-      .reduce((s, a) => s + (Number(a.valor) || 0), 0);
-    document.getElementById('kpiFaturamentoPrevisto')
-      .querySelector('[data-field="value"]').textContent = formatCurrency(faturamentoPrevisto);
 
     const kpiExames = document.getElementById('kpiExamesAgendados');
     kpiExames.querySelector('[data-field="value"]').textContent = formatNumber(total);
@@ -1812,12 +1807,20 @@ const KanbanView = (() => {
     col.className = 'kanban-column';
     col.dataset.status = columnDef.id;
 
+    const totalValor = agendamentosDaColuna.reduce((s, a) => s + (Number(a.valor) || 0), 0);
+    const totalFormatado = totalValor > 0
+      ? totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+      : null;
+
     col.innerHTML = `
       <div class="kanban-column__head">
         <span class="kanban-column__title">
           <span class="kanban-column__dot"></span>${columnDef.label}
         </span>
-        <span class="kanban-column__count">${agendamentosDaColuna.length}</span>
+        <div class="kanban-column__meta">
+          <span class="kanban-column__count">${agendamentosDaColuna.length}</span>
+          ${totalFormatado ? `<span class="kanban-column__total">${totalFormatado}</span>` : ''}
+        </div>
       </div>
       <div class="kanban-column__body" data-status="${columnDef.id}"></div>
     `;

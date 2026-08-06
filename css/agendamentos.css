@@ -1800,12 +1800,12 @@ input:focus-visible {
    3. KPIs
 ============================================================= */
 .kpi-grid--agenda {
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
 }
 
 @media (max-width: 1440px) {
   .kpi-grid--agenda {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -2356,6 +2356,22 @@ input:focus-visible {
   border-radius: 999px;
   min-width: 28px;
   text-align: center;
+}
+
+/* wrapper lado direito do header: badge de qtd + total em R$ */
+.kanban-column__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kanban-column__total {
+  font-size: 0.6875rem;          /* 11px — menor que o count */
+  font-weight: var(--fw-semibold);
+  font-family: var(--font-mono);
+  color: var(--color-text-subtle);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 .kanban-column__body {
