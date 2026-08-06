@@ -1117,14 +1117,13 @@
       sel.addEventListener('change', () => {
         State.periodo = sel.value;
         if (customWrap) customWrap.hidden = sel.value !== 'custom';
-        // Limpa datas customizadas ao sair do modo custom
         if (sel.value !== 'custom') {
           State.customStart = null;
           State.customEnd = null;
+          onFiltersChange(); // só dispara quando não é custom
         }
-        onFiltersChange();
+        // quando é 'custom', quem dispara é o applyCustomRange
       });
-
       const startEl = document.getElementById('customDateStart');
       const endEl = document.getElementById('customDateEnd');
 
@@ -1149,8 +1148,14 @@
         onFiltersChange();
       }
 
-      if (startEl) startEl.addEventListener('change', applyCustomRange);
-      if (endEl) endEl.addEventListener('change', applyCustomRange);
+      if (startEl) {
+        startEl.addEventListener('change', applyCustomRange);
+        startEl.addEventListener('input', applyCustomRange);
+      }
+      if (endEl) {
+        endEl.addEventListener('change', applyCustomRange);
+        endEl.addEventListener('input', applyCustomRange);
+      }
     }
 
     function onFiltersChange() {
