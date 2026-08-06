@@ -4012,7 +4012,7 @@ td.td-change {
 .caixa-forma-card__body {
   overflow-y: auto;
   /* Mostra exatamente 3 linhas; a 4ª já aparece com scroll */
-  max-height: calc(3 * 33px);   /* ≈ 99px — ajuste fino se mudar o padding da row */
+  max-height: calc(4 * 33px);   /* ≈ 99px — ajuste fino se mudar o padding da row */
   flex: 0 0 auto;               /* não estica além das 3 linhas */
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
@@ -4116,7 +4116,7 @@ td.td-change {
 
   /* Mantém o mesmo teto de 3 linhas em mobile/tablet */
   .caixa-forma-card__body {
-    max-height: calc(3 * 33px);
+    max-height: calc(4 * 33px);
   }
 }
 
