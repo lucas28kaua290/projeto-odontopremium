@@ -2547,9 +2547,9 @@ def financeiro_kpis():
 
     def _fat(d_ini, d_fim):
         r = query(
-            f"SELECT COALESCE(SUM(te.valor_base),0) AS t, COUNT(a.id) AS c "
+            f"SELECT COALESCE(SUM(COALESCE(a.pagamento_valor_1,0) + COALESCE(a.pagamento_valor_2,0)),0) AS t, "
+            f"COUNT(a.id) AS c "
             f"FROM agendamentos a "
-            f"JOIN tipos_exame te ON te.id = a.tipo_exame_id "
             f"WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a}",
             [d_ini, d_fim] + rad_params_a, fetch="one"
         )
@@ -2581,9 +2581,9 @@ def financeiro_kpis():
 
     fat_med_cli = query(
         f"SELECT COALESCE(AVG(sub.fat),0) AS avg_fat "
-        f"FROM (SELECT a.clinica_id, SUM(te.valor_base) AS fat "
+        f"FROM (SELECT a.clinica_id, "
+        f"      SUM(COALESCE(a.pagamento_valor_1,0) + COALESCE(a.pagamento_valor_2,0)) AS fat "
         f"      FROM agendamentos a "
-        f"      JOIN tipos_exame te ON te.id = a.tipo_exame_id "
         f"      WHERE a.status='realizado' AND a.data_agendamento BETWEEN %s AND %s {rad_sql_a} "
         f"      GROUP BY a.clinica_id) sub",
         [di, df] + rad_params_a, fetch="one"

@@ -153,7 +153,7 @@ const Kpis = (() => {
   }
 
   function setKpisLoading() {
-    ['kpiRevenue', 'kpiExams', 'kpiAvgPerClinic', 'kpiCashForecast', 'kpiTicketMedio'].forEach((id) => {
+    ['kpiRevenue', 'kpiExams', 'kpiCashForecast', 'kpiTicketMedio'].forEach((id) => {
       const el = document.getElementById(id);
       if (!el) return;
       const val = el.querySelector('[data-field="value"]');
@@ -181,12 +181,6 @@ const Kpis = (() => {
         renderChangeEl(kpiExams.querySelector('[data-field="change"]'), data.examesVariacao);
       }
 
-      const kpiAvg = document.getElementById('kpiAvgPerClinic');
-      if (kpiAvg) {
-        kpiAvg.querySelector('[data-field="value"]').textContent = formatCurrency(data.faturamentoMedioPorClinica);
-        kpiAvg.querySelector('[data-field="context"]').textContent =
-          `${data.clinicasAtivas} clínica${data.clinicasAtivas > 1 ? 's' : ''} referenciadora${data.clinicasAtivas > 1 ? 's' : ''} ativa${data.clinicasAtivas > 1 ? 's' : ''}`;
-      }
 
       const kpiCash = document.getElementById('kpiCashForecast');
       if (kpiCash) {
@@ -201,7 +195,7 @@ const Kpis = (() => {
       }
     } catch (e) {
       console.error('[Kpis] Erro ao carregar KPIs financeiros:', e);
-      ['kpiRevenue', 'kpiExams', 'kpiAvgPerClinic', 'kpiCashForecast', 'kpiTicketMedio'].forEach((id) => {
+      ['kpiRevenue', 'kpiExams', 'kpiCashForecast', 'kpiTicketMedio'].forEach((id) => {
         const el = document.getElementById(id);
         if (!el) return;
         const val = el.querySelector('[data-field="value"]');
