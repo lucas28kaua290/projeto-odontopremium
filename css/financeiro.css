@@ -3913,15 +3913,13 @@ td.td-change {
 /* Painel direito: substitui split-panel--highlights padrão.
    Grid de cards de forma, não lista vertical. */
 .split-panel--highlights-caixa {
-  /* Sobrescreve o grid 1fr 1fr do split-panel--highlights genérico */
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: var(--space-3);
   align-content: start;
   padding-left: var(--space-5);
   border-left: 1px solid var(--color-border);
-  /* Permite scroll vertical se os cards ultrapassarem a altura da pizza */
   overflow-y: auto;
-  max-height: 420px;
+  max-height: 500px;   /* era 420px — dá espaço para 2 linhas de cards com 5 formas */
 }
 
 /* ── Card de forma de pagamento ─────────────────────────── */

@@ -2694,7 +2694,7 @@ def financeiro_conferencia_caixa():
         # Parte 1
         forma1 = (row.get("pagamento_forma_1") or "").strip().lower()
         val1   = to_decimal(row.get("pagamento_valor_1"))
-        if forma1 and val1 > 0:
+        if forma1 and val1 >= 0:                           # >= 0: aceita Odonto Premium com valor zero
             totais[forma1] = totais.get(forma1, 0.0) + val1
             itens.setdefault(forma1, []).append({
                 "data":    data,
@@ -2707,7 +2707,7 @@ def financeiro_conferencia_caixa():
         if tipo == "dividido":
             forma2 = (row.get("pagamento_forma_2") or "").strip().lower()
             val2   = to_decimal(row.get("pagamento_valor_2"))
-            if forma2 and val2 > 0:
+            if forma2 and val2 >= 0:                       # >= 0: aceita Odonto Premium com valor zero
                 totais[forma2] = totais.get(forma2, 0.0) + val2
                 itens.setdefault(forma2, []).append({
                     "data":    data,

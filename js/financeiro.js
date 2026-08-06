@@ -1668,15 +1668,16 @@
     /* ----- Conferência de Caixa ----- */
     // Paleta alinhada com CFG.colors + SERIES_COLORS existentes
     const CAIXA_COLORS = {
-      pix: CFG.colors.primary,       // #018093
-      especie: CFG.colors.positive,      // #0E8F63
-      dinheiro: CFG.colors.positive,      // alias espécie
+      pix: CFG.colors.primary,          // #018093
+      especie: CFG.colors.positive,     // #0E8F63
+      dinheiro: CFG.colors.positive,    // alias espécie
       cartao: '#7B68EE',                // SERIES_COLORS[3]
       credito: '#7B68EE',
       debito: CFG.colors.primaryLight,  // #01C6BF
       boleto: CFG.colors.textSubtle,    // #8B9C9F
-      transferencia: '#F5A623',               // SERIES_COLORS[2]
-      cheque: '#E05C5C',               // SERIES_COLORS[4]
+      transferencia: '#F5A623',         // SERIES_COLORS[2]
+      cheque: '#E05C5C',                // SERIES_COLORS[4]
+      odonto_premium: '#C084FC',        // roxo suave — Odonto Premium (Dr. Iago)
     };
 
     // Formata "2025-07-18" → "18/07" (compacto para a mini-lista)
