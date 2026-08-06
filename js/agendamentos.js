@@ -176,7 +176,7 @@ const Filters = (() => {
     { id: 'esta_semana', label: 'Esta Semana' },
     { id: 'este_mes', label: 'Este Mês' },
     { id: 'proximos_30', label: 'Próximos 30 dias' },
-    { id: 'todos', label: 'Todos' },
+    { id: 'todos', label: 'Ano Atual' },
     { id: 'custom', label: 'Personalizado' },
   ];
 
@@ -279,8 +279,8 @@ const DateUtils = (() => {
       case 'proximos_30': return { start: hoje, end: addDays(hoje, 30) };
       case 'todos': {
         return {
-          start: addDays(hoje, -90),
-          end: addDays(hoje, 90)
+          start: new Date(hoje.getFullYear(), 0, 1),   // 1º jan ano atual
+          end: new Date(hoje.getFullYear(), 11, 31)  // 31 dez ano atual
         };
       }
       case 'custom': {
