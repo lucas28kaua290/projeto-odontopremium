@@ -919,7 +919,7 @@ const AppointmentModal = (() => {
       agendamento.observacoes || 'Nenhuma observação registrada.';
 
     /* Pagamento */
-    const FORMAS = { especie: 'Espécie', pix: 'PIX', cartao: 'Cartão', plano: 'Plano' };
+    const FORMAS = { especie: 'Espécie', pix: 'PIX', cartao: 'Cartão', plano: 'Plano', odonto_premium: 'Odonto Premium' };
     const pTipo = agendamento.pagamentoTipo;
     const pForma1 = FORMAS[agendamento.pagamentoForma1] || agendamento.pagamentoForma1 || null;
     const pVal1 = agendamento.pagamentoValor1 != null ? parseFloat(agendamento.pagamentoValor1) : null;
