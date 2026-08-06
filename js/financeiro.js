@@ -1131,22 +1131,26 @@
       function applyCustomRange() {
         const start = startEl?.value;
         const end = endEl?.value;
-        if (!start || !end) return;          // aguarda as duas datas
-        if (start > end) return;             // intervalo inválido — ignora silenciosamente
-        State.customStart = start;
-        State.customEnd = end;
+
+        // Salva parcialmente o que já foi preenchido
+        State.customStart = start || null;
+        State.customEnd = end || null;
+
+        // Só dispara o re-render quando as duas datas estão presentes e válidas
+        if (!start || !end) return;
+        if (new Date(start) > new Date(end)) {
+          // Intervalo inválido: feedback visual leve, sem travar
+          if (endEl) endEl.setCustomValidity('Data final deve ser igual ou posterior à inicial');
+          return;
+        }
+
+        // Intervalo válido: limpa aviso e renderiza
+        if (endEl) endEl.setCustomValidity('');
         onFiltersChange();
       }
 
-      // 'change' cobre teclado e picker nativo; 'blur' garante o "clicou fora"
-      if (startEl) {
-        startEl.addEventListener('change', applyCustomRange);
-        startEl.addEventListener('blur', applyCustomRange);
-      }
-      if (endEl) {
-        endEl.addEventListener('change', applyCustomRange);
-        endEl.addEventListener('blur', applyCustomRange);
-      }
+      if (startEl) startEl.addEventListener('change', applyCustomRange);
+      if (endEl) endEl.addEventListener('change', applyCustomRange);
     }
 
     function onFiltersChange() {
