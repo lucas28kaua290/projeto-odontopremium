@@ -1116,46 +1116,8 @@
 
       sel.addEventListener('change', () => {
         State.periodo = sel.value;
-        if (customWrap) customWrap.hidden = sel.value !== 'custom';
-        if (sel.value !== 'custom') {
-          State.customStart = null;
-          State.customEnd = null;
-          onFiltersChange(); // só dispara quando não é custom
-        }
-        // quando é 'custom', quem dispara é o applyCustomRange
-      });
-      const startEl = document.getElementById('customDateStart');
-      const endEl = document.getElementById('customDateEnd');
-
-      function applyCustomRange() {
-        const start = startEl?.value;
-        const end = endEl?.value;
-
-        // Salva parcialmente o que já foi preenchido
-        State.customStart = start || null;
-        State.customEnd = end || null;
-
-        // Só dispara o re-render quando as duas datas estão presentes e válidas
-        if (!start || !end) return;
-        if (new Date(start) > new Date(end)) {
-          // Intervalo inválido: feedback visual leve, sem travar
-          if (endEl) endEl.setCustomValidity('Data final deve ser igual ou posterior à inicial');
-          return;
-        }
-
-        // Intervalo válido: limpa aviso e renderiza
-        if (endEl) endEl.setCustomValidity('');
         onFiltersChange();
-      }
-
-      if (startEl) {
-        startEl.addEventListener('change', applyCustomRange);
-        startEl.addEventListener('input', applyCustomRange);
-      }
-      if (endEl) {
-        endEl.addEventListener('change', applyCustomRange);
-        endEl.addEventListener('input', applyCustomRange);
-      }
+      });
     }
 
     function onFiltersChange() {
