@@ -343,7 +343,7 @@ const AgendaData = (() => {
 ================================================================= */
 const Kpis = (() => {
   function formatCurrency(v) {
-    return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+    return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
   function formatNumber(v) { return v.toLocaleString('pt-BR'); }
 
@@ -1809,7 +1809,7 @@ const KanbanView = (() => {
 
     const totalValor = agendamentosDaColuna.reduce((s, a) => s + (Number(a.valor) || 0), 0);
     const totalFormatado = totalValor > 0
-      ? totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+      ? totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })
       : null;
 
     col.innerHTML = `
